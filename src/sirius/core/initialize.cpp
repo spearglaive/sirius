@@ -49,7 +49,7 @@ namespace acma {
 
 
 		//Set validation layer names
-		constexpr static std::array<const std::string_view, 1> validation_layers = {
+		[[maybe_unused]] constexpr static std::array<const std::string_view, 1> validation_layers = {
 			"VK_LAYER_KHRONOS_validation"
 		};
 
