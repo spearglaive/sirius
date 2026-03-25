@@ -12,5 +12,6 @@ layout(location = 0) out vec4 color_out;
 
 
 void main() {
+    //color_out = vec4(uv_in.x, uv_in.y, 1.0, 0.0);
     color_out = texture(nonuniformEXT(sampler2D(textures[0], samplers[0])), uv_in);
 }

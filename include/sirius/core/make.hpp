@@ -3,13 +3,13 @@
 #include "sirius/core/error.hpp"
 
 namespace acma::impl {
-    template<typename T, typename U, typename... Args>
-    concept result_constructible = requires { {T::create(std::declval<Args>()...)} noexcept -> std::same_as<result<U>>; };
+    //template<typename T, typename U, typename... Args>
+    //concept result_constructible = requires { {T::create(std::declval<Args>()...)} noexcept -> std::same_as<result<U>>; };
 }
 
 
 namespace acma {
-    template<typename T, typename U = T, typename... Args> requires impl::result_constructible<T, U, Args...>
+    template<typename T, typename U = T, typename... Args>// requires impl::result_constructible<T, U, Args...>
     inline result<U> make(Args&&... args) noexcept {
         /*constexpr bool dependent = requires { T::dependent_handle; };
         if constexpr(dependent) {

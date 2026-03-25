@@ -36,15 +36,24 @@ namespace acma::decoder {
 
         //TODO: compressed format transcoding
         const bool transcoded = ktxTexture2_NeedsTranscoding(ktx_ptr.get());
-        if (transcoded) __D2D_KTX_VERIFY(ktxTexture2_TranscodeBasis(ktx_ptr.get(), KTX_TTF_RGBA32, 0));
+        if (transcoded) 
+			__D2D_KTX_VERIFY(ktxTexture2_TranscodeBasis(ktx_ptr.get(), KTX_TTF_RGBA32, 0));
 
-		std::vector<sl::byte> bytes(ktx_ptr->dataSize);
-		std::memcpy(bytes.data(), ktx_ptr->pData, ktx_ptr->dataSize);
+
+		const sl::size_t data_size = ktxTexture_GetDataSizeUncompressed(ktxTexture(ktx_ptr.get()));
+		std::unique_ptr<sl::byte[]> bytes = std::make_unique_for_overwrite<sl::byte[]>(data_size);
+
+		//ktxTexture2_TranscodeBasis already loads the image, so calling ktxTexture2_LoadImageData afterwards will fail
+		if(transcoded)
+			std::memcpy(bytes.get(), ktxTexture_GetData(ktxTexture(ktx_ptr.get())), data_size);
+		else 
+			__D2D_KTX_VERIFY(ktxTexture2_LoadImageData(ktx_ptr.get(), reinterpret_cast<ktx_uint8_t*>(bytes.get()), data_size));
+		
 
 		sl::array<max_mip_levels, sl::uoffset_t> mip_offsets;
-		for(sl::index_t i = 0; i < std::min(static_cast<ktx_uint32_t>(max_mip_levels), ktx_ptr->numLevels); ++i)
+		for(sl::index_t i = 0; i < std::min(static_cast<ktx_uint32_t>(max_mip_levels), ktx_ptr->numLevels); ++i) {
 			__D2D_KTX_VERIFY(ktxTexture2_GetImageOffset(ktx_ptr.get(), i, 0, 0, &mip_offsets[i]));
-
+		}
 
 		return texture{
 			texture_info{
@@ -58,7 +67,8 @@ namespace acma::decoder {
 				.usage = usage,
 				.mip_offsets = mip_offsets
 			},
-			sl::move(bytes)
+			sl::move(bytes),
+			data_size
 		};
 	}
 

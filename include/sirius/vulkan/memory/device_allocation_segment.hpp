@@ -214,6 +214,8 @@ namespace acma::vk {
 		using base_type::allocation_count;
 
 	public:
+		constexpr void clear() noexcept;
+	public:
 		constexpr result<void> push_back(texture_view t) noexcept;
 
 		constexpr result<void> try_push_back(texture_view t) noexcept;

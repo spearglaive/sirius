@@ -223,7 +223,10 @@ int main(){
 	//Textures
 	llfio::mapped_file_handle texture_mh;
 	RESULT_TRY_MOVE(texture_mh, acma::decoder::open_file(assets_path / "test_img_alpha_2.ktx2"));
-	RESULT_TRY_MOVE_UNSCOPED(const acma::texture sampled_t, acma::decoder::decode_texture(texture_mh, acma::texture_usage::sampled), sampled_tex_result);
+	RESULT_TRY_MOVE_UNSCOPED(const acma::texture sampled_tex, acma::decoder::decode_texture(texture_mh, acma::texture_usage::sampled), sampled_tex_result);
+	llfio::mapped_file_handle font_mh;
+	RESULT_TRY_MOVE(font_mh, acma::decoder::open_file(assets_path / "test_font.ktx2"));
+	RESULT_TRY_MOVE_UNSCOPED(const acma::texture font_tex, acma::decoder::decode_texture(font_mh, acma::texture_usage::sampled), font_text_result);
 	//RESULT_TRY_MOVE_UNSCOPED(const acma::texture storage_t, acma::decoder::decode_texture(texture_mh, acma::texture_usage::storage), storage_tex_result);
 
 
@@ -244,17 +247,20 @@ int main(){
         .compareEnable           = VK_FALSE,
         .compareOp               = VK_COMPARE_OP_NEVER,
         .minLod                  = 0.0f,
-	    .maxLod                  = static_cast<float>(sampled_t.mip_level_count),
+	    .maxLod                  = static_cast<float>(sampled_tex.mip_level_count),
         .borderColor             = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK,
         .unnormalizedCoordinates = VK_FALSE,
 	};
 	RESULT_VERIFY(sl::universal::get<asset_heap_id::graphics>(inst).push_back(sl::move(sampler_info)));
 
 
-	RESULT_VERIFY(sl::universal::get<buffer_id::texture_staging>(inst).push_back(sampled_t));
+	RESULT_VERIFY(sl::universal::get<buffer_id::texture_staging>(inst).push_back(sampled_tex));
 	//RESULT_VERIFY(sl::universal::get<buffer_id::texture_staging>(inst).push_back(storage_t));
-
 	RESULT_VERIFY(sl::universal::get<asset_heap_id::graphics>(inst).emplace_back(sl::universal::get<buffer_id::texture_staging>(inst)));
+
+	sl::universal::get<buffer_id::texture_staging>(inst).clear();
+
+	RESULT_VERIFY(sl::universal::get<buffer_id::texture_staging>(inst).push_back(font_tex));
 	RESULT_VERIFY(sl::universal::get<asset_heap_id::graphics>(inst).emplace_back(sl::universal::get<buffer_id::texture_staging>(inst)));
 
 

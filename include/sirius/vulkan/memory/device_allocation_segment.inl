@@ -211,6 +211,18 @@ namespace acma::vk {
 	requires (
 		static_cast<bool>(impl::device_allocation_segment_base<I, N, BufferConfigs, RenderProcessT>::config.usage & (buffer_usage_policy::texture_data))
 	)
+	constexpr void    device_allocation_segment<I, N, BufferConfigs, RenderProcessT>::
+	clear() noexcept {
+		base_type::clear();
+		texture_data_infos.clear();
+	}
+}
+
+namespace acma::vk {
+	template<sl::index_t I, sl::size_t N, buffer_config_table<N> BufferConfigs, typename RenderProcessT>
+	requires (
+		static_cast<bool>(impl::device_allocation_segment_base<I, N, BufferConfigs, RenderProcessT>::config.usage & (buffer_usage_policy::texture_data))
+	)
 	constexpr result<void>    device_allocation_segment<I, N, BufferConfigs, RenderProcessT>::
 	push_back(texture_view t) noexcept {
 		const sl::size_t old_size = this->size_bytes();

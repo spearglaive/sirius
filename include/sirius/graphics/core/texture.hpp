@@ -8,11 +8,12 @@
 
 namespace acma {
 	struct texture : texture_info {
-		std::vector<sl::byte> bytes;
+		std::unique_ptr<sl::byte[]> bytes;
+		sl::size_t bytes_count;
 
 	public:
 		constexpr operator texture_view() const& noexcept {
-			return {*this, {bytes.data(), bytes.size()}};
+			return {*this, {bytes.get(), bytes_count}};
 		};
 	};
 }
