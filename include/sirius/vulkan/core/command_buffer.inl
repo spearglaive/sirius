@@ -161,6 +161,9 @@ namespace acma::vk {
 
 		if constexpr(config.usage & buffer_usage_policy::uniform) {
 			constexpr buffer_key_t key = sl::universal::get<sl::first_constant>(*std::next(BufferConfigs.begin(), I));
+			using pipeline_layout_type = pipeline_layout<shader_stage::all_graphics, T, BufferConfigs, AssetHeapConfigs>;
+			static_assert(pipeline_layout_type::uniform_buffer_binding_indices.contains(key));
+
 			const VkDescriptorBufferInfo buffer_info{
 				.buffer = static_cast<VkBuffer>(buff),
 				.offset = 0,
@@ -169,7 +172,7 @@ namespace acma::vk {
 			const VkWriteDescriptorSet write{
 				.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
 				.pNext = nullptr,
-				.dstBinding = decltype(layout)::uniform_buffer_indices[key],
+				.dstBinding = pipeline_layout_type::uniform_buffer_binding_indices[key],
 				.descriptorCount = 1,
 				.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 				.pBufferInfo = &buffer_info

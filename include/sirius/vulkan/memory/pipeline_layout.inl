@@ -17,15 +17,18 @@ namespace acma::vk {
         pipeline_layout ret{};
         ret.dependent_handle = logi_device;
 
-
-		using push_constant_usage_filtered_sequence = sl::filtered_sequence_t<sl::remove_cvref_t<decltype(T::buffers)>, []<buffer_key_t K>(buffer_key_constant_type<K>) noexcept { 
-			constexpr buffer_config cfg = BufferConfigs[K];
-			return cfg.usage == buffer_usage_policy::push_constant && (cfg.stages & Stages);
-		}>;
+		using push_constant_usage_filtered_sequence = sl::filtered_sequence_t<
+			sl::index_sequence_of_length_type<decltype(T::buffers)::size()>,
+			[]<sl::index_t I>(sl::index_constant_type<I>) noexcept { 
+				constexpr buffer_key_t key = sl::universal::get<I>(T::buffers);
+				constexpr buffer_config cfg = BufferConfigs[key];
+				return cfg.usage == buffer_usage_policy::push_constant && (cfg.stages & Stages);
+			}
+		>;
 		constexpr auto push_constant_ranges = sl::make<sl::array<push_constant_usage_filtered_sequence::size(), VkPushConstantRange>>(
-			BufferConfigs, 
-			[](auto pair, auto) noexcept -> VkPushConstantRange {
-				const buffer_config cfg = pair[sl::second_constant];
+			T::buffers,
+			[](buffer_key_t key, auto) noexcept -> VkPushConstantRange {
+				const buffer_config cfg = BufferConfigs[key];
 				return {cfg.stages, 0, static_cast<std::uint32_t>(cfg.initial_capacity_bytes)};
 			},
 			push_constant_usage_filtered_sequence{}
