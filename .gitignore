@@ -12,4 +12,5 @@ _deps
 build/
 .cache/
 .vscode/
+.renderdoc/
 test/assets/
