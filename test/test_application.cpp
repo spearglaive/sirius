@@ -129,13 +129,19 @@ int main(){
 		&acma::timeline::predefined_callbacks::update_swap_extent<render_instance, buffer_id::draw_constants>
 	);
 
+
+	auto& staging_buffer = sl::universal::get<buffer_id::staging>(inst);
+
 	//Set dispatch commands
+	{
 	RESULT_VERIFY((sl::universal::get<buffer_id::dispatch_commands>(inst).template try_emplace_back<VkDispatchIndirectCommand>(
 		1, 1, 1
 	)));
+	}
 
 
 	//Set initial draw commads
+	{
 	RESULT_VERIFY(sl::universal::get<buffer_id::draw_commands>(inst).reserve(sizeof(acma::indexed_draw_command_t))); //Should do nothing
 	RESULT_VERIFY((sl::universal::get<buffer_id::draw_commands>(inst).template try_emplace_back<acma::indexed_draw_command_t>(
 		6, 3, 0, 0, 0
@@ -145,79 +151,94 @@ int main(){
 	)));
 
 
-	RESULT_VERIFY((sl::universal::get<buffer_id::staging>(inst).template emplace_back<acma::indexed_draw_command_t>(
+	RESULT_VERIFY((staging_buffer.template emplace_back<acma::indexed_draw_command_t>(
 		6, 1, 0, 0, 0
 	)));
 
 	RESULT_VERIFY(sl::universal::get<buffer_id::single_instance_draw_command>(inst).resize(sizeof(acma::indexed_draw_command_t)));
 	RESULT_VERIFY((acma::copy(
 		sl::universal::get<buffer_id::single_instance_draw_command>(inst),
-		sl::universal::get<buffer_id::staging>(inst),
+		staging_buffer,
 		sizeof(acma::indexed_draw_command_t)
 	)));
-	sl::universal::get<buffer_id::staging>(inst).clear();
+	staging_buffer.clear();
+	}
 
 
 
 
 	//Set rectangle indices
-	RESULT_VERIFY(sl::universal::get<buffer_id::staging>(inst).resize(rect_indices.size_bytes()));
-	std::memcpy(sl::universal::get<buffer_id::staging>(inst).data(), rect_indices.data(), rect_indices.size_bytes());
+	{
+	RESULT_VERIFY(staging_buffer.resize(rect_indices.size_bytes()));
+	std::memcpy(staging_buffer.data(), rect_indices.data(), rect_indices.size_bytes());
 	
-	RESULT_VERIFY(sl::universal::get<buffer_id::rectangle_indices>(inst).resize(rect_indices.size_bytes()));
+	
+	RESULT_VERIFY(staging_buffer.upload_to(sl::universal::get<buffer_id::rectangle_indices>(inst)));
 
-	RESULT_VERIFY((acma::copy(
-		sl::universal::get<buffer_id::rectangle_indices>(inst),
-		sl::universal::get<buffer_id::staging>(inst),
-		rect_indices.size_bytes()
-	)));
-	sl::universal::get<buffer_id::staging>(inst).clear();
+	//Equivalent to:
+	// RESULT_VERIFY(sl::universal::get<buffer_id::rectangle_indices>(inst).resize(rect_indices.size_bytes()));
+
+	// RESULT_VERIFY((acma::copy(
+	// 	sl::universal::get<buffer_id::rectangle_indices>(inst),
+	// 	staging_buffer,
+	// 	rect_indices.size_bytes()
+	// )));
+	// staging_buffer.clear();
+	}
 
 
 	//Set rectangle positions
-	RESULT_VERIFY(sl::universal::get<buffer_id::staging>(inst).resize(rect_positions.size_bytes()));
-	std::memcpy(sl::universal::get<buffer_id::staging>(inst).data(), rect_positions.data(), rect_positions.size_bytes());
+	{
+	RESULT_VERIFY(staging_buffer.resize(rect_positions.size_bytes()));
+	std::memcpy(staging_buffer.data(), rect_positions.data(), rect_positions.size_bytes());
 
 	RESULT_VERIFY(sl::universal::get<buffer_id::positions>(inst).resize((sizeof(acma::pt2u32) * 16 * 16) + 1));
 
 	RESULT_VERIFY((acma::copy(
 		sl::universal::get<buffer_id::positions>(inst),
-		sl::universal::get<buffer_id::staging>(inst),
+		staging_buffer,
 		rect_positions.size_bytes()
 	)));
-	sl::universal::get<buffer_id::staging>(inst).clear();
+	staging_buffer.clear();
+	}
 
 
 	//Set draw count
+	{
 	constexpr sl::uint32_t rect_limit{250};
 	//RESULT_VERIFY((sl::universal::get<buffer_id::counts>(inst).try_push_back(
 	//	rect_limit
 	//)));
-	RESULT_VERIFY((sl::universal::get<buffer_id::staging>(inst).try_push_back(
+	RESULT_VERIFY((staging_buffer.try_push_back(
 		rect_limit
 	)));
-	RESULT_VERIFY(sl::universal::get<buffer_id::counts>(inst).try_resize(sizeof(sl::uint32_t) + sizeof(acma::draw_count_t)));
-	RESULT_VERIFY((acma::copy(
-		sl::universal::get<buffer_id::counts>(inst),
-		sl::universal::get<buffer_id::staging>(inst),
-		sizeof(decltype(rect_limit)),
-		sizeof(acma::draw_count_t)
-	)));
-	sl::universal::get<buffer_id::staging>(inst).clear();
+	RESULT_VERIFY(staging_buffer.try_upload_to(sl::universal::get<buffer_id::counts>(inst), sizeof(acma::draw_count_t)));
+	//Equivalent to:
+	// RESULT_VERIFY(sl::universal::get<buffer_id::counts>(inst).try_resize(sizeof(sl::uint32_t) + sizeof(acma::draw_count_t)));
+	// RESULT_VERIFY((acma::copy(
+	// 	sl::universal::get<buffer_id::counts>(inst),
+	// 	staging_buffer,
+	// 	sizeof(decltype(rect_limit)),
+	// 	sizeof(acma::draw_count_t)
+	// )));
+	// staging_buffer.clear();
+	}
 
 	//Set offset
+	{
 	constexpr sl::uint32_t offset{2};
-	//std::memcpy(sl::universal::get<buffer_id::staging>(inst).data(), zeros.data(), sl::universal::get<buffer_id::staging>(inst).capacity_bytes());
-	RESULT_VERIFY((sl::universal::get<buffer_id::staging>(inst).try_push_back(
+	//std::memcpy(staging_buffer.data(), zeros.data(), staging_buffer.capacity_bytes());
+	RESULT_VERIFY((staging_buffer.try_push_back(
 		offset
 	)));
 	RESULT_VERIFY(sl::universal::get<buffer_id::offset>(inst).resize(sizeof(decltype(offset))));
 	RESULT_VERIFY((acma::copy(
 		sl::universal::get<buffer_id::offset>(inst),
-		sl::universal::get<buffer_id::staging>(inst),
+		staging_buffer,
 		sizeof(decltype(offset))
 	)));
-	sl::universal::get<buffer_id::staging>(inst).clear();
+	staging_buffer.clear();
+	}
 
 
 	//Textures

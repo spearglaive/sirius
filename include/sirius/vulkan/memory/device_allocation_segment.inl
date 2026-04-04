@@ -110,6 +110,40 @@ namespace acma::vk {
 		!(impl::device_allocation_segment_base<I, N, BufferConfigs, RenderProcessT>::config.usage & (buffer_usage_policy::texture_data)) &&
 		impl::device_allocation_segment_base<I, N, BufferConfigs, RenderProcessT>::config.memory != memory_policy::gpu_local
 	)
+	template<sl::index_t J>
+	constexpr result<void>    device_allocation_segment<I, N, BufferConfigs, RenderProcessT>::
+	upload_to(device_allocation_segment<J, N, BufferConfigs, RenderProcessT>& dst, sl::uoffset_t dst_offset) noexcept {
+		RESULT_VERIFY(dst.resize(dst_offset + this->size_bytes()));
+		
+		RenderProcessT& proc = static_cast<RenderProcessT&>(dst);
+		RESULT_VERIFY(proc.template copy<J>(*this, this->size_bytes(), dst_offset, 0));
+		this->clear();
+		return {};
+	}
+
+	template<sl::index_t I, sl::size_t N, buffer_config_table<N> BufferConfigs, typename RenderProcessT>
+	requires(
+		!(impl::device_allocation_segment_base<I, N, BufferConfigs, RenderProcessT>::config.usage & (buffer_usage_policy::texture_data)) &&
+		impl::device_allocation_segment_base<I, N, BufferConfigs, RenderProcessT>::config.memory != memory_policy::gpu_local
+	)
+	template<sl::index_t J>
+	constexpr result<void>    device_allocation_segment<I, N, BufferConfigs, RenderProcessT>::
+	try_upload_to(device_allocation_segment<J, N, BufferConfigs, RenderProcessT>& dst, sl::uoffset_t dst_offset) noexcept {
+		RESULT_VERIFY(dst.try_resize(dst_offset + this->size_bytes()));
+		
+		RenderProcessT& proc = static_cast<RenderProcessT&>(dst);
+		RESULT_VERIFY(proc.template copy<J>(*this, this->size_bytes(), dst_offset, 0));
+		this->clear();
+		return {};
+	}
+}
+
+namespace acma::vk {
+	template<sl::index_t I, sl::size_t N, buffer_config_table<N> BufferConfigs, typename RenderProcessT>
+	requires(
+		!(impl::device_allocation_segment_base<I, N, BufferConfigs, RenderProcessT>::config.usage & (buffer_usage_policy::texture_data)) &&
+		impl::device_allocation_segment_base<I, N, BufferConfigs, RenderProcessT>::config.memory != memory_policy::gpu_local
+	)
 	template<typename T>
 	constexpr result<void>    device_allocation_segment<I, N, BufferConfigs, RenderProcessT>::
 	push_back(T&& t) 

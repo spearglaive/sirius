@@ -163,6 +163,18 @@ namespace acma::vk {
 		// 	!(device_allocation_segment<I, N, BufferConfigs, RenderProcessT>::config.usage & (buffer_usage_policy::texture_data)) &&
 		// 	device_allocation_segment<I, N, BufferConfigs, RenderProcessT>::config.memory != memory_policy::gpu_local
 		// );
+	public:
+		template<sl::index_t J>
+		constexpr result<void> upload_to(
+			device_allocation_segment<J, N, BufferConfigs, RenderProcessT>& dst,
+			sl::uoffset_t dst_offset = 0
+		) noexcept;
+
+		template<sl::index_t J>
+		constexpr result<void> try_upload_to(
+			device_allocation_segment<J, N, BufferConfigs, RenderProcessT>& dst,
+			sl::uoffset_t dst_offset = 0
+		) noexcept;
 
 	public:
 		template<typename T>
