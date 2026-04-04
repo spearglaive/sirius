@@ -18,7 +18,7 @@ namespace acma {
 		static_assert(
 			memory_policy::is_cpu_writable(allocation_segment_type<SrcI>::config.memory) || 
 			!memory_policy::is_cpu_visible(allocation_segment_type<SrcI>::config.memory),
-			"Copy from cpu_local_gpu_write buffer to a gpu_local buffer is not allowed."
+			"Copy from cpu_local_gpu_writable buffer to a gpu_local buffer is not allowed."
 		);
 		allocation_segment_type<DstI>& dst = static_cast<allocation_segment_type<DstI>&>(*this);
 
@@ -93,7 +93,7 @@ namespace acma {
 	) {
 		static_assert(
 			memory_policy::is_cpu_writable(allocation_segment_type<SrcI>::config.memory),
-			"Copy from a cpu-visible buffer to a cpu_local_gpu_write buffer is not allowed."
+			"Copy from a cpu-visible buffer to a cpu_local_gpu_writable buffer is not allowed."
 		);
 		allocation_segment_type<DstI>& dst = static_cast<allocation_segment_type<DstI>&>(*this);
 		std::memcpy(dst.data() + dst_offset, src.data() + src_offset, size);

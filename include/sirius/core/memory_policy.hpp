@@ -10,8 +10,8 @@ namespace acma {
 	namespace memory_policy {
     enum : memory_policy_t {
         gpu_local, 
-        cpu_local_cpu_write, 
-		cpu_local_gpu_write,
+        cpu_local_cpu_writable, 
+		cpu_local_gpu_writable,
         shared,
         push_constant,
 
@@ -29,11 +29,11 @@ namespace acma::impl {
 	template<> inline 
 	constexpr VkMemoryPropertyFlags flags_for<memory_policy::gpu_local> = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 	template<> inline 
-	constexpr VkMemoryPropertyFlags flags_for<memory_policy::cpu_local_cpu_write> = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+	constexpr VkMemoryPropertyFlags flags_for<memory_policy::cpu_local_cpu_writable> = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 	template<> inline 
-	constexpr VkMemoryPropertyFlags flags_for<memory_policy::cpu_local_gpu_write> = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
+	constexpr VkMemoryPropertyFlags flags_for<memory_policy::cpu_local_gpu_writable> = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
 	template<> inline 
-	constexpr VkMemoryPropertyFlags flags_for<memory_policy::shared> = flags_for<memory_policy::gpu_local> | flags_for<memory_policy::cpu_local_cpu_write>;
+	constexpr VkMemoryPropertyFlags flags_for<memory_policy::shared> = flags_for<memory_policy::gpu_local> | flags_for<memory_policy::cpu_local_cpu_writable>;
 }
 
 namespace acma {
@@ -43,7 +43,7 @@ namespace acma {
 		}
 
 		constexpr bool is_cpu_writable(memory_policy_t mp) noexcept {
-			return is_cpu_visible(mp) && mp != memory_policy::cpu_local_gpu_write;
+			return is_cpu_visible(mp) && mp != memory_policy::cpu_local_gpu_writable;
 		}
 	}
 }

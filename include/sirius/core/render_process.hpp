@@ -134,7 +134,7 @@ namespace acma {
 
 	public:
 		//Any buffer to gpu_local buffer
-		//(cpu_local_gpu_write buffer to gpu_local buffer not allowed?)
+		//(cpu_local_gpu_writable buffer to gpu_local buffer not allowed?)
 		template<sl::size_t DstI, sl::size_t SrcI>
 		constexpr result<void> copy(
 			allocation_segment_type<SrcI> const& src,
@@ -147,7 +147,7 @@ namespace acma {
 		);
 
 		//Any host-visible buffer to any other host-visible buffer
-		//(Any host-visible buffer to cpu_local_gpu_write buffer not allowed)
+		//(Any host-visible buffer to cpu_local_gpu_writable buffer not allowed)
 		template<sl::size_t DstI, sl::size_t SrcI>
 		constexpr result<void> copy(
 			allocation_segment_type<SrcI> const& src,
@@ -161,7 +161,7 @@ namespace acma {
 		);
 
 
-		//gpu_local buffer to cpu_local_gpu_write buffer
+		//gpu_local buffer to cpu_local_gpu_writable buffer
 		//(gpu_local buffer to cpu_local_upload buffer not allowed)
 
 	public:
