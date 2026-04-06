@@ -99,8 +99,9 @@ namespace acma::timeline {
 		return cmd_buff.submit(
 			CommandFamily,
 			{wait_semaphore_infos.data(), wait_seamphore_count},
-			{signal_semaphore_infos.data(), signal_semaphore_count}//,
-			//CommandFamily == command_family::graphics ? static_cast<VkFence>(proc.graphics_fences()[frame_idx]) : VK_NULL_HANDLE
+			{signal_semaphore_infos.data(), signal_semaphore_count},
+			VK_NULL_HANDLE,
+			timeline_state.queue_indices[CommandFamily]++
 		);
 	}
 }
@@ -173,7 +174,7 @@ namespace acma::timeline {
 			.pImageIndices = &timeline_state.image_index,
 		};
 		RESULT_TRY_COPY_UNSCOPED(bool swap_chain_updated, win.verify_swap_chain(
-			vkQueuePresentKHR(proc.logical_device_ptr()->queues[command_family::present], &present_info),
+			vkQueuePresentKHR(proc.logical_device_ptr()->queues[command_family::present][timeline_state.queue_indices[command_family::present]++], &present_info),
 			proc.logical_device_ptr(),
 			proc.physical_device_ptr(),
 			true

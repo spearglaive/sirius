@@ -49,8 +49,8 @@ namespace acma::vk {
     	inline result<void> end() const noexcept;
 
     	inline result<void> reset() const noexcept;
-    	inline result<void> submit(command_family_t family, std::span<const semaphore_submit_info> wait_semaphore_infos = {}, std::span<const semaphore_submit_info> signal_semaphore_infos = {}, VkFence out_fence = VK_NULL_HANDLE) const noexcept;
-    	inline result<void> wait(command_family_t family) const noexcept;
+    	inline result<void> submit(command_family_t family, std::span<const semaphore_submit_info> wait_semaphore_infos = {}, std::span<const semaphore_submit_info> signal_semaphore_infos = {}, VkFence out_fence = VK_NULL_HANDLE, sl::uint32_t queue_idx = 0) const noexcept;
+    	inline result<void> wait(command_family_t family, sl::uint32_t queue_idx = 0) const noexcept;
     	inline void free() const noexcept;
 		
 		

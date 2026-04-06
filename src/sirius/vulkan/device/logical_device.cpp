@@ -7,24 +7,28 @@ namespace acma::vk {
     result<logical_device> logical_device::create(physical_device* associated_phys_device, bool windowing) noexcept {
 		const sl::size_t queue_create_info_count = command_family::num_distinct_families + static_cast<sl::size_t>(windowing);
 
+		if(associated_phys_device->max_queue_count == 0)
+			return errc::vulkan_device_lost;
+
         //Create desired queues for each queue family
-        constexpr static float priority = 1.f;
         std::array<VkDeviceQueueCreateInfo, command_family::num_families> queue_create_infos{};
 		std::unordered_map<sl::uint32_t, bool> duplicate_index{};
+		std::unique_ptr<float[]> priorities = std::make_unique<float[]>(associated_phys_device->max_queue_count);
+		priorities[0] = 1.f;
+
 		sl::uint32_t queue_create_count = 0;
         for(std::size_t i = 0; i < queue_create_info_count; ++i) {
-			const sl::uint32_t index = associated_phys_device->queue_family_infos[i].index;
-			if(duplicate_index[index])
+			const sl::uint32_t queue_family_index = associated_phys_device->queue_family_infos[i].index;
+			if(duplicate_index[queue_family_index])
 				continue;
-            VkDeviceQueueCreateInfo queue_create_info{
+            queue_create_infos[i] = VkDeviceQueueCreateInfo{
                 .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-                .queueFamilyIndex = index,
-                .queueCount = 1,
-                .pQueuePriorities = &priority,
+                .queueFamilyIndex = queue_family_index,
+                .queueCount = associated_phys_device->queue_family_infos[i].queue_count,
+                .pQueuePriorities = priorities.get(),
             };
-			duplicate_index[index] = true;
-            queue_create_infos[i] = queue_create_info;
 			++queue_create_count;
+			duplicate_index[queue_family_index] = true;
         }
 
         //Set desired features
@@ -97,8 +101,12 @@ namespace acma::vk {
 
 
         //Create queues
-        for(std::size_t i = 0; i < queue_create_info_count; ++i)
-            vkGetDeviceQueue(ret.handle, associated_phys_device->queue_family_infos[i].index, 0, &ret.queues[i]);
+        for(std::size_t i = 0; i < queue_create_info_count; ++i) {
+			const sl::uint32_t queue_count = associated_phys_device->queue_family_infos[i].queue_count;
+			ret.queues[i].resize(queue_count);
+            for(sl::size_t j = 0; j < queue_count; ++j)
+				vkGetDeviceQueue(ret.handle, associated_phys_device->queue_family_infos[i].index, j, &ret.queues[i][j]);
+		}
 
 
 		//Load extended functions

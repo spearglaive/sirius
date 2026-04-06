@@ -53,7 +53,6 @@ namespace acma::vk {
 	private:
 		vulkan_functions_type vulkan_fns;
     public:
-        //May need to be per-window instead of per-device?
-        std::array<VkQueue, command_family::num_families> queues;
+        std::array<std::vector<VkQueue>, command_family::num_families> queues;
     };
 }

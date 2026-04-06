@@ -49,7 +49,13 @@ namespace acma::vk {
         return {};
     }
 
-    result<void> command_buffer::submit(command_family_t family, std::span<const semaphore_submit_info> wait_semaphore_infos, std::span<const semaphore_submit_info> signal_semaphore_infos, VkFence out_fence) const noexcept {
+    result<void> command_buffer::submit(
+		command_family_t family,
+		std::span<const semaphore_submit_info> wait_semaphore_infos,
+		std::span<const semaphore_submit_info> signal_semaphore_infos,
+		VkFence out_fence,
+		sl::uint32_t queue_idx
+	) const noexcept {
         VkCommandBufferSubmitInfo cmd_buff_info {
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
             .pNext = nullptr,
@@ -67,12 +73,14 @@ namespace acma::vk {
             .signalSemaphoreInfoCount = static_cast<std::uint32_t>(signal_semaphore_infos.size()),
             .pSignalSemaphoreInfos = signal_semaphore_infos.data(),
         };
-        __D2D_VULKAN_VERIFY(vkQueueSubmit2(logi_device_ptr->queues[family], 1, &submit_info, out_fence));
+		auto const& queues = logi_device_ptr->queues[family];
+        __D2D_VULKAN_VERIFY(vkQueueSubmit2(queues[queue_idx % queues.size()], 1, &submit_info, out_fence));
         return {};
     }
 
-    result<void> command_buffer::wait(command_family_t family) const noexcept {
-        __D2D_VULKAN_VERIFY(vkQueueWaitIdle(logi_device_ptr->queues[family]));
+    result<void> command_buffer::wait(command_family_t family, sl::uint32_t queue_idx) const noexcept {
+		auto const& queues = logi_device_ptr->queues[family];
+        __D2D_VULKAN_VERIFY(vkQueueWaitIdle(queues[queue_idx % queues.size()]));
         return {};
     }
 

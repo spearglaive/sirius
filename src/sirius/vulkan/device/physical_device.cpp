@@ -3,6 +3,7 @@
 #include <cstring>
 #include <streamline/functional/functor/construct_using.hpp>
 #include <streamline/universal/make.hpp>
+#include <streamline/algorithm/minmax.hpp>
 
 #include "sirius/core/window.hpp"
 
@@ -86,8 +87,10 @@ namespace acma::vk {
             .queue_family_infos = sl::universal::make<sl::array<command_family::num_families, queue_family_info>>(
 				sl::in_place_tag,
 				false, 
-				nidx
+				nidx,
+				0
 			),
+			.max_queue_count = 0,
         };
         ret.handle = device_handle;
         return ret;
@@ -96,10 +99,12 @@ namespace acma::vk {
 
 	result<void> physical_device::initialize_queues(bool prefer_synchronous_rendering, bool window_capability) noexcept {
         //Get device queue family indicies
+		sl::uint32_t device_max_queue_count = 0;
         auto device_queue_family_infos = sl::universal::make<sl::array<command_family::num_families, queue_family_info>>(
 			sl::in_place_tag,
 			false, 
-			nidx
+			nidx,
+			0
 		);
         
 		{
@@ -122,16 +127,18 @@ namespace acma::vk {
 
         for(std::uint32_t idx = 0; idx < family_count; ++idx) {
             VkBool32 supports_present = false;
+			const sl::uint32_t queue_count = families[idx].queueCount;
+			device_max_queue_count = sl::algo::max(max_queue_count, queue_count);
 			if(window_capability) {
             	vkGetPhysicalDeviceSurfaceSupportKHR(handle, idx, dummy_window.surface(), &supports_present);
 				if(supports_present && (device_queue_family_infos[command_family::present].index == nidx || !prefer_synchronous_rendering)) 
-					device_queue_family_infos[command_family::present] = queue_family_info{true, idx};
+					device_queue_family_infos[command_family::present] = queue_family_info{true, idx, queue_count};
 			}
 
             for(std::size_t family_id = 0; family_id < command_family::num_distinct_families; ++family_id) {    
 				if(!(families[idx].queueFlags & flag_bit[family_id])) continue;
 				if(device_queue_family_infos[family_id].index != nidx && prefer_synchronous_rendering) continue;
-				device_queue_family_infos[family_id] = queue_family_info{static_cast<bool>(supports_present), idx};
+				device_queue_family_infos[family_id] = queue_family_info{static_cast<bool>(supports_present), idx, queue_count};
             }
         }
 		}
@@ -144,6 +151,7 @@ namespace acma::vk {
 				return static_cast<errc>(error::device_lacks_necessary_queue_base + i);
 
 		queue_family_infos = device_queue_family_infos;
+		max_queue_count = device_max_queue_count;
 		return {};
 	}
 }

@@ -75,7 +75,7 @@ int main(){
     const std::filesystem::path assets_path = std::filesystem::canonical(std::filesystem::path("../../test/assets"));
 	
 	acma::vk::physical_device& selected_device = *acma::devices().begin();
-    acma::result<render_instance> inst_result = acma::make<render_instance>(selected_device, true, acma::sz2u32{1600, 900});
+    acma::result<render_instance> inst_result = acma::make<render_instance>(selected_device, false, acma::sz2u32{1600, 900});
     if(!inst_result.has_value()) return inst_result.error();
     render_instance inst = *std::move(inst_result);
 

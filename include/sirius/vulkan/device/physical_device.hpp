@@ -63,6 +63,7 @@ namespace acma::vk {
 		sl::array<asset_group::num_asset_groups, asset_group_info> asset_group_infos{};
 		sl::array<descriptor_heap::num_descriptor_heaps, descriptor_heap_info> descriptor_heap_infos{};
         sl::array<command_family::num_families, queue_family_info> queue_family_infos{};
+		sl::uint32_t max_queue_count;
 
     public:
         constexpr friend std::strong_ordering operator<=>(const physical_device& a, const physical_device& b) noexcept;
