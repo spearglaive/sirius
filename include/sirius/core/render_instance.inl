@@ -69,6 +69,8 @@ namespace acma {
 		));
 		RESULT_VERIFY(static_cast<window&>(ret).initialize(ret.logi_device_ptr, ret.phys_device_ptr));
 
+        glfwSetWindowUserPointer(ret.window_handle.get(), ret.input_info_ptr.get());
+
 		//Create swap chain sempahores
 		ret._graphics_semaphores.reserve(ret._swap_chain.image_count());
 		ret._pre_present_semaphores.reserve(ret._swap_chain.image_count());

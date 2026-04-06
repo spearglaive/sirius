@@ -11,6 +11,6 @@ namespace acma::input {
 }
 
 namespace acma::input{
-    using generic_event_function = void(void*, combination, bool, categorized_event_t, mouse_aux_t, void*);
-    using text_event_function = void(void*, unsigned int);
+    using generic_event_function_type = void(void*, combination, bool, categorized_event_t, mouse_aux_t, void*);
+    using text_event_function_type = void(void*, unsigned int);
 }

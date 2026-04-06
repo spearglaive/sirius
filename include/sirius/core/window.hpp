@@ -4,17 +4,15 @@
 #include <memory>
 #include <string_view>
 #include <streamline/functional/functor/generic_stateless.hpp>
+#include <streamline/memory/unique_ptr.hpp>
 
 #include "sirius/core/render_instance.fwd.hpp"
 #include "sirius/core/window.fwd.hpp"
 #include "sirius/arith/size.hpp"
-#include "sirius/input/category.hpp"
 #include "sirius/input/code.hpp"
 #include "sirius/core/error.hpp"
 #include "sirius/input/event_function.hpp"
-#include "sirius/input/map_types.hpp"
-#include "sirius/input/modifier_flags.hpp"
-#include "sirius/vulkan/core/instance.hpp"
+#include "sirius/input/info.hpp"
 #include "sirius/vulkan/display/surface.hpp"
 #include "sirius/vulkan/display/swap_chain.hpp"
 #include "sirius/vulkan/display/depth_image.hpp"
@@ -24,8 +22,7 @@ namespace acma {
     class window {
 	public:
         constexpr window() noexcept :
-            category_flags(static_cast<input::category_flags_t>(0b1) << input::category::system),
-            active_bindings(), inactive_bindings(), event_fns(), text_input_fn(), modifier_flags{},
+			input_info_ptr(new input::info{.category_flags = static_cast<input::category_flags_t>(0b1) << input::category::system}),
 			window_handle(), _surface{}, _swap_chain{}, _depth_image{}, _size{} {}
 	public:
         inline static result<window> create(
@@ -53,12 +50,12 @@ namespace acma {
 		constexpr extent2 screen_size() const noexcept { return _size; }
     
 	public:
-        constexpr auto&& current_input_categories(this auto&& self) noexcept { return sl::forward_like<decltype(self)>(self.category_flags); }
-        constexpr auto&& input_active_bindings   (this auto&& self) noexcept { return sl::forward_like<decltype(self)>(self.active_bindings); }
-        constexpr auto&& input_inactive_bindings (this auto&& self) noexcept { return sl::forward_like<decltype(self)>(self.inactive_bindings); }
-        constexpr auto&& input_event_functions   (this auto&& self) noexcept { return sl::forward_like<decltype(self)>(self.event_fns); }
-        constexpr auto&& text_input_function     (this auto&& self) noexcept { return sl::forward_like<decltype(self)>(self.text_input_fn); }
-        constexpr auto&& input_modifier_flags    (this auto&& self) noexcept { return sl::forward_like<decltype(self)>(self.modifier_flags); }
+        constexpr auto&& current_input_categories(this auto&& self) noexcept { return sl::forward_like<decltype(self)>(self.input_info_ptr->category_flags); }
+        constexpr auto&& input_active_bindings   (this auto&& self) noexcept { return sl::forward_like<decltype(self)>(self.input_info_ptr->active_bindings); }
+        constexpr auto&& input_inactive_bindings (this auto&& self) noexcept { return sl::forward_like<decltype(self)>(self.input_info_ptr->inactive_bindings); }
+        constexpr auto&& input_event_functions   (this auto&& self) noexcept { return sl::forward_like<decltype(self)>(self.input_info_ptr->event_fns); }
+        constexpr auto&& text_input_function     (this auto&& self) noexcept { return sl::forward_like<decltype(self)>(self.input_info_ptr->text_input_fn); }
+        constexpr auto&& input_modifier_flags    (this auto&& self) noexcept { return sl::forward_like<decltype(self)>(self.input_info_ptr->modifier_flags); }
 
     private:
         inline static void process_input(GLFWwindow* window_ptr, input::code_t code, bool pressed, input::mouse_aux_t mouse_aux_data) noexcept;
@@ -77,15 +74,10 @@ namespace acma {
 		requires impl::is_buffer_config_table_v<decltype(BufferConfigs)>
 		friend class render_instance;
 		
-	private:
-        input::category_flags_t category_flags;
-        input::binding_map active_bindings;
-        input::binding_map inactive_bindings;
-        input::event_fns_map event_fns;
-        std::function<input::text_event_function> text_input_fn;
-        std::array<input::modifier_flags_t, input::num_codes> modifier_flags;
-    private:
+	protected:
+        sl::unique_ptr<input::info> input_info_ptr;
         std::unique_ptr<GLFWwindow, sl::functor::generic_stateless<glfwDestroyWindow>> window_handle;
+    private:
 		vk::surface _surface;
 		vk::swap_chain _swap_chain;
 		vk::depth_image _depth_image;

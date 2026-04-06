@@ -118,18 +118,17 @@ namespace acma {
 
 namespace acma {
     void window::process_input(GLFWwindow* window_ptr, input::code_t code, bool pressed, input::mouse_aux_t mouse_aux_data) noexcept {
-        auto window_info_it = input::impl::glfw_window_map().find(window_ptr);
-        if(window_info_it == input::impl::glfw_window_map().end()) [[unlikely]] return;
-        window* win_ptr = static_cast<window*>(window_info_it->second.window_ptr);
 
-        std::unique_lock<std::mutex> current_combo_lock(window_info_it->second.combo_mutex);
-        window_info_it->second.current_combo.main_input() = code;
-        window_info_it->second.current_combo.set(code, false);
-        input::combination combo = (win_ptr->input_modifier_flags()[code] & input::modifier_flags::no_modifiers_allowed) ? input::combination{{}, code} : window_info_it->second.current_combo;
-        window_info_it->second.current_combo.set(code, pressed);
+        input::info* input_info_ptr = static_cast<input::info*>(glfwGetWindowUserPointer(window_ptr));
+
+        std::unique_lock<std::mutex> current_combo_lock(input_info_ptr->current_combo_mutex);
+        input_info_ptr->current_combo.main_input() = code;
+        input_info_ptr->current_combo.set(code, false);
+        input::combination combo = (input_info_ptr->modifier_flags[code] & input::modifier_flags::no_modifiers_allowed) ? input::combination{{}, code} : input_info_ptr->current_combo;
+        input_info_ptr->current_combo.set(code, pressed);
         current_combo_lock.unlock();
         
-        input::binding_map const& bind_map = pressed ? win_ptr->input_active_bindings() : win_ptr->input_inactive_bindings();
+        input::binding_map const& bind_map = pressed ? input_info_ptr->active_bindings : input_info_ptr->inactive_bindings;
         auto event_set_it = bind_map.find(combo);
         if(event_set_it != bind_map.end()) goto invoke_event;
 
@@ -146,14 +145,14 @@ namespace acma {
         return;
         
     invoke_event:
-        input::category_flags_t category_flags = win_ptr->current_input_categories() & event_set_it->second.applicable_categories;
+        input::category_flags_t category_flags = input_info_ptr->category_flags & event_set_it->second.applicable_categories;
         //const unsigned long long category_flags = category_bitset.to_ullong();
         while(category_flags.any()) {
             input::category_id_t category_id = input::max_category_id - std::countl_zero(category_flags.to_ullong());
             input::event_id_t event_id = event_set_it->second.event_ids[category_id];
-            auto event_fn_it = win_ptr->input_event_functions().find(input::categorized_event_t{event_id, category_id});
-            if(event_fn_it != win_ptr->input_event_functions().end()) {
-                std::invoke(event_fn_it->second, win_ptr, combo, pressed, input::categorized_event_t{event_id, category_id}, mouse_aux_data, glfwGetWindowUserPointer(window_ptr));
+            auto event_fn_it = input_info_ptr->event_fns.find(input::categorized_event_t{event_id, category_id});
+            if(event_fn_it != input_info_ptr->event_fns.end()) {
+                std::invoke(event_fn_it->second, input_info_ptr, combo, pressed, input::categorized_event_t{event_id, category_id}, mouse_aux_data, glfwGetWindowUserPointer(window_ptr));
                 //return;
             }
             category_flags.reset(category_id);
@@ -163,6 +162,7 @@ namespace acma {
 
     void window::kb_key_input(GLFWwindow* window_ptr, int key, int, int action, int) noexcept {
         if(key == GLFW_KEY_UNKNOWN) return;
+		
         switch(action) {
         case GLFW_RELEASE:
         case GLFW_PRESS:
@@ -180,7 +180,7 @@ namespace acma {
         if(window_info_it == input::impl::glfw_window_map().end()) [[unlikely]] return;
         window* win_ptr = static_cast<window*>(window_info_it->second.window_ptr);
 
-        std::function<input::text_event_function> const& text_input_fn = win_ptr->text_input_function();
+        input::text_event_function_type* text_input_fn = win_ptr->text_input_function();
         if(!text_input_fn) return;
         thread_pool().detach_task(std::bind(text_input_fn, win_ptr, codepoint));
         //std::invoke(text_input_fn, win_ptr, codepoint);
