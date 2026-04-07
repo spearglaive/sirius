@@ -21,7 +21,6 @@
 #include "sirius/core/error.hpp"
 #include "sirius/core/thread_pool.hpp"
 #include "sirius/input/codes_map.hpp"
-#include "sirius/input/window_info.hpp"
 #include "sirius/timeline/state.hpp"
 #include "sirius/input/combination.hpp"
 #include "sirius/input/event_function.hpp"

@@ -21,7 +21,6 @@
 #include "sirius/core/error.hpp"
 #include "sirius/core/thread_pool.hpp"
 #include "sirius/input/codes_map.hpp"
-#include "sirius/input/window_info.hpp"
 #include "sirius/timeline/state.hpp"
 #include "sirius/input/combination.hpp"
 #include "sirius/input/event_function.hpp"
@@ -118,7 +117,6 @@ namespace acma {
 
 namespace acma {
     void window::process_input(GLFWwindow* window_ptr, input::code_t code, bool pressed, input::mouse_aux_t mouse_aux_data) noexcept {
-
         input::info* input_info_ptr = static_cast<input::info*>(glfwGetWindowUserPointer(window_ptr));
 
         std::unique_lock<std::mutex> current_combo_lock(input_info_ptr->current_combo_mutex);
@@ -176,13 +174,11 @@ namespace acma {
     }
 
     void window::kb_text_input(GLFWwindow* window_ptr, unsigned int codepoint) noexcept {
-        auto window_info_it = input::impl::glfw_window_map().find(window_ptr);
-        if(window_info_it == input::impl::glfw_window_map().end()) [[unlikely]] return;
-        window* win_ptr = static_cast<window*>(window_info_it->second.window_ptr);
+        input::info* input_info_ptr = static_cast<input::info*>(glfwGetWindowUserPointer(window_ptr));
 
-        input::text_event_function_type* text_input_fn = win_ptr->text_input_function();
+        input::text_event_function_type* text_input_fn = input_info_ptr->text_input_fn;
         if(!text_input_fn) return;
-        thread_pool().detach_task(std::bind(text_input_fn, win_ptr, codepoint));
+        thread_pool().detach_task(std::bind(text_input_fn, input_info_ptr, codepoint));
         //std::invoke(text_input_fn, win_ptr, codepoint);
     }
 
