@@ -1,11 +1,13 @@
 cmake_minimum_required(VERSION 3.15)
 
-project(sirius VERSION 1.0 LANGUAGES CXX)
+project(sirius VERSION 1.0.0 LANGUAGES CXX)
 string(TOUPPER ${PROJECT_NAME} PROJECT_NAME_UPPER)
 set(CMAKE_CXX_STANDARD 26)
 
 option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
 set(CMAKE_VERBOSE_MAKEFILE ON CACHE BOOL "ON")
+
+
 
 set(CPP_FILES
     core/initialize.cpp
@@ -41,14 +43,36 @@ list(TRANSFORM SHADER_INPUT_FILES REPLACE "\.[^.]*$" ".hpp" OUTPUT_VARIABLE SHAD
 list(TRANSFORM SHADER_OUTPUT_FILES PREPEND ${PROJECT_SOURCE_DIR}/include/${PROJECT_NAME}/)
 list(REMOVE_DUPLICATES SHADER_OUTPUT_FILES)
 
+
+set(PUBLIC_DEPENDENCIES
+	streamline
+	vulkan
+
+	glfw
+)
+set(MANUAL_PRIVATE_DEPENDENCIES
+	llfio
+	ktx
+)
+set(PRIVATE_DEPENDENCIES
+	#harfbuzz
+)
+list(TRANSFORM MANUAL_PRIVATE_DEPENDENCIES PREPEND -l)
+list(JOIN PUBLIC_DEPENDENCIES " " PUBLIC_DEPENDENCIES_LIST)
+list(JOIN PRIVATE_DEPENDENCIES " " PRIVATE_DEPENDENCIES_LIST)
+list(JOIN MANUAL_PRIVATE_DEPENDENCIES " " MANUAL_PRIVATE_DEPENDENCIES_LIST)
+string(REPLACE glfw glfw3 PUBLIC_DEPENDENCIES_LIST ${PUBLIC_DEPENDENCIES_LIST})
+
+
 add_library(${PROJECT_NAME} ${CPP_FILES})
 add_custom_target(${PROJECT_NAME}_shaders ALL DEPENDS ${SHADER_OUTPUT_FILES} SOURCES ${SHADER_INPUT_FILES})
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_shaders)
 
-## custom includes
-#find_package(PkgConfig REQUIRED)
-#pkg_check_modules(FT freetype2)
-#target_include_directories(${PROJECT_NAME} PUBLIC ${FT_INCLUDE_DIRS})
+## pkgconfig
+configure_file(
+	"pkgconfig/sirius.pc.in"
+    "pkgconfig/sirius.pc"
+@ONLY)
 
 
 ## compiler args
@@ -74,6 +98,9 @@ else() # gcc only
     # gcc has no "missing-designated-field-initializers" (https://gcc.gnu.org/bugzilla/show_bug.cgi?id=96868)
     target_compile_options(${PROJECT_NAME} PUBLIC "-Wno-missing-field-initializers")
 endif()
+
+target_link_libraries(${PROJECT_NAME} PUBLIC ${PUBLIC_DEPENDENCIES} PRIVATE ${PRIVATE_DEPENDENCIES} ${MANUAL_PRIVATE_DEPENDENCIES})
+
 
 
 get_target_property(COMPILER_FLAGS ${PROJECT_NAME} COMPILE_OPTIONS)
@@ -158,4 +185,4 @@ install(FILES "$<TARGET_FILE:${PROJECT_NAME}>" DESTINATION "${CMAKE_INSTALL_PREF
 #install(TARGETS ${PROJECT_NAME} CONFIGURATIONS Debug DESTINTATION "debug/usr/lib")
 install(DIRECTORY include/ DESTINATION include)
 install(DIRECTORY src/ DESTINATION src)
-
+install(DIRECTORY ${PROJECT_BINARY_DIR}/pkgconfig/ DESTINATION lib/pkgconfig)

@@ -1,0 +1,14 @@
+prefix=@CMAKE_INSTALL_PREFIX@
+exec_prefix=${prefix}
+includedir=${prefix}/include
+libdir=${exec_prefix}/lib
+
+Name: Sirius
+Description: A cross-platform, comprehensive graphics engine library designed to be efficient, adaptable, and easy to use.
+URL: https://github.com/spearglaive/sirius
+Version: @PROJECT_VERSION@
+Requires: @PUBLIC_DEPENDENCIES_LIST@
+Requires.private: @PRIVATE_DEPENDENCIES_LIST@
+Libs: -L${libdir} -lsirius
+Libs.private: @MANUAL_PRIVATE_DEPENDENCIES_LIST@
+Cflags: -I${includedir}
