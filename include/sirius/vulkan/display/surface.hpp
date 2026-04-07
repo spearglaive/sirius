@@ -4,6 +4,7 @@
 #include <memory>
 #include <vulkan/vulkan.h>
 
+#include "sirius/core/api.def.h"
 #include "sirius/vulkan/core/vulkan_ptr.hpp"
 #include "sirius/vulkan/core/instance.hpp"
 
@@ -11,7 +12,7 @@
 __D2D_DECLARE_VK_TRAITS_INST(VkSurfaceKHR);
 
 namespace acma::vk {
-    struct surface : vulkan_ptr_base<VkSurfaceKHR> {
+    struct SIRIUS_API surface : vulkan_ptr_base<VkSurfaceKHR> {
 		constexpr surface() noexcept = default;
         static result<surface> create(GLFWwindow* w) noexcept;
 

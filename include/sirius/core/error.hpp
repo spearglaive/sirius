@@ -13,6 +13,7 @@
 #include <frozen/unordered_map.h>
 #include <vulkan/vulkan.h>
 
+#include "sirius/core/api.def.h"
 #include "sirius/core/command_family.hpp"
 
 
@@ -668,7 +669,7 @@ namespace acma {
 namespace acma::error::impl {
     constexpr std::size_t glfw_desc_size = 1024; //_GLFW_MESSAGE_SIZE
 
-    inline std::array<char, impl::glfw_desc_size>& last_glfw_desc_array() noexcept {
+    SIRIUS_API inline std::array<char, impl::glfw_desc_size>& last_glfw_desc_array() noexcept {
         static std::array<char, impl::glfw_desc_size> last_glfw_char_arr{};
         return last_glfw_char_arr;
     }

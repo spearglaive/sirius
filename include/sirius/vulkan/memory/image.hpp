@@ -14,7 +14,7 @@
 __D2D_DECLARE_VK_TRAITS_DEVICE(VkImage);
 
 namespace acma::vk {
-    struct image : public vulkan_ptr<VkImage, vkDestroyImage> {
+    struct SIRIUS_API image : public vulkan_ptr<VkImage, vkDestroyImage> {
         static result<image> create(std::shared_ptr<logical_device> device, VkImageCreateInfo create_info) noexcept;
         
     public:

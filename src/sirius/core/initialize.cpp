@@ -115,8 +115,24 @@ namespace acma {
 }
 
 namespace acma {
-	void intitialize_lib() noexcept {
+	void terminate_lib() noexcept {
 		glfwTerminate();
 		vkDestroyInstance(vk::impl::vulkan_instance(), nullptr);
+	}
+}
+
+
+namespace acma {
+	std::vector<vk::physical_device>& devices() noexcept {
+		static std::vector<vk::physical_device> s{};
+		return s;
+	}
+}
+
+
+namespace acma::impl {
+	std::string& name() noexcept {
+		static std::string s{};
+		return s;
 	}
 }

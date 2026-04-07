@@ -2,6 +2,7 @@
 #include <memory>
 #include <set>
 
+#include "sirius/core/api.def.h"
 #include "sirius/core/version.hpp"
 #include "sirius/core/error.hpp"
 #include "sirius/vulkan/device/physical_device.hpp"
@@ -17,22 +18,15 @@ namespace acma::impl {
 
 
 namespace acma {
-	result<void> intitialize_lib(std::string_view app_name, version app_version) noexcept;
-	void terminate_lib() noexcept;
-}
-
-
-
-namespace acma::impl {
-	constexpr std::string& name() noexcept {
-		static std::string s{};
-		return s;
-	}
+	SIRIUS_API result<void> intitialize_lib(std::string_view app_name, version app_version) noexcept;
+	SIRIUS_API void terminate_lib() noexcept;
 }
 
 namespace acma {
-	inline std::vector<vk::physical_device>& devices() noexcept {
-		static std::vector<vk::physical_device> s{};
-		return s;
-	}
+	SIRIUS_API std::vector<vk::physical_device>& devices() noexcept;
+}
+
+
+namespace acma::impl {
+	SIRIUS_API std::string& name() noexcept;
 }

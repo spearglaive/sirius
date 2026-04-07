@@ -18,7 +18,7 @@ __D2D_DECLARE_VK_TRAITS_DEVICE(VkSwapchainKHR);
 
 
 namespace acma::vk {
-    struct swap_chain : vulkan_ptr<VkSwapchainKHR, vkDestroySwapchainKHR> {
+    struct SIRIUS_API swap_chain : vulkan_ptr<VkSwapchainKHR, vkDestroySwapchainKHR> {
 	public:
 		constexpr static std::array<vk::pixel_format_info, 2> default_pixel_format_priority = {vk::pixel_formats.find(VK_FORMAT_B8G8R8A8_SRGB)->second, vk::pixel_formats.find(VK_FORMAT_B8G8R8A8_UNORM)->second};
 		constexpr static vk::color_space_info default_color_space = vk::color_spaces.find(VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)->second;

@@ -5,6 +5,7 @@
 #include <vulkan/vulkan_core.h>
 #include <streamline/containers/array.hpp>
 
+#include "sirius/core/api.def.h"
 #include "sirius/core/command_family.hpp"
 #include "sirius/core/error.hpp"
 #include "sirius/vulkan/core/vulkan_ptr.hpp"
@@ -35,9 +36,9 @@ namespace acma::vk {
 
 namespace acma::vk {
     struct physical_device : vulkan_ptr_base<VkPhysicalDevice> {
-        static result<physical_device> create(VkPhysicalDevice& device_handle) noexcept;
+        SIRIUS_API static result<physical_device> create(VkPhysicalDevice& device_handle) noexcept;
 
-		result<void> initialize_queues(bool prefer_synchronous_rendering, bool window_capability) noexcept;
+		SIRIUS_API result<void> initialize_queues(bool prefer_synchronous_rendering, bool window_capability) noexcept;
 
 	private:
 		constexpr static sl::uint32_t nidx = (static_cast<std::uint32_t>(sl::npos) >> 1);
@@ -45,9 +46,9 @@ namespace acma::vk {
     public:
         template<device_query Query> typename device_query_traits<Query>::return_type query(surface const& s) const noexcept = delete;
 
-        template<> typename device_query_traits<device_query::surface_capabilites>::return_type query<device_query::surface_capabilites>(surface const& s) const noexcept;
-        template<> typename device_query_traits<device_query::display_formats    >::return_type query<device_query::display_formats    >(surface const& s) const noexcept;
-        template<> typename device_query_traits<device_query::present_modes      >::return_type query<device_query::present_modes      >(surface const& s) const noexcept;
+        template<> SIRIUS_API typename device_query_traits<device_query::surface_capabilites>::return_type query<device_query::surface_capabilites>(surface const& s) const noexcept;
+        template<> SIRIUS_API typename device_query_traits<device_query::display_formats    >::return_type query<device_query::display_formats    >(surface const& s) const noexcept;
+        template<> SIRIUS_API typename device_query_traits<device_query::present_modes      >::return_type query<device_query::present_modes      >(surface const& s) const noexcept;
 
         
     public:

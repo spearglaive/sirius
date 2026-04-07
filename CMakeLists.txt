@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.15)
 
 project(sirius VERSION 1.0 LANGUAGES CXX)
+string(TOUPPER ${PROJECT_NAME} PROJECT_NAME_UPPER)
 set(CMAKE_CXX_STANDARD 26)
 
 option(BUILD_SHARED_LIBS "Build using shared libraries" ON)
@@ -51,20 +52,21 @@ add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_shaders)
 
 
 ## compiler args
-list(APPEND CLANG_ARGS "-Wall" "-Wextra" "-fno-exceptions" "-fno-rtti" "-fopenmp")
+list(APPEND CLANG_ARGS "-Wall" "-Wextra" "-fvisibility=hidden" "-fvisibility-inlines-hidden" "-fsemantic-interposition" "-fno-exceptions" "-fno-rtti" "-fopenmp")
+
+target_compile_definitions(${PROJECT_NAME} PUBLIC ${PROJECT_NAME_UPPER}_EXPORT)
 
 target_compile_options(${PROJECT_NAME} PUBLIC ${CLANG_ARGS})
-target_compile_options(${PROJECT_NAME} PUBLIC "$<$<CONFIG:RELEASE>:-Werror>")
 target_compile_options(${PROJECT_NAME} PUBLIC "$<$<CONFIG:DEBUG>:-O0>")
 target_compile_options(${PROJECT_NAME} PUBLIC "$<$<CONFIG:DEBUG>:-g>")
 target_compile_options(${PROJECT_NAME} PUBLIC "$<$<CONFIG:DEBUG>:-ftemplate-backtrace-limit=0>")
 target_link_options(${PROJECT_NAME} PUBLIC "-fopenmp")
+target_compile_options(${PROJECT_NAME} PUBLIC "$<$<CONFIG:RELEASE>:-Werror>")
 target_compile_options(${PROJECT_NAME} PUBLIC "$<$<CONFIG:RELEASE>:-O3>")
 target_compile_options(${PROJECT_NAME} PUBLIC "$<$<CONFIG:RELEASE>:-ffast-math>")
 #target_compile_options(${PROJECT_NAME} PUBLIC "$<$<CONFIG:RELEASE>:-march=native>")
 if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang") # clang only
     #target_compile_options(${PROJECT_NAME} PUBLIC "-Wc++20-compat-pedantic")
-    target_compile_options(${PROJECT_NAME} PUBLIC "-fsized-deallocation")
     # Don't show warnings for C++20 designated field initializers.
     target_compile_options(${PROJECT_NAME} PUBLIC "-Wno-missing-designated-field-initializers")
 else() # gcc only

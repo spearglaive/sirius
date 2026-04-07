@@ -3,6 +3,7 @@
 
 #include <vulkan/vulkan.h>
 
+#include "sirius/core/api.def.h"
 #include "sirius/vulkan/device/logical_device.hpp"
 #include "sirius/vulkan/device/physical_device.hpp"
 #include "sirius/vulkan/display/image_view.hpp"
@@ -11,7 +12,7 @@
 
 
 namespace acma::vk {
-    class depth_image : public vulkan_ptr<VkDeviceMemory, vkFreeMemory> {
+    class SIRIUS_API depth_image : public vulkan_ptr<VkDeviceMemory, vkFreeMemory> {
     public:
         constexpr depth_image() noexcept = default;
         static result<depth_image> create(std::shared_ptr<logical_device> logi_device, physical_device* phys_device, extent2 extent) noexcept;

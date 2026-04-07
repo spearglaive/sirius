@@ -2,6 +2,7 @@
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan_core.h>
 
+#include "sirius/core/api.def.h"
 #include "sirius/core/render_stage.hpp"
 #include "sirius/vulkan/device/logical_device.hpp"
 #include "sirius/vulkan/core/vulkan_ptr.hpp"
@@ -10,7 +11,7 @@
 __D2D_DECLARE_VK_TRAITS_DEVICE(VkSemaphore);
 
 namespace acma::vk {
-    struct semaphore : vulkan_ptr<VkSemaphore, vkDestroySemaphore> {
+    struct SIRIUS_API semaphore : vulkan_ptr<VkSemaphore, vkDestroySemaphore> {
         static result<semaphore> create(std::shared_ptr<logical_device> device, VkSemaphoreType semaphore_type = VK_SEMAPHORE_TYPE_BINARY) noexcept;
 
 	public:

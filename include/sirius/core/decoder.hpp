@@ -8,6 +8,7 @@
 #include <ktx.h>
 #include <harfbuzz/hb.h>
 
+#include "sirius/core/api.def.h"
 #include "sirius/arith/point.hpp"
 #include "sirius/core/error.hpp"
 #include "sirius/graphics/core/texture.hpp"
@@ -29,11 +30,11 @@ namespace acma {
 
 
 	namespace decoder {
-		result<llfio::mapped_file_handle> open_file(llfio::path_view path) noexcept;
+		SIRIUS_API result<llfio::mapped_file_handle> open_file(llfio::path_view path) noexcept;
 	}
 
 	namespace decoder { 
-		result<texture>
+		SIRIUS_API result<texture>
 		decode_texture(llfio::mapped_file_handle const& handle, texture_usage usage) noexcept;
 	};
 }

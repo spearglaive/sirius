@@ -2,6 +2,7 @@
 
 #include <vulkan/vulkan.h>
 
+#include "sirius/core/api.def.h"
 #include "sirius/arith/point.hpp"
 #include "sirius/vulkan/core/vulkan_ptr.hpp"
 #include "sirius/vulkan/device/logical_device.hpp"
@@ -12,7 +13,7 @@ __D2D_DECLARE_VK_TRAITS_DEVICE(VkSampler);
 
 
 namespace acma::vk {
-    struct image_sampler : public vulkan_ptr<VkSampler, vkDestroySampler> {
+    struct SIRIUS_API image_sampler : public vulkan_ptr<VkSampler, vkDestroySampler> {
         constexpr static VkSamplerAddressMode clamp_to_border = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
     public:
         static result<image_sampler> create(std::shared_ptr<logical_device> logi_device, physical_device* phys_device, pt3<VkSamplerAddressMode> address_modes = {clamp_to_border, clamp_to_border, clamp_to_border}) noexcept;

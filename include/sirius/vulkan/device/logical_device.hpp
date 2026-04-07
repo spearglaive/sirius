@@ -4,6 +4,7 @@
 
 #include <vulkan/vulkan_core.h>
 
+#include "sirius/core/api.def.h"
 #include "sirius/core/command_family.hpp"
 #include "sirius/vulkan/device/physical_device.hpp"
 #include "sirius/vulkan/core/vulkan_ptr.hpp"
@@ -36,7 +37,7 @@ namespace acma::vk {
 
 
 namespace acma::vk {
-    struct logical_device : vulkan_ptr<VkDevice, vkDestroyDevice> {
+    struct SIRIUS_API logical_device : vulkan_ptr<VkDevice, vkDestroyDevice> {
 		using vulkan_functions_type = sl::tuple<
 			#define EXT_FN(name, suffix) ,PFN_##name##suffix
 			__D2D_REMOVE_FIRST_INDIRECT(__D2D_VK_EXT_FNS)
