@@ -23,6 +23,9 @@ enum : acma::buffer_key_t {
 	draw_constants,
 	compute_constants,
 
+	all_ones_cpu_side,
+	all_ones_gpu_side,
+
 
 	num_buffer_ids
 };
@@ -44,5 +47,8 @@ constexpr acma::buffer_config_table<buffer_id::num_buffer_ids> buffer_configs{{{
 	{buffer_id::compute_buffer_addresses, {acma::memory_policy::shared, acma::coupling_policy::decoupled, acma::buffer_usage_policy::generic, 0, 3 * sizeof(acma::gpu_address_t)}}, //uniform
 	{buffer_id::draw_constants, {acma::memory_policy::push_constant, acma::coupling_policy::decoupled, acma::buffer_usage_policy::push_constant, acma::shader_stage::all_graphics, sizeof(draw_constants)}},
 	{buffer_id::compute_constants, {acma::memory_policy::push_constant, acma::coupling_policy::decoupled, acma::buffer_usage_policy::push_constant, acma::shader_stage::compute, sizeof(compute_constants)}},
+
+	{buffer_id::all_ones_cpu_side, {acma::memory_policy::cpu_local_cpu_writable, acma::coupling_policy::decoupled, acma::buffer_usage_policy::generic, 0, 32}},
+	{buffer_id::all_ones_gpu_side, {acma::memory_policy::gpu_local, acma::coupling_policy::decoupled, acma::buffer_usage_policy::generic, 0}},
 	
 }}};

@@ -89,6 +89,9 @@ namespace acma::vk {
 		template<sl::index_t I, sl::index_t J, sl::size_t N, buffer_config_table<N> BufferConfigs, typename RenderProcessT>
         void copy(device_allocation_segment<I, N, BufferConfigs, RenderProcessT>& dst, device_allocation_segment<J, N, BufferConfigs, RenderProcessT> const& src, std::size_t size, sl::uoffset_t dst_offset = 0, sl::uoffset_t src_offset = 0) const noexcept;
 
+		template<sl::index_t I, sl::size_t N, buffer_config_table<N> BufferConfigs, typename RenderProcessT>
+        void fill(device_allocation_segment<I, N, BufferConfigs, RenderProcessT>& dst, sl::uint32_t value = 0, sl::uoffset_t dst_offset = 0, sl::size_t fill_count_bytes = VK_WHOLE_SIZE) const noexcept;
+
     public:
         inline void pipeline_barrier(std::span<const VkMemoryBarrier2> global_barriers, std::span<const VkBufferMemoryBarrier2> buffer_barriers, std::span<const VkImageMemoryBarrier2> image_barriers) const noexcept;
     

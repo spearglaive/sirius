@@ -343,3 +343,15 @@ namespace acma::vk {
         return copy(dst, src, {&copy_region, 1});
     }
 }
+
+namespace acma::vk {
+	template<sl::index_t I, sl::size_t N, buffer_config_table<N> BufferConfigs, typename RenderProcessT>
+    void command_buffer::fill(
+		device_allocation_segment<I, N, BufferConfigs, RenderProcessT>& dst,
+		sl::uint32_t value,
+		sl::uoffset_t dst_offset,
+		sl::size_t fill_count_bytes
+	) const noexcept {
+        vkCmdFillBuffer(handle, dst.buffs[dst.current_buffer_index()], dst_offset, fill_count_bytes, value);
+    }
+}

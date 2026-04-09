@@ -37,7 +37,7 @@ extern "C" const char* __asan_default_options() { return "detect_leaks=0"; }
 
 
 
-using render_instance = acma::render_instance<acma::test::novice_timeline, buffer_configs, asset_heap_configs>;
+using render_instance = acma::render_instance<acma::test::intermediate_timeline, buffer_configs, asset_heap_configs>;
 
 using command_traits_type = acma::timeline::impl::command_traits<
 	acma::test::basic_timeline, 
