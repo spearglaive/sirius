@@ -6,6 +6,8 @@
 #include "sirius/timeline/fill.hpp"
 #include "sirius/timeline/dispatch.hpp"
 #include "sirius/timeline/initialize.hpp"
+#include "sirius/timeline/move_buffer_data.hpp"
+#include "sirius/timeline/resize.hpp"
 #include "sirius/timeline/submit.hpp"
 #include "sirius/timeline/begin_draw_phase.hpp"
 #include "sirius/timeline/end_draw_phase.hpp"
@@ -88,7 +90,12 @@ namespace acma::test {
 
 		acma::initialize<acma::command_family::transfer>,
 
+		acma::resize<::buffer_id::all_ones_cpu_side, 32>,
+		acma::resize_to_fit<::buffer_id::all_ones_gpu_side, ::buffer_id::all_ones_cpu_side>,
+
 		acma::fill<::buffer_id::all_ones_cpu_side, ~sl::uint32_t{0}>,
+		
+		acma::move_buffer_data<::buffer_id::all_ones_gpu_side, ::buffer_id::all_ones_cpu_side>,
 
 		acma::submit<acma::command_family::transfer, signal_completion_at<acma::render_stage::copy | acma::render_stage::clear>>,
 

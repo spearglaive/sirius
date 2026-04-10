@@ -48,7 +48,8 @@ namespace acma::vk {
 		);
 
         RESULT_TRY_MOVE(static_cast<segment_type<I>&>(*this), (make<segment_type<I>>(this->logi_device_ptr, buff_capacity_bytes, 0)));
-		segment_type<I>::allocated_bytes = buff_capacity_bytes;
+		for(sl::index_t i = 0; i < allocation_count; ++i)
+			segment_type<I>::allocated_bytes[i] = buff_capacity_bytes;
 		return {};
 	}
 
@@ -194,7 +195,7 @@ namespace acma::vk{
 		//Clone old buffers
 		RESULT_VERIFY(ol::to_result((([this, i]() noexcept -> result<void> {
 			segment_type<Is>::buffs[i] = impl::buffer_ptr_type{this->logi_device_ptr};
-			const sl::size_t buffer_allocation_size = std::max(segment_type<Is>::desired_bytes, segment_type<Is>::allocated_bytes);
+			const sl::size_t buffer_allocation_size = std::max(segment_type<Is>::desired_bytes[i], segment_type<Is>::allocated_bytes[i]);
 			VkBufferCreateInfo buffer_create_info{
 			    .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
 			    .size = buffer_allocation_size,
@@ -202,7 +203,7 @@ namespace acma::vk{
 			    .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
 			};
 			__D2D_VULKAN_VERIFY(vkCreateBuffer(*this->logi_device_ptr, &buffer_create_info, nullptr, &segment_type<Is>::buffs[i]));
-			segment_type<Is>::allocated_bytes = buffer_allocation_size;
+			segment_type<Is>::allocated_bytes[i] = buffer_allocation_size;
 			return {};
 		}) && ...)));
 

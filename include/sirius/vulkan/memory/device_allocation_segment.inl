@@ -18,9 +18,11 @@ namespace acma::vk::impl {
 		std::size_t initial_size
 	) noexcept {
         device_allocation_segment<I, N, BufferConfigs, RenderProcessT> ret{};
-        ret.allocated_bytes = initial_capacity;
-		ret.data_bytes = initial_size;
-		ret.desired_bytes = initial_size;
+		for(sl::index_t i = 0; i < allocation_count; ++i) {
+        	ret.allocated_bytes[i] = initial_capacity;
+			ret.data_bytes[i] = initial_size;
+			ret.desired_bytes[i] = initial_size;
+		}
 		ret.flags = 0;
 
 		constexpr static buffer_usage_policy_flags_t usage = config.usage;
@@ -38,7 +40,7 @@ namespace acma::vk::impl {
 		ret.flags |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 
 
-		for(sl::index_t i = 0; i < ret.buffs.size(); ++i) {
+		for(sl::index_t i = 0; i < allocation_count; ++i) {
 			ret.buffs[i] = buffer_ptr_type{logi_device};
 			VkBufferCreateInfo buffer_create_info{
     		    .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
@@ -71,7 +73,7 @@ namespace acma::vk {
 		if(new_capacity_bytes <= this->capacity_bytes()) 
 			return {};
 		
-		this->desired_bytes = new_capacity_bytes;
+		this->desired_bytes[this->current_buffer_index()] = new_capacity_bytes;
 		return static_cast<RenderProcessT&>(*this).realloc(sl::index_constant<I>);
 	}
 }
@@ -81,7 +83,7 @@ namespace acma::vk {
 	template<sl::index_t I, sl::size_t N, buffer_config_table<N> BufferConfigs, typename RenderProcessT>
 	constexpr void    impl::device_allocation_segment_base<I, N, BufferConfigs, RenderProcessT>::
 	clear() noexcept {
-		this->data_bytes = 0;
+		this->data_bytes[this->current_buffer_index()] = 0;
 	}
 	
 
@@ -89,7 +91,7 @@ namespace acma::vk {
 	constexpr result<void>    impl::device_allocation_segment_base<I, N, BufferConfigs, RenderProcessT>::
 	resize(sl::size_t count_bytes) noexcept {
 		RESULT_VERIFY(reserve(count_bytes));
-		this->data_bytes = count_bytes;
+		this->data_bytes[this->current_buffer_index()] = count_bytes;
 		return {};
 	}
 
@@ -98,7 +100,7 @@ namespace acma::vk {
 	try_resize(sl::size_t count_bytes) noexcept {
 		if(count_bytes > this->capacity_bytes())
 			return errc::not_enough_memory;
-		this->data_bytes = count_bytes;
+		this->data_bytes[this->current_buffer_index()] = count_bytes;
 		return {};
 	}
 }
