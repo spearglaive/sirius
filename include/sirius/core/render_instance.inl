@@ -13,7 +13,7 @@
 
 #include <GLFW/glfw3.h>
 #include <result/verify.h>
-#include <vulkan/vulkan_core.h>
+#include "sirius/vulkan/core/vulkan.hpp"
 
 
 #include "sirius/timeline/command.fwd.hpp"
@@ -66,7 +66,7 @@ namespace acma {
 			window_size,
 			window_title.empty() ? impl::name() : window_title
 		));
-		RESULT_VERIFY(static_cast<window&>(ret).initialize(ret.logi_device_ptr, ret.phys_device_ptr));
+		RESULT_VERIFY(static_cast<window&>(ret).initialize(ret.logi_device_ptr, ret.phys_device_ptr, ret.alloc_ptr));
 
         glfwSetWindowUserPointer(ret.window_handle.get(), ret.input_info_ptr.get());
 
@@ -110,6 +110,31 @@ namespace acma {
         RESULT_TRY_MOVE(*this->logi_device_ptr, acma::make<vk::logical_device>(this->phys_device_ptr, Windowing));
 
 
+		//Create allocator
+		{
+		VmaAllocatorCreateInfo allocator_create_info {
+			.flags =
+				VMA_ALLOCATOR_CREATE_KHR_DEDICATED_ALLOCATION_BIT |
+				VMA_ALLOCATOR_CREATE_KHR_BIND_MEMORY2_BIT |
+				VMA_ALLOCATOR_CREATE_KHR_MAINTENANCE4_BIT |
+				VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT,
+			.physicalDevice = *this->phys_device_ptr,
+			.device = *this->logi_device_ptr,
+			.instance = vk::impl::vulkan_instance(),
+			.vulkanApiVersion = VK_API_VERSION_1_3,
+		};
+
+		//TODO
+		// VmaVulkanFunctions vma_vk_funcs;
+		// __D2D_VULKAN_VERIFY(vmaImportVulkanFunctionsFromVolk(&allocator_create_info, &vma_vk_funcs));
+		// allocator_create_info.pVulkanFunctions = vma_vk_funcs;
+
+		vk::allocator* alloc_handle;
+		__D2D_VULKAN_VERIFY(vmaCreateAllocator(&allocator_create_info, &alloc_handle));
+		this->alloc_ptr = vk::allocator_shared_handle(alloc_handle, sl::functor::generic_stateless<vmaDestroyAllocator>{});
+		}
+
+
 		constexpr sl::size_t command_familes_to_init = command_family::num_distinct_families + static_cast<sl::size_t>(impl::window_capability);
 
 		//Create command pools
@@ -119,50 +144,34 @@ namespace acma {
 		}
 
 		
-		//Initialize buffer allocations
-		constexpr auto init_single_buffer_alloc = []<coupling_policy_t CP, memory_policy_t MP>(
+		//Initialize buffers
+		constexpr auto init_single_buffer = []<sl::index_t I>(
 			render_instance& app_inst,
-			sl::constant_type<coupling_policy_t, CP>,
-			sl::constant_type<memory_policy_t, MP>
+			sl::index_constant_type<I>
 		) noexcept -> result<void> {
-			using allocation_type = vk::device_allocation<
-				frames_in_flight, 
-				vk::impl::device_allocation_filter_sequence<N, BufferConfigs, render_process_type, CP, MP>,
-				CP, MP,
-				N, BufferConfigs,
+			using buffer_type = vk::buffer<
+				sl::universal::get<sl::first_constant>(*std::next(BufferConfigs.begin(), I)),
+				BufferConfigs,
 				render_process_type
 			>;
-			RESULT_TRY_MOVE(
-				(static_cast<allocation_type&>(app_inst)),
-				(make<allocation_type>(app_inst.logi_device_ptr, app_inst.phys_device_ptr))//, app_inst._command_pool_ptrs[command_family::transfer]))
-			);
-			return {};
+			return static_cast<buffer_type&>(app_inst).initialize();
 		};
-		
-		RESULT_VERIFY((sl::functor::invoke_each_result<
-			result<void>, 
-			sl::functor::invoke_each_result<result<void>, init_single_buffer_alloc>{}
-		>{}(
-			sl::integer_sequence_of_length<coupling_policy_t, coupling_policy::num_coupling_policies>,
-			sl::integer_sequence_of_length<memory_policy_t, memory_policy::num_memory_policies>,
-			*this
+		RESULT_VERIFY((sl::functor::invoke_each_result<result<void>, init_single_buffer>{}(
+			sl::index_sequence_of_length<BufferConfigs.size()>, *this
 		)));
+
 
 		//Init asset heap allocations
 		constexpr auto init_single_asset_heap_alloc = []<sl::index_t I>(
 			render_instance& app_inst,
 			sl::index_constant_type<I>
 		) noexcept -> result<void> {
-			using allocation_type = vk::asset_heap_allocation<
-				BufferConfigs.size() + I, 
-				sl::universal::get<sl::second_constant>(*std::next(AssetHeapConfigs.begin(), I)),
+			using asset_heap_type = vk::asset_heap<
+				sl::universal::get<sl::first_constant>(*std::next(AssetHeapConfigs.begin(), I)),
+				AssetHeapConfigs,
 				render_process_type
 			>;
-			RESULT_TRY_MOVE(
-				(static_cast<allocation_type&>(app_inst)),
-				(make<allocation_type>(app_inst.logi_device_ptr, app_inst.phys_device_ptr))//, app_inst._command_pool_ptrs[command_family::transfer]))
-			);
-			return {};
+			return static_cast<asset_heap_type&>(app_inst).initialize();
 		};
 		RESULT_VERIFY((sl::functor::invoke_each_result<result<void>, init_single_asset_heap_alloc>{}(
 			sl::index_sequence_of_length<AssetHeapConfigs.size()>, *this

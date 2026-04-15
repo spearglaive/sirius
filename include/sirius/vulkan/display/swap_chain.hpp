@@ -1,7 +1,7 @@
 #pragma once
 #include <GLFW/glfw3.h>
 #include <vector>
-#include <vulkan/vulkan.h>
+#include "sirius/vulkan/core/vulkan.hpp"
 #include "sirius/vulkan/display/color_space.hpp"
 #include "sirius/vulkan/display/depth_image.hpp"
 #include "sirius/vulkan/display/display_format.hpp"
@@ -58,7 +58,7 @@ namespace acma::vk {
         std::uint32_t _image_count = 0;
         vk::display_format _display_format;
         vk::present_mode _present_mode;
-        std::vector<image_view> _image_views;
-        std::vector<VkImage> _images;
+        std::unique_ptr<image_view[]> _image_views;
+        std::unique_ptr<VkImage[]> _images;
     };
 }

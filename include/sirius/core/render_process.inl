@@ -4,25 +4,27 @@
 
 namespace acma {
 	template<auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount>
-	template<sl::size_t DstI, sl::size_t SrcI>
+	template<buffer_config DstConfig, buffer_config SrcConfig>
 	constexpr result<void>    render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount>::
-	copy(
-		allocation_segment_type<SrcI> const& src,
+	buffer_copy(
+		vk::buffer_allocation_unique_ptr& dst,
+		sl::constant_type<buffer_config, DstConfig>,
+		vk::buffer_allocation_unique_ptr const& src,
+		sl::constant_type<buffer_config, SrcConfig>,
 		sl::size_t size,
 		sl::uoffset_t dst_offset,
 		sl::uoffset_t src_offset
 	) & noexcept
 	requires(
-		!memory_policy::is_cpu_visible(allocation_segment_type<DstI>::config.memory)
+		!memory_policy::is_cpu_visible(DstConfig.memory)
 	) {
-		static_assert(
-			memory_policy::is_cpu_writable(allocation_segment_type<SrcI>::config.memory) || 
-			!memory_policy::is_cpu_visible(allocation_segment_type<SrcI>::config.memory),
-			"Copy from cpu_local_gpu_writable buffer to a gpu_local buffer is not allowed."
-		);
-		allocation_segment_type<DstI>& dst = static_cast<allocation_segment_type<DstI>&>(*this);
+		// static_assert(
+		// 	memory_policy::is_cpu_writable(buffer_type<SrcK>::config.memory) || 
+		// 	!memory_policy::is_cpu_visible(buffer_type<SrcK>::config.memory),
+		// 	"Copy from cpu_local_gpu_writable buffer to a gpu_local buffer is not allowed."
+		// );
 
-		if(dst_offset + size > dst.size_bytes() || src_offset + size > src.size_bytes()) 
+		if(dst_offset + size > dst->creation_info.size || src_offset + size > src->creation_info.size) 
 			return errc::invalid_argument;
 
 		//TODO: use next frame index if theres no garauntee current transfer command buffer is not in use
@@ -41,14 +43,14 @@ namespace acma {
 				.srcAccessMask = VK_ACCESS_2_HOST_WRITE_BIT,
 				.dstStageMask = VK_PIPELINE_STAGE_2_COPY_BIT,
 				.dstAccessMask = VK_ACCESS_2_TRANSFER_READ_BIT,
-				.buffer = static_cast<VkBuffer>(src),
+				.buffer = src->handle,
 				.offset = src_offset,
 				.size = size
 			},
 		}};
 		transfer_command_buffer.pipeline_barrier({}, pre_copy_barriers, {});
 
-		transfer_command_buffer.copy(dst, src, size, dst_offset, src_offset);
+        transfer_command_buffer.copy(dst, src, size, dst_offset, src_offset);
 
 		sl::array<2, VkBufferMemoryBarrier2> post_copy_barriers{{
 			VkBufferMemoryBarrier2{
@@ -57,7 +59,7 @@ namespace acma {
 				.srcAccessMask = VK_ACCESS_2_TRANSFER_READ_BIT,
 				.dstStageMask = VK_PIPELINE_STAGE_2_COPY_BIT,
 				.dstAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
-				.buffer = static_cast<VkBuffer>(src),
+				.buffer = src->handle,
 				.offset = src_offset,
 				.size = size
 			},
@@ -67,7 +69,7 @@ namespace acma {
 				.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
 				.dstStageMask = VK_PIPELINE_STAGE_2_COPY_BIT,
 				.dstAccessMask = VK_ACCESS_2_TRANSFER_READ_BIT | VK_ACCESS_2_TRANSFER_WRITE_BIT,
-				.buffer = static_cast<VkBuffer>(dst),
+				.buffer = dst->handle,
 				.offset = dst_offset,
 				.size = size
 			},
@@ -79,40 +81,31 @@ namespace acma {
 
 
 	template<auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount>
-	template<sl::size_t DstI, sl::size_t SrcI>
+	template<buffer_config DstConfig, buffer_config SrcConfig>
 	constexpr result<void>    render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount>::
-	copy(
-		allocation_segment_type<SrcI> const& src,
+	buffer_copy(
+		vk::buffer_allocation_unique_ptr& dst,
+		sl::constant_type<buffer_config, DstConfig>,
+		vk::buffer_allocation_unique_ptr const& src,
+		sl::constant_type<buffer_config, SrcConfig>,
 		sl::size_t size,
 		sl::uoffset_t dst_offset,
 		sl::uoffset_t src_offset
-	) & noexcept 
+	) & noexcept
 	requires(
-		memory_policy::is_cpu_visible(allocation_segment_type<DstI>::config.memory) &&
-		memory_policy::is_cpu_visible(allocation_segment_type<SrcI>::config.memory)
+		memory_policy::is_cpu_visible(DstConfig.memory) &&
+		memory_policy::is_cpu_visible(SrcConfig.memory)
 	) {
 		static_assert(
-			memory_policy::is_cpu_writable(allocation_segment_type<SrcI>::config.memory),
+			memory_policy::is_cpu_writable(DstConfig.memory),
 			"Copy from a cpu-visible buffer to a cpu_local_gpu_writable buffer is not allowed."
 		);
-		allocation_segment_type<DstI>& dst = static_cast<allocation_segment_type<DstI>&>(*this);
-		std::memcpy(dst.data() + dst_offset, src.data() + src_offset, size);
+
+		std::byte      * dst_ptr = std::launder(reinterpret_cast<std::byte      *>(dst->allocation_info.pMappedData));
+		std::byte const* src_ptr = std::launder(reinterpret_cast<std::byte const*>(src->allocation_info.pMappedData));
+		std::memcpy(dst_ptr + dst_offset, src_ptr + src_offset, size);
 
 		return{};
-	}
-}
-
-namespace acma {
-	template<sl::size_t DstI, sl::size_t SrcI, sl::size_t N, buffer_config_table<N> BufferConfigs, typename RenderProcessT>
-	constexpr result<void> copy(
-		vk::device_allocation_segment<DstI, N, BufferConfigs, RenderProcessT>& dst,
-		vk::device_allocation_segment<SrcI, N, BufferConfigs, RenderProcessT> const& src,
-		sl::size_t size,
-		sl::uoffset_t dst_offset,
-		sl::uoffset_t src_offset
-	) noexcept {
-		RenderProcessT& proc = static_cast<RenderProcessT&>(dst);
-		return proc.template copy<DstI>(src, size, dst_offset, src_offset);
 	}
 }
 

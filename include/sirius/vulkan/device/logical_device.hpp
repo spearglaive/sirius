@@ -2,7 +2,7 @@
 #include <memory>
 #include <streamline/containers/tuple.hpp>
 
-#include <vulkan/vulkan_core.h>
+#include "sirius/vulkan/core/vulkan.hpp"
 
 #include "sirius/core/api.def.h"
 #include "sirius/core/command_family.hpp"

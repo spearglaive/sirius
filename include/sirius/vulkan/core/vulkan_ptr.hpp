@@ -39,7 +39,7 @@ namespace acma::vk {
 }
 
 namespace acma::vk {
-    template<impl::vulkan_like VkTy, typename impl::vk_traits<VkTy>::deleter_type& DeleterFn>
+    template<impl::vulkan_like VkTy, typename impl::vk_traits<VkTy>::deleter_type* DeleterFn>
     class vulkan_ptr : public vulkan_ptr_base<VkTy> {
     public:
         constexpr vulkan_ptr() noexcept = default;
@@ -58,7 +58,7 @@ namespace acma::vk {
 
     };
 
-    template<impl::dependent_vulkan_like VkTy, typename impl::vk_traits<VkTy>::deleter_type& DeleterFn>
+    template<impl::dependent_vulkan_like VkTy, typename impl::vk_traits<VkTy>::deleter_type* DeleterFn>
     class vulkan_ptr<VkTy, DeleterFn> : public vulkan_ptr_base<VkTy> {
     public:
         constexpr vulkan_ptr() noexcept = default;
@@ -84,7 +84,7 @@ namespace acma::vk {
         std::shared_ptr<typename impl::vk_traits<VkTy>::dependent_type> dependent_handle;
     };
 
-    template<impl::multiple_dependent_vulkan_like VkTy, typename impl::vk_traits<VkTy>::deleter_type& DeleterFn>
+    template<impl::multiple_dependent_vulkan_like VkTy, typename impl::vk_traits<VkTy>::deleter_type* DeleterFn>
     class vulkan_ptr<VkTy, DeleterFn> : public vulkan_ptr_base<VkTy> {
     public:
         constexpr vulkan_ptr() noexcept = default;
@@ -110,5 +110,34 @@ namespace acma::vk {
     protected:
         std::shared_ptr<typename impl::vk_traits<VkTy>::dependent_type> dependent_handle;
         std::shared_ptr<typename impl::vk_traits<VkTy>::auxiliary_type> aux_handle;
+    };
+
+
+    template<impl::vma_dependent_like VkTy, typename impl::vk_traits<VkTy>::deleter_type* DeleterFn>
+    class vulkan_ptr<VkTy, DeleterFn> : public vulkan_ptr_base<VkTy> {
+    public:
+        constexpr vulkan_ptr() noexcept = default;
+        constexpr vulkan_ptr(typename impl::vk_traits<VkTy>::allocator_type allocator, typename impl::vk_traits<VkTy>::allocation_type allocation) noexcept :
+			allocator_handle(allocator), allocation_handle(allocation) {}
+        constexpr ~vulkan_ptr() noexcept { if(this->handle) DeleterFn(*allocator_handle, this->handle, allocation_handle); };
+    
+    public:
+        constexpr vulkan_ptr(vulkan_ptr&& other) noexcept = default;
+        constexpr vulkan_ptr& operator=(vulkan_ptr&& other) noexcept { 
+            if(this->handle && this->handle != other.handle) 
+				DeleterFn(*allocator_handle, this->handle, allocation_handle);
+            vulkan_ptr_base<VkTy>::operator=(std::move(other));
+            allocator_handle = std::move(other.allocator_handle);
+            allocation_handle = std::move(other.allocation_handle);
+            return *this;
+        };
+
+        vulkan_ptr(const vulkan_ptr& other) = delete;
+        vulkan_ptr& operator=(const vulkan_ptr& other) = delete;
+
+
+    protected:
+        typename impl::vk_traits<VkTy>::allocator_type allocator_handle;
+        typename impl::vk_traits<VkTy>::allocation_type allocation_handle;
     };
 }

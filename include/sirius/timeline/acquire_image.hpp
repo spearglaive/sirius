@@ -33,6 +33,7 @@ namespace acma::timeline {
 				),
 				proc.logical_device_ptr(),
 				proc.physical_device_ptr(),
+				proc.allocator_ptr(),
 				false
         	), sc);
 			if(swap_chain_updated)

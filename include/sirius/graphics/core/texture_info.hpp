@@ -4,7 +4,7 @@
 #include <streamline/numeric/numeric_traits.hpp>
 #include <streamline/containers/array.hpp>
 
-#include <vulkan/vulkan.h>
+#include "sirius/vulkan/core/vulkan.hpp"
 
 #include "sirius/arith/size.hpp"
 #include "sirius/core/texture_usage.hpp"

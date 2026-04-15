@@ -2,7 +2,7 @@
 #include <bit>
 #include <streamline/numeric/int.hpp>
 
-#include <vulkan/vulkan.h>
+#include "sirius/vulkan/core/vulkan.hpp"
 
 
 namespace acma::impl {

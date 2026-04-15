@@ -30,7 +30,7 @@ namespace acma::timeline {
 				proc.logical_device_ptr(),
 				proc,
 				std::span<const VkFormat, 1>{&win.swap_chain().format().pixel_format.id, 1}, 
-				win.depth_image().format()
+				win.depth_image().format_id()
 			);
 		};
 	};

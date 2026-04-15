@@ -1,5 +1,5 @@
 #pragma once
-#include <vulkan/vulkan.h>
+#include "sirius/vulkan/core/vulkan.hpp"
 
 namespace acma {
 	using memory_operation_t = VkAccessFlags2;

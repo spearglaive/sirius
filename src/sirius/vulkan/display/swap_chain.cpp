@@ -10,7 +10,7 @@
 #include "sirius/vulkan/device/logical_device.hpp"
 #include "sirius/vulkan/display/pixel_format.hpp"
 #include "sirius/vulkan/display/present_mode.hpp"
-#include <vulkan/vulkan_core.h>
+#include "sirius/vulkan/core/vulkan.hpp"
 
 
 namespace acma::vk {
@@ -83,7 +83,7 @@ namespace acma::vk {
             .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
 			.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE,
 			.queueFamilyIndexCount = 0,
-			.pQueueFamilyIndices = VK_NULL_HANDLE,
+			.pQueueFamilyIndices = nullptr,
             .preTransform = device_capabilities.currentTransform,
             .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
             .presentMode = static_cast<VkPresentModeKHR>(_present_mode),
@@ -98,12 +98,12 @@ namespace acma::vk {
         {
         _image_count = 0;
         vkGetSwapchainImagesKHR(*logi_device, handle, &_image_count, nullptr);
-        _images.resize(_image_count);
-        vkGetSwapchainImagesKHR(*logi_device, handle, &_image_count, _images.data());
+        _images = std::make_unique_for_overwrite<VkImage[]>(_image_count);
+        vkGetSwapchainImagesKHR(*logi_device, handle, &_image_count, _images.get());
         }
 
         //Create swap chain image views
-        _image_views.resize(_image_count);
+        _image_views = std::make_unique_for_overwrite<image_view[]>(_image_count);
         for (size_t i = 0; i < _image_count; i++) {
         	VkImageViewCreateInfo image_view_create_info{
         	    .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,

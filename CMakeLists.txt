@@ -14,6 +14,7 @@ set(CPP_FILES
 
     vulkan/core/command_pool.cpp
     vulkan/core/decoder.cpp
+    vulkan/core/vulkan.cpp
 
     vulkan/device/logical_device.cpp
     vulkan/device/physical_device.cpp
@@ -24,6 +25,7 @@ set(CPP_FILES
     vulkan/display/surface.cpp
     vulkan/display/swap_chain.cpp
     
+    vulkan/memory/allocator.cpp
     vulkan/memory/image.cpp
 
     vulkan/sync/semaphore.cpp
@@ -76,7 +78,8 @@ configure_file(
 
 
 ## compiler args
-list(APPEND CLANG_ARGS "-Wall" "-Wextra" "-fvisibility=hidden" "-fvisibility-inlines-hidden" "-fsemantic-interposition" "-fno-exceptions" "-fno-rtti" "-fopenmp")
+#list(APPEND CLANG_ARGS "-Wall" "-Wextra" "-fvisibility=hidden" "-fvisibility-inlines-hidden" "-fsemantic-interposition" "-fno-exceptions" "-fno-rtti" "-fopenmp")
+list(APPEND CLANG_ARGS "-Wall" "-Wextra" "-fvisibility=hidden" "-fsemantic-interposition" "-fno-exceptions" "-fno-rtti" "-fopenmp")
 
 target_compile_definitions(${PROJECT_NAME} PUBLIC ${PROJECT_NAME_UPPER}_EXPORT)
 

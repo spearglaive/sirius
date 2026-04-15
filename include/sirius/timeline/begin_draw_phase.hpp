@@ -44,7 +44,7 @@ namespace acma::timeline {
 				    .dstAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
 				    .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
 				    .newLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
-				    .image = proc.depth_image().raw_image(),
+				    .image = proc.depth_image().handle(),
 				    .subresourceRange{.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT, .levelCount = 1, .layerCount = 1 }
 				}
 			}};

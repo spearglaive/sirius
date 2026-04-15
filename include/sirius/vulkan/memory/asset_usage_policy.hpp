@@ -3,7 +3,7 @@
 #include <streamline/metaprogramming/underlying_type.hpp>
 #include <streamline/containers/lookup_table.hpp>
 
-#include <vulkan/vulkan.h>
+#include "sirius/vulkan/core/vulkan.hpp"
 
 
 namespace acma {

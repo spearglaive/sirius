@@ -3,7 +3,7 @@
 #include "sirius/arith/size.hpp"
 #include "sirius/traits/vector_traits.hpp"
 #include <type_traits>
-#include <vulkan/vulkan_core.h>
+#include "sirius/vulkan/core/vulkan.hpp"
 
 
 namespace acma::impl {

@@ -1,7 +1,7 @@
 #include <array>
 #include <cstddef>
 
-#include <vulkan/vulkan.h>
+#include "sirius/vulkan/core/vulkan.hpp"
 
 #include <sirius/arith/vector.hpp>
 #include <sirius/arith/size.hpp>

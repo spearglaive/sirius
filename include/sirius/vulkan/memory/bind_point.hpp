@@ -1,7 +1,7 @@
 #pragma once
 #include <streamline/metaprogramming/underlying_type.hpp>
 
-#include <vulkan/vulkan.h>
+#include "sirius/vulkan/core/vulkan.hpp"
 
 namespace acma::vk {
 	using bind_point_t = sl::underlying_type_t<VkPipelineBindPoint>;

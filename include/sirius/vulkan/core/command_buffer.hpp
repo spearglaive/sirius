@@ -5,14 +5,14 @@
 #include <memory>
 #include <span>
 
-#include <vulkan/vulkan.h>
+#include "sirius/vulkan/core/vulkan.hpp"
 #include <frozen/unordered_map.h>
 
 #include "sirius/core/buffer_config_table.hpp"
 #include "sirius/core/render_process.fwd.hpp"
 #include "sirius/vulkan/memory/bind_point.hpp"
-#include "sirius/vulkan/memory/device_allocation_segment.hpp"
-#include "sirius/vulkan/memory/asset_heap_allocation.hpp"
+#include "sirius/vulkan/memory/buffer.hpp"
+#include "sirius/vulkan/memory/asset_heap.hpp"
 #include "sirius/vulkan/memory/image.hpp"
 #include "sirius/vulkan/device/logical_device.hpp"
 #include "sirius/vulkan/core/vulkan_ptr.hpp"
@@ -54,13 +54,13 @@ namespace acma::vk {
     	inline void free() const noexcept;
 		
 		
-		template<sl::index_t I, sl::size_t N, buffer_config_table<N> BufferConfigs, typename T, auto AssetHeapConfigs, typename RenderProcessT>
-		void bind_buffer(device_allocation_segment<I, N, BufferConfigs, RenderProcessT> const& buff, pipeline_layout<shader_stage::all_graphics, T, BufferConfigs, AssetHeapConfigs> const& layout) const noexcept;
-		template<sl::index_t I, sl::size_t N, buffer_config_table<N> BufferConfigs, typename T, auto AssetHeapConfigs, typename RenderProcessT>
-		void bind_buffer(device_allocation_segment<I, N, BufferConfigs, RenderProcessT> const& buff, pipeline_layout<shader_stage::compute, T, BufferConfigs, AssetHeapConfigs> const& layout) const noexcept;
+		template<buffer_key_t K, typename T, auto BufferConfigs, auto AssetHeapConfigs, typename RenderProcessT>
+		void bind_buffer(buffer<K, BufferConfigs, RenderProcessT> const& buff, pipeline_layout<shader_stage::all_graphics, T, BufferConfigs, AssetHeapConfigs> const& layout) const noexcept;
+		template<buffer_key_t K, typename T, auto BufferConfigs, auto AssetHeapConfigs, typename RenderProcessT>
+		void bind_buffer(buffer<K, BufferConfigs, RenderProcessT> const& buff, pipeline_layout<shader_stage::compute, T, BufferConfigs, AssetHeapConfigs> const& layout) const noexcept;
 
-		template<sl::index_t I, asset_heap_config Config, typename RenderProcessT, shader_stage_flags_t ShaderStages, typename T, auto BufferConfigs, auto AssetHeapConfigs>
-		void bind_asset_heap(asset_heap_allocation<I, Config, RenderProcessT> const& heap, pipeline_layout<ShaderStages, T, BufferConfigs, AssetHeapConfigs> const& layout) const noexcept;
+		template<buffer_key_t K, auto AssetHeapConfigs, typename RenderProcessT, shader_stage_flags_t ShaderStages, typename T, auto BufferConfigs>
+		void bind_asset_heap(asset_heap<K, AssetHeapConfigs, RenderProcessT> const& heap, pipeline_layout<ShaderStages, T, BufferConfigs, AssetHeapConfigs> const& layout) const noexcept;
     	
 		template<bind_point_t BindPoint, typename T, auto BufferConfigs, auto AssetHeapConfigs>
 		void bind_pipeline(pipeline<BindPoint, T, BufferConfigs, AssetHeapConfigs> const& p) const noexcept;
@@ -84,13 +84,16 @@ namespace acma::vk {
 		) const noexcept;
         
     public:
-		template<sl::index_t I, sl::index_t J, sl::size_t N, buffer_config_table<N> BufferConfigs, typename RenderProcessT>
-        void copy(device_allocation_segment<I, N, BufferConfigs, RenderProcessT>& dst, device_allocation_segment<J, N, BufferConfigs, RenderProcessT> const& src, std::span<const VkBufferCopy> copy_regions) const noexcept;
-		template<sl::index_t I, sl::index_t J, sl::size_t N, buffer_config_table<N> BufferConfigs, typename RenderProcessT>
-        void copy(device_allocation_segment<I, N, BufferConfigs, RenderProcessT>& dst, device_allocation_segment<J, N, BufferConfigs, RenderProcessT> const& src, std::size_t size, sl::uoffset_t dst_offset = 0, sl::uoffset_t src_offset = 0) const noexcept;
+        inline void copy(vk::buffer_allocation_unique_ptr& dst, vk::buffer_allocation_unique_ptr const& src, std::span<const VkBufferCopy> copy_regions) const noexcept;
+        inline void copy(vk::buffer_allocation_unique_ptr& dst, vk::buffer_allocation_unique_ptr const& src, std::size_t size, sl::uoffset_t dst_offset = 0, sl::uoffset_t src_offset = 0) const noexcept;
 
-		template<sl::index_t I, sl::size_t N, buffer_config_table<N> BufferConfigs, typename RenderProcessT>
-        void fill(device_allocation_segment<I, N, BufferConfigs, RenderProcessT>& dst, sl::uint32_t value = 0, sl::uoffset_t dst_offset = 0, sl::size_t fill_count_bytes = VK_WHOLE_SIZE) const noexcept;
+		template<buffer_key_t DstK, buffer_key_t SrcK, auto BufferConfigs, typename RenderProcessT>
+        void copy(buffer<DstK, BufferConfigs, RenderProcessT>& dst, buffer<SrcK, BufferConfigs, RenderProcessT> const& src, std::span<const VkBufferCopy> copy_regions) const noexcept;
+		template<buffer_key_t DstK, buffer_key_t SrcK, auto BufferConfigs, typename RenderProcessT>
+        void copy(buffer<DstK, BufferConfigs, RenderProcessT>& dst, buffer<SrcK, BufferConfigs, RenderProcessT> const& src, std::size_t size, sl::uoffset_t dst_offset = 0, sl::uoffset_t src_offset = 0) const noexcept;
+
+		template<buffer_key_t K, auto BufferConfigs, typename RenderProcessT>
+        void fill(buffer<K, BufferConfigs, RenderProcessT>& dst, sl::uint32_t value = 0, sl::uoffset_t dst_offset = 0, sl::size_t fill_count_bytes = VK_WHOLE_SIZE) const noexcept;
 
     public:
         inline void pipeline_barrier(std::span<const VkMemoryBarrier2> global_barriers, std::span<const VkBufferMemoryBarrier2> buffer_barriers, std::span<const VkImageMemoryBarrier2> image_barriers) const noexcept;

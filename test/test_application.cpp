@@ -156,7 +156,7 @@ int main(){
 	)));
 
 	RESULT_VERIFY(sl::universal::get<buffer_id::single_instance_draw_command>(inst).resize(sizeof(acma::indexed_draw_command_t)));
-	RESULT_VERIFY((acma::copy(
+	RESULT_VERIFY((acma::gpu_copy(
 		sl::universal::get<buffer_id::single_instance_draw_command>(inst),
 		staging_buffer,
 		sizeof(acma::indexed_draw_command_t)
@@ -194,7 +194,7 @@ int main(){
 
 	RESULT_VERIFY(sl::universal::get<buffer_id::positions>(inst).resize((sizeof(acma::pt2u32) * 16 * 16) + 1));
 
-	RESULT_VERIFY((acma::copy(
+	RESULT_VERIFY((acma::gpu_copy(
 		sl::universal::get<buffer_id::positions>(inst),
 		staging_buffer,
 		rect_positions.size_bytes()
@@ -232,7 +232,7 @@ int main(){
 		offset
 	)));
 	RESULT_VERIFY(sl::universal::get<buffer_id::offset>(inst).resize(sizeof(decltype(offset))));
-	RESULT_VERIFY((acma::copy(
+	RESULT_VERIFY((acma::gpu_copy(
 		sl::universal::get<buffer_id::offset>(inst),
 		staging_buffer,
 		sizeof(decltype(offset))

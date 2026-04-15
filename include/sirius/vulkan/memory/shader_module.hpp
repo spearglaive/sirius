@@ -2,7 +2,7 @@
 #include <span>
 #include <cstddef>
 
-#include <vulkan/vulkan.h>
+#include "sirius/vulkan/core/vulkan.hpp"
 
 #include "sirius/vulkan/device/logical_device.hpp"
 #include "sirius/vulkan/core/vulkan_ptr.hpp"

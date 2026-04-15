@@ -18,19 +18,23 @@ foreach(TEST_TARGET IN LISTS TARGET_LIST)
     target_compile_options(${TEST_TARGET} PUBLIC "-fno-rtti" "-fno-exceptions" "-fopenmp" "-Wall" "-Wextra" "$<$<CONFIG:RELEASE>:-Werror>")
     target_compile_options(${TEST_TARGET} PUBLIC "$<$<CONFIG:RELEASE>:-Werror>" "$<$<CONFIG:RELEASE>:-O3>" "$<$<CONFIG:RELEASE>:-ffast-math>" "$<$<CONFIG:RELEASE>:-march=native>")
     target_compile_options(${TEST_TARGET} PUBLIC "$<$<CONFIG:DEBUG>:-O0>" "$<$<CONFIG:DEBUG>:-g>")
+    #target_compile_options(${TEST_TARGET} PUBLIC "-v")
    
     #target_link_options(${TEST_TARGET} PUBLIC "-fuse-ld=mold")
-    target_link_options(${TEST_TARGET} PUBLIC "-v")
+    #target_link_options(${TEST_TARGET} PUBLIC "-v")
 
-	if(${SIRIUS_FOUND})
-		target_link_libraries(${TEST_TARGET} PUBLIC ${SIRIUS_LIBRARIES})
-		target_link_directories(${TEST_TARGET} PUBLIC ${SIRIUS_LIBRARY_DIRS})
-		target_link_options(${TEST_TARGET} PUBLIC ${SIRIUS_LDFLAGS})
-		target_include_directories(${TEST_TARGET} PUBLIC ${SIRIUS_INCLUDE_DIRS})
-		target_compile_options(${TEST_TARGET} PUBLIC ${SIRIUS_CFLAGS})
-	else()
+	# if(${SIRIUS_FOUND})
+	#	the linker args here get placed in the wrong order for some reason...
+	#   don't you just love cmake?
+
+	# 	target_link_libraries(${TEST_TARGET} PUBLIC ${SIRIUS_LIBRARIES})
+	# 	target_link_directories(${TEST_TARGET} PUBLIC ${SIRIUS_LIBRARY_DIRS})
+	# 	target_link_options(${TEST_TARGET} PUBLIC ${SIRIUS_LDFLAGS})
+	# 	target_include_directories(${TEST_TARGET} PUBLIC ${SIRIUS_INCLUDE_DIRS})
+	# 	target_compile_options(${TEST_TARGET} PUBLIC ${SIRIUS_CFLAGS})
+	# else()
 		target_link_libraries(${TEST_TARGET} PUBLIC sirius)
-	endif()
+	# endif()
 
     foreach(SAN IN LISTS SANITIZERS)
         target_compile_options(${TEST_TARGET} PUBLIC "$<$<CONFIG:DEBUG>:-fsanitize=${SAN}>")

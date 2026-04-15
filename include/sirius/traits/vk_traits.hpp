@@ -3,7 +3,9 @@
 #include <functional>
 #include <type_traits>
 #include <utility>
-#include <vulkan/vulkan.h>
+
+#include "sirius/vulkan/core/vulkan.hpp"
+#include "sirius/vulkan/memory/allocator.hpp"
 
 
 namespace acma::vk::impl { 
@@ -19,8 +21,21 @@ namespace acma::vk::impl {
 
     template<typename VkTy>
     concept multiple_dependent_vulkan_like = dependent_vulkan_like<VkTy> && requires { typename vk_traits<VkTy>::auxiliary_type; };
+
+	template<typename VkTy>
+	concept vma_dependent_like = vulkan_like<VkTy> && requires { typename vk_traits<VkTy>::allocator_type; typename vk_traits<VkTy>::allocation_type; };
+
 }
 
+
+#define __D2D_DECLARE_VK_TRAITS_VMA(type) \
+namespace acma::vk::impl { \
+    template<> struct vk_traits<type>{ \
+        using allocator_type = allocator_shared_handle; \
+		using allocation_type = VmaAllocation; \
+        using deleter_type = void(typename allocator_shared_handle::pointer_type, type, allocation_type); \
+    }; \
+}
 
 #define __D2D_DECLARE_VK_TRAITS_DEVICE(type) \
 namespace acma::vk::impl { \

@@ -1,6 +1,6 @@
 #pragma once
 #include "sirius/arith/vector.hpp"
-#include <vulkan/vulkan_core.h>
+#include "sirius/vulkan/core/vulkan.hpp"
 #include <cstdint>
 #include <type_traits>
 

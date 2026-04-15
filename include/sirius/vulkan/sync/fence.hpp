@@ -2,7 +2,7 @@
 #include "sirius/vulkan/device/logical_device.hpp"
 #include "sirius/vulkan/core/vulkan_ptr.hpp"
 #include <cstdint>
-#include <vulkan/vulkan_core.h>
+#include "sirius/vulkan/core/vulkan.hpp"
 
 
 __D2D_DECLARE_VK_TRAITS_DEVICE(VkFence);

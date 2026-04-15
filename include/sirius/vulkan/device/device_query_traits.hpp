@@ -1,7 +1,7 @@
 #pragma once
 #include <set>
 
-#include <vulkan/vulkan.h>
+#include "sirius/vulkan/core/vulkan.hpp"
 
 #include "sirius/vulkan/device/device_query.hpp"
 #include "sirius/vulkan/display/display_format.hpp"

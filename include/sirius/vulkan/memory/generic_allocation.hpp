@@ -1,33 +1,51 @@
 #pragma once
-#include "sirius/vulkan/memory/generic_allocation.fwd.hpp"
+#include <streamline/functional/functor/generic_stateful.hpp>
 
-#include "sirius/core/coupling_policy.hpp"
-#include "sirius/vulkan/device/logical_device.hpp"
-#include "sirius/vulkan/device/physical_device.hpp"
-
+#include "sirius/vulkan/core/vulkan.hpp"
+#include "sirius/vulkan/memory/allocator.hpp"
 
 namespace acma::vk {
-	template<coupling_policy_t CouplingPolicy, typename RenderProcessT>
-	class generic_allocation {
+	using allocation_t = sl::remove_pointer_t<VmaAllocation>;
+	using allocation_handle_t = allocation_t*;
+	using allocation_creation_info_t = VmaAllocationCreateInfo;
+	using allocation_info_t = VmaAllocationInfo;
+}
+
+namespace acma::vk {
+	template<typename HandleT, typename CreationInfoT>
+	struct generic_allocation {
+		HandleT handle;
+		CreationInfoT creation_info;
+		allocation_handle_t allocation_handle;
+		allocation_creation_info_t allocation_creation_info;
+		allocation_info_t allocation_info;
 	public:
-		constexpr static sl::size_t allocation_count = impl::allocation_counts[CouplingPolicy];
-		using memory_ptr_type = vulkan_ptr<VkDeviceMemory, vkFreeMemory>;
-
-
-	protected:
-		result<void> initialize(
-			std::shared_ptr<logical_device> logi_device, 
-			physical_device* phys_device//,
-			//std::shared_ptr<command_pool> transfer_command_pool
-		) noexcept;
-
-
-	protected:
-		sl::array<allocation_count, memory_ptr_type> mems;
-	protected:
-		std::shared_ptr<logical_device> logi_device_ptr;
-		physical_device* phys_device_ptr;
+		using handle_type = HandleT;
 	};
 }
 
-#include "sirius/vulkan/memory/generic_allocation.inl"
+
+namespace acma::vk::impl {
+	template<typename AllocationT, void(*DeleteFn)(allocator*, typename AllocationT::handle_type, allocation_handle_t)>
+	struct allocation_deleter{
+		constexpr allocation_deleter() noexcept = default;
+		constexpr allocation_deleter(allocator_shared_handle const& allocator) noexcept :
+			allocator_ptr(allocator) {}
+	public:
+		constexpr void operator()(AllocationT* allocation_ptr) noexcept {
+			if(!allocation_ptr->handle) {
+				if(!allocation_ptr->allocation_handle)
+					return;
+				return vmaFreeMemory(allocator_ptr.get(), allocation_ptr->allocation_handle);
+			}
+			return DeleteFn(
+				allocator_ptr.get(),
+				allocation_ptr->handle,
+				allocation_ptr->allocation_handle
+			);
+		}
+
+	private:
+		allocator_shared_handle allocator_ptr;
+	};
+}

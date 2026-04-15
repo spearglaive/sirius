@@ -3,8 +3,8 @@
 #include <array>
 #include <cstdint>
 #include <frozen/unordered_map.h>
-#include <vulkan/vulkan.h>
-#include <vulkan/vulkan_core.h>
+#include "sirius/vulkan/core/vulkan.hpp"
+#include "sirius/vulkan/core/vulkan.hpp"
 
 
 namespace acma::vk::impl {

@@ -1,6 +1,6 @@
 #pragma once
 #include <optional>
-#include <vulkan/vulkan.h>
+#include "sirius/vulkan/core/vulkan.hpp"
 
 #include "sirius/core/command_family.hpp"
 

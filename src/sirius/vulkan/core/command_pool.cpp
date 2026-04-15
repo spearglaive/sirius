@@ -1,6 +1,6 @@
 #include "sirius/vulkan/core/command_pool.hpp"
 #include "sirius/core/command_family.hpp"
-#include <vulkan/vulkan_core.h>
+#include "sirius/vulkan/core/vulkan.hpp"
 
 namespace acma::vk {
     result<command_pool> command_pool::create(command_family_t family, std::shared_ptr<logical_device> logi_device, physical_device* phys_device) noexcept {

@@ -1,7 +1,7 @@
 #pragma once
 #include <limits>
 
-#include <vulkan/vulkan.h>
+#include "sirius/vulkan/core/vulkan.hpp"
 
 #include "sirius/core/coupling_policy.hpp"
 #include "sirius/core/memory_policy.hpp"
@@ -63,5 +63,6 @@ namespace acma {
 		buffer_usage_policy_flags_t usage;
 		shader_stage_flags_t stages;
 		std::size_t initial_capacity_bytes = 0;
+		bool dedicated_allocation = false;
 	};
 }

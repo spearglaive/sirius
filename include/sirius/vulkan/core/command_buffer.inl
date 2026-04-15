@@ -2,7 +2,7 @@
 #include "sirius/vulkan/core/command_buffer.hpp"
 #include <streamline/functional/functor/invoke_each.hpp>
 
-#include <vulkan/vulkan.h>
+#include "sirius/vulkan/core/vulkan.hpp"
 
 #include "sirius/core/render_process.hpp"
 
@@ -146,12 +146,12 @@ namespace acma::vk {
 
 
 namespace acma::vk {
-	template<sl::index_t I, sl::size_t N, buffer_config_table<N> BufferConfigs, typename T, auto AssetHeapConfigs, typename RenderProcessT>
-	void command_buffer::bind_buffer(device_allocation_segment<I, N, BufferConfigs, RenderProcessT> const& buff, pipeline_layout<shader_stage::all_graphics, T, BufferConfigs, AssetHeapConfigs> const& layout) const noexcept {
-		constexpr buffer_config config = device_allocation_segment<I, N, BufferConfigs, RenderProcessT>::config;
+	template<buffer_key_t K, typename T, auto BufferConfigs, auto AssetHeapConfigs, typename RenderProcessT>
+	void command_buffer::bind_buffer(buffer<K, BufferConfigs, RenderProcessT> const& buff, pipeline_layout<shader_stage::all_graphics, T, BufferConfigs, AssetHeapConfigs> const& layout) const noexcept {
+		constexpr buffer_config config = buffer<K, BufferConfigs, RenderProcessT>::config;
 		
 		if constexpr(config.usage & buffer_usage_policy::index)
-            vkCmdBindIndexBuffer(handle, buff.buffs[buff.current_buffer_index()], 0, T::index_type);
+            vkCmdBindIndexBuffer(handle, buff.handle(), 0, T::index_type);
 
 		if constexpr(config.usage & buffer_usage_policy::push_constant)
 			vkCmdPushConstants(handle, layout, config.stages, 0, config.initial_capacity_bytes, buff.data());
@@ -168,7 +168,7 @@ namespace acma::vk {
 		//}
 
 		if constexpr(config.usage & buffer_usage_policy::uniform) {
-			constexpr buffer_key_t key = sl::universal::get<sl::first_constant>(*std::next(BufferConfigs.begin(), I));
+			constexpr buffer_key_t key = K;
 			using pipeline_layout_type = pipeline_layout<shader_stage::all_graphics, T, BufferConfigs, AssetHeapConfigs>;
 			static_assert(pipeline_layout_type::uniform_buffer_binding_indices.contains(key));
 
@@ -195,9 +195,9 @@ namespace acma::vk {
 		}
 	}
 
-	template<sl::index_t I, sl::size_t N, buffer_config_table<N> BufferConfigs, typename T, auto AssetHeapConfigs, typename RenderProcessT>
-	void command_buffer::bind_buffer(device_allocation_segment<I, N, BufferConfigs, RenderProcessT> const& buff, pipeline_layout<shader_stage::compute, T, BufferConfigs, AssetHeapConfigs> const& layout) const noexcept {
-		constexpr buffer_config config = device_allocation_segment<I, N, BufferConfigs, RenderProcessT>::config;
+	template<buffer_key_t K, typename T, auto BufferConfigs, auto AssetHeapConfigs, typename RenderProcessT>
+	void command_buffer::bind_buffer(buffer<K, BufferConfigs, RenderProcessT> const& buff, pipeline_layout<shader_stage::compute, T, BufferConfigs, AssetHeapConfigs> const& layout) const noexcept {
+		constexpr buffer_config config = buffer<K, BufferConfigs, RenderProcessT>::config;
 
 		if constexpr(config.usage & buffer_usage_policy::push_constant)
 			vkCmdPushConstants(handle, layout, config.stages, 0, config.initial_capacity_bytes, buff.data());
@@ -214,7 +214,7 @@ namespace acma::vk {
 		//}
 
 		if constexpr(config.usage & buffer_usage_policy::uniform) {
-			constexpr buffer_key_t key = sl::universal::get<sl::first_constant>(*std::next(BufferConfigs.begin(), I));
+			constexpr buffer_key_t key = K;
 			using pipeline_layout_type = pipeline_layout<shader_stage::compute, T, BufferConfigs, AssetHeapConfigs>;
 			static_assert(pipeline_layout_type::uniform_buffer_binding_indices.contains(key));
 
@@ -242,8 +242,8 @@ namespace acma::vk {
 	}
 
 
-	template<sl::index_t I, asset_heap_config Config, typename RenderProcessT, shader_stage_flags_t ShaderStages, typename T, auto BufferConfigs, auto AssetHeapConfigs>
-	void command_buffer::bind_asset_heap(asset_heap_allocation<I, Config, RenderProcessT> const& heap, pipeline_layout<ShaderStages, T, BufferConfigs, AssetHeapConfigs> const& layout) const noexcept {		
+	template<buffer_key_t K, auto AssetHeapConfigs, typename RenderProcessT, shader_stage_flags_t ShaderStages, typename T, auto BufferConfigs>
+	void command_buffer::bind_asset_heap(asset_heap<K, AssetHeapConfigs, RenderProcessT> const& heap, pipeline_layout<ShaderStages, T, BufferConfigs, AssetHeapConfigs> const& layout) const noexcept {		
 		const sl::array<asset_usage_policy::num_usage_policies, VkDescriptorSet> descriptor_set_handles = 
 			sl::universal::make_deduced<sl::generic::array>(heap.descirptor_sets(), sl::functor::forward_construct<VkDescriptorSet>{});
 		vkCmdBindDescriptorSets(
@@ -315,22 +315,19 @@ namespace acma::vk {
 }
 
 
-
 namespace acma::vk {
-	template<sl::index_t I, sl::index_t J, sl::size_t N, buffer_config_table<N> BufferConfigs, typename RenderProcessT>
     void command_buffer::copy(
-		device_allocation_segment<I, N, BufferConfigs, RenderProcessT>& dst, 
-		device_allocation_segment<J, N, BufferConfigs, RenderProcessT> const& src, 
+		vk::buffer_allocation_unique_ptr& dst, 
+		vk::buffer_allocation_unique_ptr const& src, 
 		std::span<const VkBufferCopy> copy_regions
 	) const noexcept {
-        vkCmdCopyBuffer(handle, src.buffs[src.current_buffer_index()], dst.buffs[dst.current_buffer_index()], copy_regions.size(), copy_regions.data());
+        return vkCmdCopyBuffer(handle, src->handle, dst->handle, copy_regions.size(), copy_regions.data());
     }
 
 
-	template<sl::index_t I, sl::index_t J, sl::size_t N, buffer_config_table<N> BufferConfigs, typename RenderProcessT>
     void command_buffer::copy(
-		device_allocation_segment<I, N, BufferConfigs, RenderProcessT>& dst, 
-		device_allocation_segment<J, N, BufferConfigs, RenderProcessT> const& src, 
+		vk::buffer_allocation_unique_ptr& dst, 
+		vk::buffer_allocation_unique_ptr const& src, 
 		std::size_t size, 
 		sl::uoffset_t dst_offset, 
 		sl::uoffset_t src_offset
@@ -345,13 +342,41 @@ namespace acma::vk {
 }
 
 namespace acma::vk {
-	template<sl::index_t I, sl::size_t N, buffer_config_table<N> BufferConfigs, typename RenderProcessT>
+	template<buffer_key_t DstK, buffer_key_t SrcK, auto BufferConfigs, typename RenderProcessT>
+    void command_buffer::copy(
+		buffer<DstK, BufferConfigs, RenderProcessT>& dst, 
+		buffer<SrcK, BufferConfigs, RenderProcessT> const& src, 
+		std::span<const VkBufferCopy> copy_regions
+	) const noexcept {
+		return copy(dst.allocation_ptr(), src.allocation_ptr(), copy_regions);
+    }
+
+
+	template<buffer_key_t DstK, buffer_key_t SrcK, auto BufferConfigs, typename RenderProcessT>
+    void command_buffer::copy(
+		buffer<DstK, BufferConfigs, RenderProcessT>& dst, 
+		buffer<SrcK, BufferConfigs, RenderProcessT> const& src, 
+		std::size_t size, 
+		sl::uoffset_t dst_offset, 
+		sl::uoffset_t src_offset
+	) const noexcept {
+        VkBufferCopy copy_region{ 
+            .srcOffset = src_offset,
+            .dstOffset = dst_offset,
+            .size = size,
+        };
+        return copy(dst, src, {&copy_region, 1});
+    }
+}
+
+namespace acma::vk {
+	template<buffer_key_t K, auto BufferConfigs, typename RenderProcessT>
     void command_buffer::fill(
-		device_allocation_segment<I, N, BufferConfigs, RenderProcessT>& dst,
+		buffer<K, BufferConfigs, RenderProcessT>& dst,
 		sl::uint32_t value,
 		sl::uoffset_t dst_offset,
 		sl::size_t fill_count_bytes
 	) const noexcept {
-        vkCmdFillBuffer(handle, dst.buffs[dst.current_buffer_index()], dst_offset, fill_count_bytes, value);
+        vkCmdFillBuffer(handle, dst.handle(), dst_offset, fill_count_bytes, value);
     }
 }

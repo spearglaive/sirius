@@ -1,7 +1,7 @@
 #pragma once 
 #include "sirius/timeline/submit.hpp"
 
-#include <vulkan/vulkan.h>
+#include "sirius/vulkan/core/vulkan.hpp"
 
 #include "sirius/core/invoke_all.def.hpp"
 #include "sirius/timeline/callback_event.hpp"
@@ -177,6 +177,7 @@ namespace acma::timeline {
 			vkQueuePresentKHR(proc.logical_device_ptr()->queues[command_family::present][timeline_state.queue_indices[command_family::present]++], &present_info),
 			proc.logical_device_ptr(),
 			proc.physical_device_ptr(),
+			proc.allocator_ptr(),
 			true
 		), sc);
 		if(swap_chain_updated)

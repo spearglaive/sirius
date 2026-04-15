@@ -11,7 +11,7 @@
 #include <GLFW/glfw3.h>
 #include <result/basic_error_category.hpp>
 #include <frozen/unordered_map.h>
-#include <vulkan/vulkan.h>
+#include "sirius/vulkan/core/vulkan.hpp"
 
 #include "sirius/core/api.def.h"
 #include "sirius/core/command_family.hpp"

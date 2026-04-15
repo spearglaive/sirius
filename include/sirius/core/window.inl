@@ -13,7 +13,7 @@
 
 #include <GLFW/glfw3.h>
 #include <result/verify.h>
-#include <vulkan/vulkan_core.h>
+#include "sirius/vulkan/core/vulkan.hpp"
 
 
 #include "sirius/timeline/command.fwd.hpp"
@@ -62,7 +62,8 @@ namespace acma {
     result<void>    window::
 	initialize(
 		std::shared_ptr<vk::logical_device> logi_device, 
-		vk::physical_device* phys_device
+		vk::physical_device* phys_device,
+		vk::allocator_shared_handle allocator
 	) noexcept {
 		//Create swap chain
 		RESULT_TRY_MOVE(_swap_chain, make<vk::swap_chain>(
@@ -73,7 +74,7 @@ namespace acma {
 		));
 
 		//Create depth image
-		RESULT_TRY_MOVE(_depth_image, make<vk::depth_image>(logi_device, phys_device, _swap_chain.extent()));
+		RESULT_TRY_MOVE(_depth_image, make<vk::depth_image>(logi_device, allocator, _swap_chain.extent()));
 
 
         //Verify window size
@@ -92,6 +93,7 @@ namespace acma {
 		VkResult fn_result, 
 		std::shared_ptr<vk::logical_device> logi_device, 
 		vk::physical_device* phys_device,
+		vk::allocator_shared_handle allocator,
 		bool even_if_suboptimal
 	) noexcept {
 		switch(fn_result) {
@@ -105,7 +107,7 @@ namespace acma {
 			
 			RESULT_VERIFY(_swap_chain.reset(logi_device, phys_device, _surface, *window_handle));
 
-			RESULT_TRY_MOVE(_depth_image, make<vk::depth_image>(logi_device, phys_device, _swap_chain.extent()));
+			RESULT_TRY_MOVE(_depth_image, make<vk::depth_image>(logi_device, allocator, _swap_chain.extent()));
 			return true;
 		}
 		default: 

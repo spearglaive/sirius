@@ -2,8 +2,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <type_traits>
-#include <vulkan/vulkan.h>
-#include <vulkan/vulkan_core.h>
+#include "sirius/vulkan/core/vulkan.hpp"
+#include "sirius/vulkan/core/vulkan.hpp"
 
 namespace acma::impl {
     enum transform_flags {

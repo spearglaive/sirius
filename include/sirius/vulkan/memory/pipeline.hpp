@@ -1,7 +1,7 @@
 #pragma once
 #include <span>
 
-#include <vulkan/vulkan.h>
+#include "sirius/vulkan/core/vulkan.hpp"
 
 #include "sirius/vulkan/device/logical_device.hpp"
 #include "sirius/vulkan/memory/bind_point.hpp"

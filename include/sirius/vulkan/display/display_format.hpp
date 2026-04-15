@@ -1,5 +1,5 @@
 #pragma once
-#include <vulkan/vulkan.h>
+#include "sirius/vulkan/core/vulkan.hpp"
 #include <tuple>
 
 #include "sirius/vulkan/display/pixel_format.hpp"

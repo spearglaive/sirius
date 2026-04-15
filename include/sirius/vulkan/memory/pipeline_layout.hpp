@@ -1,13 +1,13 @@
 #pragma once
 #include <streamline/functional/functor/identity_index.hpp>
 
-#include <vulkan/vulkan_core.h>
+#include "sirius/vulkan/core/vulkan.hpp"
 
 #include "sirius/core/buffer_config_table.hpp"
 #include "sirius/core/asset_heap_config_table.hpp"
 #include "sirius/vulkan/device/logical_device.hpp"
 #include "sirius/vulkan/core/vulkan_ptr.hpp"
-#include "sirius/vulkan/memory/asset_heap_allocation.hpp"
+#include "sirius/vulkan/memory/asset_heap.hpp"
 
 
 __D2D_DECLARE_VK_TRAITS_DEVICE(VkPipelineLayout);

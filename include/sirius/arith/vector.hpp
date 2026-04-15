@@ -10,7 +10,7 @@
 #include <type_traits>
 #include <utility>
 #include <cmath>
-#include <vulkan/vulkan_core.h>
+#include "sirius/vulkan/core/vulkan.hpp"
 
 #include "sirius/arith/axis.hpp"
 #include "sirius/traits/vector_traits.hpp"

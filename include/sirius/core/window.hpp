@@ -16,6 +16,7 @@
 #include "sirius/vulkan/display/surface.hpp"
 #include "sirius/vulkan/display/swap_chain.hpp"
 #include "sirius/vulkan/display/depth_image.hpp"
+#include "sirius/vulkan/memory/allocator.hpp"
 
 
 namespace acma {
@@ -31,7 +32,8 @@ namespace acma {
 
 		inline result<void> initialize(
 			std::shared_ptr<vk::logical_device> logi_device, 
-			vk::physical_device* phys_device
+			vk::physical_device* phys_device,
+			vk::allocator_shared_handle allocator
 		) noexcept;
 		
 	public:
@@ -39,6 +41,7 @@ namespace acma {
 			VkResult fn_result, 
 			std::shared_ptr<vk::logical_device> logi_device, 
 			vk::physical_device* phys_device,
+			vk::allocator_shared_handle allocator,
 			bool even_if_suboptimal
 		) noexcept;
 

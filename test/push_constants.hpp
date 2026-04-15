@@ -1,5 +1,5 @@
 #pragma once
-#include <vulkan/vulkan.h>
+#include "sirius/vulkan/core/vulkan.hpp"
 #include <sirius/arith/size.hpp>
 
 struct draw_constants {

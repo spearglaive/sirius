@@ -1,5 +1,5 @@
 #include "sirius/vulkan/sync/semaphore.hpp"
-#include <vulkan/vulkan_core.h>
+#include "sirius/vulkan/core/vulkan.hpp"
 
 namespace acma::vk {
     result<semaphore> semaphore::create(std::shared_ptr<logical_device> device, VkSemaphoreType semaphore_type) noexcept {

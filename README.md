@@ -23,7 +23,7 @@ It supports windowed and window-less rendering, fully custom compute and graphic
 - **WYSIWYG** - Anything written by the developer in Sirius is 1:1 with what the graphics API and/or other internal processes execute; There are no under the hood processes that the developer doesn't have control over.
 - **[Zero-Overhead](https://en.cppreference.com/w/cpp/language/Zero-overhead_principle.html)** - You don't pay for what you don't use
 - **Bindless** - There are as little pipelines and draw calls as possible; Large buffers for data, Runtime-sized arrays for textures, and no vertex attributes.
-- **GPU Driven Rendering** - As little GPU-issued draw calls as possible and no CPU-issued draw calls at all; Multi and indirect rendering so that the CPU is free for other work and the GPU can do as much work as possible all at once.
+- **GPU Driven Rendering** - As little GPU-issued draw calls as possible and no CPU-issued draw calls at all thanks to multi and indirect rendering; The CPU is free for other work and the GPU can do as much work as possible all at once.
 - **Extensibility** - The developer and the end-user can extend/customize any built-in functionality
 
 <h3>API</h3>
@@ -43,8 +43,8 @@ It supports windowed and window-less rendering, fully custom compute and graphic
 
 <h3>Efficiency</h3>
 
-- Compile-time offloading - almost all rendering logic happens at compile time
-- No dependence on any platform-specific libraries, SDL, GLM, VMA, ImGui, FreeType, *or even the standard C++ library*.
+- Compile-time offloading - almost all rendering branching logic happens at compile time
+- No dependence on any platform-specific libraries, SDL, GLM, ImGui, FreeType, ***or even the standard C++ library***.
 - Pre-compiled shaders - no shader compilation necessary for the end-user
 - Fully asynchronous rendering
 - Multithreaded, asynchronous input handling

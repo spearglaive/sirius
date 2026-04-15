@@ -1,6 +1,6 @@
 #include "sirius/vulkan/device/logical_device.hpp"
 #include "sirius/vulkan/device/physical_device.hpp"
-#include <vulkan/vulkan_core.h>
+#include "sirius/vulkan/core/vulkan.hpp"
 
 
 namespace acma::vk {
@@ -47,6 +47,7 @@ namespace acma::vk {
 			.pNext = nullptr,//&desired_maintenance_5_features,
             .synchronization2 = VK_TRUE,
 			.dynamicRendering = VK_TRUE,
+			.maintenance4 = VK_TRUE,
         };
         VkPhysicalDeviceVulkan12Features desired_1_2_features{
             .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,

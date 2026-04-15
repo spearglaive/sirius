@@ -4,7 +4,7 @@
 #include "sirius/core/make.hpp"
 #include "sirius/vulkan/memory/pipeline_layout.hpp"
 #include "sirius/vulkan/memory/shader_module.hpp"
-#include <vulkan/vulkan_core.h>
+#include "sirius/vulkan/core/vulkan.hpp"
 
 namespace acma::vk {
     template<typename T, auto BufferConfigs, auto AssetHeapConfigs>

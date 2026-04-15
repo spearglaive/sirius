@@ -1,6 +1,6 @@
 #pragma once
-#include <vulkan/vulkan.h>
-#include <vulkan/vulkan_core.h>
+#include "sirius/vulkan/core/vulkan.hpp"
+#include "sirius/vulkan/core/vulkan.hpp"
 
 #include "sirius/core/api.def.h"
 #include "sirius/core/render_stage.hpp"

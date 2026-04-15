@@ -22,7 +22,6 @@
 #include "sirius/core/error.hpp"
 #include "sirius/vulkan/device/logical_device.hpp"
 #include "sirius/vulkan/device/physical_device.hpp"
-#include "sirius/vulkan/memory/device_allocation_group.hpp"
 #include "sirius/core/buffer_config_table.hpp"
 
 

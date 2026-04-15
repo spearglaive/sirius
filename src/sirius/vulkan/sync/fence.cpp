@@ -1,5 +1,5 @@
 #include "sirius/vulkan/sync/fence.hpp"
-#include <vulkan/vulkan_core.h>
+#include "sirius/vulkan/core/vulkan.hpp"
 
 namespace acma::vk {
     result<fence> fence::create(std::shared_ptr<logical_device> device) noexcept {

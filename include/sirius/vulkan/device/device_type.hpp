@@ -1,7 +1,7 @@
 #pragma once
 #include <cstdint>
 #include <limits>
-#include <vulkan/vulkan.h>
+#include "sirius/vulkan/core/vulkan.hpp"
 
 
 namespace acma::vk {
