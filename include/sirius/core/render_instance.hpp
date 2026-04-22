@@ -5,6 +5,7 @@
 #include <functional>
 #include <memory>
 #include <string_view>
+#include <future>
 
 #include "sirius/core/initialize.hpp"
 #include "sirius/timeline/command_traits.hpp"
@@ -28,12 +29,15 @@
 namespace acma {
     template<typename... TimelineEventTs, auto BufferConfigs, auto AssetHeapConfigs> requires impl::is_buffer_config_table_v<decltype(BufferConfigs)>
 	class render_instance<sl::tuple<TimelineEventTs...>, BufferConfigs, AssetHeapConfigs> :
-		public window,
 		public render_process<
 			BufferConfigs, AssetHeapConfigs,
 			timeline::command_traits<TimelineEventTs...>::group_count + timeline::impl::dedicated_command_group::num_dedicated_command_groups
-		>
+		>,
+		public window
 	{
+	public:
+		template<typename>
+		friend struct ::acma::impl::make;
 
 	public:
 		using command_traits_type = timeline::command_traits<TimelineEventTs...>;
@@ -102,6 +106,27 @@ namespace acma {
 	private:
 		sl::tuple<typename sl::invoke_return_type_t<timeline::setup<TimelineEventTs>, render_process_type&, window_type&>::value_type...> auxiliary;
 
+	};
+}
+
+
+namespace acma::impl {
+    template<typename... TimelineEventTs, auto BufferConfigs, auto AssetHeapConfigs> requires impl::is_buffer_config_table_v<decltype(BufferConfigs)>
+    struct make<render_instance<sl::tuple<TimelineEventTs...>, BufferConfigs, AssetHeapConfigs>> {
+		SIRIUS_API result<render_instance<sl::tuple<TimelineEventTs...>, BufferConfigs, AssetHeapConfigs>> operator()(
+			vk::physical_device& device, 
+			bool prefer_synchronous_rendering,
+			sl::in_place_adl_tag_type<render_instance<sl::tuple<TimelineEventTs...>, BufferConfigs, AssetHeapConfigs>> = sl::in_place_adl_tag<render_instance<sl::tuple<TimelineEventTs...>, BufferConfigs, AssetHeapConfigs>>
+		) const noexcept;
+
+
+		SIRIUS_API result<render_instance<sl::tuple<TimelineEventTs...>, BufferConfigs, AssetHeapConfigs>> operator()(
+			vk::physical_device& device, 
+			bool prefer_synchronous_rendering,
+			acma::sz2u32 window_size,
+			std::string_view window_title = {},
+			sl::in_place_adl_tag_type<render_instance<sl::tuple<TimelineEventTs...>, BufferConfigs, AssetHeapConfigs>> = sl::in_place_adl_tag<render_instance<sl::tuple<TimelineEventTs...>, BufferConfigs, AssetHeapConfigs>>
+		) const noexcept;
 	};
 }
 

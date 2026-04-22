@@ -1,6 +1,9 @@
 #pragma once
 #include <memory>
 
+#include "sirius/core/make.hpp"
+#include "sirius/vulkan/core/mixin.hpp"
+#include "sirius/vulkan/core/unique_vk_ptr.hpp"
 #include "sirius/arith/point.hpp"
 #include "sirius/arith/size.hpp"
 #include "sirius/core/asset_heap_key_t.hpp"
@@ -20,32 +23,28 @@
 
 namespace acma::vk {
     struct SIRIUS_API image {
-        static result<image> create(
-			std::shared_ptr<logical_device> const& logi_device,
-			allocator_shared_handle const& allocator,
-			image_creation_info_t create_info,
-			bool dedicated_allocation = false,
-			VkImageAspectFlags aspect_mask = VK_IMAGE_ASPECT_COLOR_BIT
-		) noexcept;
-        
+	public:
+		template<typename T>
+		friend struct ::acma::impl::make;
+
     public:
+		constexpr sl::reference_ptr<const VkImage>    handle_ref() const& noexcept { return {std::addressof(alloc_ptr->handle)}; }
+		constexpr sl::reference_ptr<const image_view> view_ref  () const& noexcept { return {std::addressof(associated_view)}; }
+
 		constexpr sl::size_t dimensions() const noexcept { return static_cast<sl::size_t>(alloc_ptr->creation_info.imageType) + 1; }
 
-		constexpr VkImage const& handle() const& noexcept { return alloc_ptr->handle; }
-		constexpr image_view const& view() const& noexcept { return associated_view; }
-
-		constexpr VkImageCreateInfo     const& creation_info()   const& noexcept { return alloc_ptr->creation_info; }
-        constexpr VkFormat              const& format_id()       const& noexcept { return alloc_ptr->creation_info.format; }
-        constexpr VkExtent3D            const& size()            const& noexcept { return alloc_ptr->creation_info.extent; }
-        constexpr sl::uint32_t          const& mip_level_count() const& noexcept { return alloc_ptr->creation_info.mipLevels; }
-        constexpr sl::uint32_t          const& layer_count()     const& noexcept { return alloc_ptr->creation_info.arrayLayers; }
-        constexpr VkSampleCountFlagBits const& sample_count()    const& noexcept { return alloc_ptr->creation_info.samples; }
-        constexpr VkImageTiling         const& tiling()          const& noexcept { return alloc_ptr->creation_info.tiling; }
-        constexpr VkImageUsageFlags     const& usage()           const& noexcept { return alloc_ptr->creation_info.usage; }
+		constexpr VkImageCreateInfo     creation_info()   const noexcept { return alloc_ptr->creation_info; }
+        constexpr VkFormat              format_id()       const noexcept { return alloc_ptr->creation_info.format; }
+        constexpr VkExtent3D            size()            const noexcept { return alloc_ptr->creation_info.extent; }
+        constexpr sl::uint32_t          mip_level_count() const noexcept { return alloc_ptr->creation_info.mipLevels; }
+        constexpr sl::uint32_t          layer_count()     const noexcept { return alloc_ptr->creation_info.arrayLayers; }
+        constexpr VkSampleCountFlagBits sample_count()    const noexcept { return alloc_ptr->creation_info.samples; }
+        constexpr VkImageTiling         tiling()          const noexcept { return alloc_ptr->creation_info.tiling; }
+        constexpr VkImageUsageFlags     usage()           const noexcept { return alloc_ptr->creation_info.usage; }
 		
-        constexpr sl::size_t            const& size_bytes()      const& noexcept { return alloc_ptr->allocation_info.size; }
+        constexpr sl::size_t            size_bytes()      const noexcept { return alloc_ptr->allocation_info.size; }
 
-        constexpr VkImageLayout const& layout() const& noexcept { return this->current_layout; }
+        constexpr VkImageLayout layout() const noexcept { return this->current_layout; }
 
 
     protected:
@@ -74,4 +73,20 @@ namespace acma::vk {
 			sl::uint64_t timeout
 		) noexcept;
     };
+}
+
+
+namespace acma::impl {
+	template<>
+    struct make<vk::image> {
+		SIRIUS_API result<vk::image> operator()(
+			sl::reference_ptr<const vk::function_table> vulkan_fns_ptr,
+			sl::reference_ptr<const vk::logical_device> logi_device_ptr,
+			sl::reference_ptr<const vk::allocator> allocator,
+			vk::image_creation_info_t create_info,
+			bool dedicated_allocation = false,
+			VkImageAspectFlags aspect_mask = VK_IMAGE_ASPECT_COLOR_BIT,
+			sl::in_place_adl_tag_type<vk::image> = sl::in_place_adl_tag<vk::image>
+		) const noexcept;
+	};
 }

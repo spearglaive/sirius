@@ -52,7 +52,7 @@ namespace acma::vk {
 			create_info.size = new_capacity_bytes;
 
 			__D2D_VULKAN_VERIFY(vmaCreateAliasingBuffer2(
-				proc.allocator_ptr().get(),
+				*proc.allocator_ptr(),
 				buff_alloc_ptrs[alloc_idx]->allocation_handle,
 				0,
 				&create_info,

@@ -5,24 +5,21 @@
 #include "sirius/vulkan/core/vulkan.hpp"
 
 #include "sirius/core/api.def.h"
-#include "sirius/vulkan/core/vulkan_ptr.hpp"
+#include "sirius/vulkan/core/mixin.hpp"
 #include "sirius/vulkan/core/instance.hpp"
 
-
-__D2D_DECLARE_VK_TRAITS_INST(VkSurfaceKHR);
-
 namespace acma::vk {
-    struct SIRIUS_API surface : vulkan_ptr_base<VkSurfaceKHR> {
-		constexpr surface() noexcept = default;
-        static result<surface> create(GLFWwindow* w) noexcept;
+    struct SIRIUS_API surface : mixin<VkSurfaceKHR, PFN_vkDestroySurfaceKHR, instance> {};
+}
 
-	public:
-		~surface() noexcept;
-	public:
-	    surface(surface&& other) noexcept;
-        surface& operator=(surface&& other) noexcept;
 
-        constexpr surface(const surface& other) = delete;
-        constexpr surface& operator=(const surface& other) = delete;
-    };
+namespace acma::impl {
+	template<>
+    struct make<vk::surface> {
+		SIRIUS_API result<vk::surface> operator()(
+			sl::reference_ptr<const vk::instance> instance_ptr,
+			sl::reference_ptr<GLFWwindow> window_handle,
+			sl::in_place_adl_tag_type<vk::surface> = sl::in_place_adl_tag<vk::surface>
+		) const noexcept;
+	};
 }

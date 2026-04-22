@@ -74,7 +74,7 @@ namespace acma{
 				.dstAccessMask = VK_ACCESS_2_TRANSFER_READ_BIT,
 			    .oldLayout = original_layout,
 			    .newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-			    .image = src.handle(),
+			    .image = *src.handle_ref(),
 			    .subresourceRange = {
 			        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
 			        .baseMipLevel = 0,
@@ -91,7 +91,7 @@ namespace acma{
 				.dstAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
 			    .oldLayout = dst.layout(),
 			    .newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			    .image = dst.handle(),
+			    .image = *dst.handle_ref(),
 			    .subresourceRange = {
 			        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
 			        .baseMipLevel = 0,
@@ -124,7 +124,8 @@ namespace acma{
 			};
 		}
 
-		vkCmdCopyImage(transfer_command_buffer, 
+		sl::invoke(proc.vulkan_functions_ptr()->vkCmdCopyImage,
+			transfer_command_buffer, 
 			src, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
 			dst, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			src.mip_level_count(), copy_regions.get()
@@ -142,7 +143,7 @@ namespace acma{
 					.dstAccessMask = VK_ACCESS_2_NONE,
 				    .oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 				    .newLayout = original_layout,
-				    .image = dst.handle(),
+				    .image = *dst.handle_ref(),
 				    .subresourceRange = {
 				        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
 				        .baseMipLevel = 0,
@@ -205,7 +206,7 @@ namespace acma{
 				.dstAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
 			    .oldLayout = dst_image.layout(),
 			    .newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			    .image = dst_image.handle(),
+			    .image = *dst_image.handle_ref(),
 			    .subresourceRange = {
 			        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
 			        .baseMipLevel = 0,
@@ -237,9 +238,10 @@ namespace acma{
 				};
 			}
 
-			vkCmdCopyBufferToImage(transfer_command_buffer, 
+			sl::invoke(proc.vulkan_functions_ptr()->vkCmdCopyBufferToImage,
+				transfer_command_buffer, 
 				static_cast<VkBuffer>(src),
-				dst_image.handle(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+				*dst_image.handle_ref(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 				copy_region_count, copy_regions.get()
 			);
 
@@ -252,7 +254,7 @@ namespace acma{
 					.dstAccessMask = VK_ACCESS_2_NONE,
 				    .oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 				    .newLayout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL,
-				    .image = dst_image.handle(),
+				    .image = *dst_image.handle_ref(),
 				    .subresourceRange = {
 				        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
 				        .baseMipLevel = 0,
@@ -326,7 +328,7 @@ namespace acma {
 
 
 		__D2D_VULKAN_VERIFY(vmaCreateBuffer(
-			process.allocator_ptr().get(),
+			*process.allocator_ptr(),
 			&buff_alloc_ptr->creation_info,
 			&buff_alloc_ptr->allocation_creation_info,
 			&buff_alloc_ptr->handle,
@@ -338,7 +340,7 @@ namespace acma {
 			.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO_KHR,
 			.buffer = buff_alloc_ptr->handle
 		};
-		buff_alloc_ptr->device_address = vkGetBufferDeviceAddress(*process.logical_device_ptr(), &device_address_info);
+		buff_alloc_ptr->device_address = sl::invoke(process.vulkan_functions_ptr()->vkGetBufferDeviceAddress, *process.logical_device_ptr(), &device_address_info);
 
 		return buff_alloc_ptr;
 	}
@@ -358,7 +360,7 @@ namespace acma {
 		buff_alloc_ptr->creation_info.size = new_size_bytes;
 
 		__D2D_VULKAN_VERIFY(vmaCreateBuffer(
-			process.allocator_ptr().get(),
+			*process.allocator_ptr(),
 			&buff_alloc_ptr->creation_info,
 			&buff_alloc_ptr->allocation_creation_info,
 			&buff_alloc_ptr->handle,
@@ -370,7 +372,7 @@ namespace acma {
 			.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO_KHR,
 			.buffer = buff_alloc_ptr->handle
 		};
-		buff_alloc_ptr->device_address = vkGetBufferDeviceAddress(*process.logical_device_ptr(), &device_address_info);
+		buff_alloc_ptr->device_address = sl::invoke(process.vulkan_functions_ptr()->vkGetBufferDeviceAddress, *process.logical_device_ptr(), &device_address_info);
 		
         return buff_alloc_ptr;
 	}
@@ -378,7 +380,7 @@ namespace acma {
 
 namespace acma {
 	constexpr result<vk::image_allocation_unique_ptr> gpu_allocate(
-		vk::allocator_shared_handle const& allocator_ptr,
+		sl::reference_ptr<const vk::allocator> allocator_ptr,
 		vk::image_creation_info_t create_info,
 		bool dedicated_allocation
 	) noexcept {
@@ -396,7 +398,7 @@ namespace acma {
 			img_alloc_ptr->allocation_creation_info.flags |= VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
 
 		__D2D_VULKAN_VERIFY(vmaCreateImage(
-			allocator_ptr.get(),
+			*allocator_ptr,
 			&img_alloc_ptr->creation_info,
 			&img_alloc_ptr->allocation_creation_info,
 			&img_alloc_ptr->handle,

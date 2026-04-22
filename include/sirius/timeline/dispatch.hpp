@@ -27,6 +27,7 @@ namespace acma::timeline {
 			window&
 		) const noexcept {
 			return make<vk::pipeline<vk::bind_point::compute, T, BufferConfigs, AssetHeapConfigs>>(
+				proc.vulkan_functions_ptr(),
 				proc.logical_device_ptr(),
 				proc
 			);

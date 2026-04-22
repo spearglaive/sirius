@@ -1,5 +1,6 @@
 #pragma once
 #include <streamline/functional/functor/generic_stateful.hpp>
+#include <streamline/memory/reference_ptr.hpp>
 
 #include "sirius/vulkan/core/vulkan.hpp"
 #include "sirius/vulkan/memory/allocator.hpp"
@@ -26,26 +27,26 @@ namespace acma::vk {
 
 
 namespace acma::vk::impl {
-	template<typename AllocationT, void(*DeleteFn)(allocator*, typename AllocationT::handle_type, allocation_handle_t)>
+	template<typename AllocationT, void(*DeleteFn)(allocator_handle_t, typename AllocationT::handle_type, allocation_handle_t)>
 	struct allocation_deleter{
 		constexpr allocation_deleter() noexcept = default;
-		constexpr allocation_deleter(allocator_shared_handle const& allocator) noexcept :
+		constexpr allocation_deleter(sl::reference_ptr<const allocator> allocator) noexcept :
 			allocator_ptr(allocator) {}
 	public:
 		constexpr void operator()(AllocationT* allocation_ptr) noexcept {
 			if(!allocation_ptr->handle) {
 				if(!allocation_ptr->allocation_handle)
 					return;
-				return vmaFreeMemory(allocator_ptr.get(), allocation_ptr->allocation_handle);
+				return vmaFreeMemory(*allocator_ptr, allocation_ptr->allocation_handle);
 			}
 			return DeleteFn(
-				allocator_ptr.get(),
+				*allocator_ptr,
 				allocation_ptr->handle,
 				allocation_ptr->allocation_handle
 			);
 		}
 
 	private:
-		allocator_shared_handle allocator_ptr;
+		sl::reference_ptr<const allocator> allocator_ptr;
 	};
 }

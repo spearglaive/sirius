@@ -1,31 +1,36 @@
 #pragma once
 #include "sirius/vulkan/memory/shader_module.hpp"
 
-#include <cstdint>
+#include <streamline/memory/launder.hpp>
 
-#include "sirius/core/error.hpp"
 
-namespace acma::vk {
+namespace acma::impl {
     template<std::size_t N>
-    result<shader_module> shader_module::create(std::shared_ptr<logical_device> device, std::array<unsigned char, N> data, VkShaderStageFlagBits type) noexcept {
-        shader_module ret{};
-        ret.dependent_handle = device;
+	result<vk::shader_module>
+		make<vk::shader_module>::
+	operator()(
+		sl::reference_ptr<const vk::function_table> vulkan_fns_ptr,
+		sl::reference_ptr<const vk::logical_device> logi_device_ptr,
+		std::array<unsigned char, N> data,
+		VkShaderStageFlagBits stage,
+		sl::in_place_adl_tag_type<vk::shader_module>
+	) const noexcept {
+        vk::shader_module ret{{{vulkan_fns_ptr->vkDestroyShaderModule, logi_device_ptr}}, VkPipelineShaderStageCreateInfo{
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            .stage = stage,
+            .module = VK_NULL_HANDLE,
+            .pName = "main",
+		}};
 
-        //TODO verify alignment of passed shader data OR enforce constexpr
-        VkShaderModuleCreateInfo shader_module_create_info{
+		//TODO verify alignment of passed shader data OR enforce constexpr
+		const VkShaderModuleCreateInfo shader_module_create_info{
             .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
             .codeSize = data.size(),
-            .pCode = reinterpret_cast<uint32_t const*>(data.data()),
+            .pCode = sl::launder(reinterpret_cast<uint32_t const*>(data.data())),
         };
-        __D2D_VULKAN_VERIFY(vkCreateShaderModule(*device, &shader_module_create_info, nullptr, &ret.handle));
-
-        ret.shader_stage_info = {
-            .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-            .stage = type,
-            .module = ret,
-            .pName = "main",
-        };
+        __D2D_VULKAN_VERIFY(sl::invoke(vulkan_fns_ptr->vkCreateShaderModule, *logi_device_ptr, &shader_module_create_info, nullptr, &ret));
+		ret.shader_stage_info.module = ret.smart_handle.get();
 
         return ret;
-    }
+	}
 }

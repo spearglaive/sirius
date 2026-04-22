@@ -21,7 +21,7 @@ namespace acma::timeline {
 	template<>
 	struct command<begin_draw_phase> {
 		template<typename RenderProcessT, sl::index_t CommandGroupIdx>
-		constexpr result<void> operator()(RenderProcessT const& proc, window&, timeline::state& timeline_state, sl::empty_t, sl::index_constant_type<CommandGroupIdx>) const noexcept {
+		constexpr result<void> operator()(RenderProcessT const& proc, window& win, timeline::state& timeline_state, sl::empty_t, sl::index_constant_type<CommandGroupIdx>) const noexcept {
 			vk::command_buffer const& graphics_buffer = proc.command_buffers()[proc.frame_index()][CommandGroupIdx];
 			
 			std::array<VkImageMemoryBarrier2, 2> pre_render_transitions{{
@@ -33,7 +33,7 @@ namespace acma::timeline {
 				    .dstAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
 				    .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
 				    .newLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
-				    .image = proc.swap_chain().images()[timeline_state.image_index],
+				    .image = win.swap_chain_ptr()->images()[timeline_state.image_index],
 				    .subresourceRange{.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, .levelCount = 1, .layerCount = 1 }
 				},
 				VkImageMemoryBarrier2{
@@ -44,7 +44,7 @@ namespace acma::timeline {
 				    .dstAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
 				    .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
 				    .newLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
-				    .image = proc.depth_image().handle(),
+				    .image = *win.depth_image_ptr()->handle_ref(),
 				    .subresourceRange{.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT, .levelCount = 1, .layerCount = 1 }
 				}
 			}};
@@ -52,7 +52,7 @@ namespace acma::timeline {
 			
 			VkRenderingAttachmentInfo color_attachment{
 			    .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-			    .imageView = proc.swap_chain().image_views()[timeline_state.image_index],
+			    .imageView = win.swap_chain_ptr()->image_views()[timeline_state.image_index],
 			    .imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
 			    .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
 			    .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
@@ -60,14 +60,14 @@ namespace acma::timeline {
 			};
 			VkRenderingAttachmentInfo depth_attachment {
 			    .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-			    .imageView = proc.depth_image().view(),
+			    .imageView = *win.depth_image_ptr()->view_ref(),
 			    .imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
 			    .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
 			    .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
 			    .clearValue{.depthStencil{0.0f, 0}}
 			};
 
-			const extent2 swap_chain_extent = proc.swap_chain().extent();
+			const extent2 swap_chain_extent = win.swap_chain_ptr()->extent();
 			graphics_buffer.begin_draw({&color_attachment, 1}, depth_attachment, {{}, swap_chain_extent}, {{}, static_cast<size2f>(swap_chain_extent)}, {{}, swap_chain_extent});
 			return {};
 		};

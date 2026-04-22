@@ -15,16 +15,16 @@
 
 namespace acma::vk {
 	 result<void> swap_chain::reset(
-		std::shared_ptr<logical_device> logi_device,
-		physical_device* phys_device,
+		sl::reference_ptr<const vk::function_table> vulkan_fns_ptr,
+		sl::reference_ptr<const physical_device> phys_device_ptr,
+		sl::reference_ptr<const logical_device> logi_device_ptr,
 		surface& window_surface,
 		GLFWwindow& window_instance,
 		std::span<const pixel_format_info> pixel_format_priority,
 		color_space_info color_space,
 		std::span<const present_mode> present_mode_priority
 	) noexcept {
-        dependent_handle = logi_device;
-        VkSurfaceCapabilitiesKHR device_capabilities = phys_device->query<device_query::surface_capabilites>(window_surface);
+        VkSurfaceCapabilitiesKHR device_capabilities = phys_device_ptr->query<device_query::surface_capabilites>(window_surface);
 
         //Create swap extent
         if(device_capabilities.currentExtent.width != std::numeric_limits<std::uint32_t>().max())
@@ -42,7 +42,7 @@ namespace acma::vk {
 
 
         //Check display format support
-        auto display_formats = phys_device->query<device_query::display_formats>(window_surface);
+        auto display_formats = phys_device_ptr->query<device_query::display_formats>(window_surface);
         for(std::size_t i = 0; i < pixel_format_priority.size(); ++i) {
             const auto it = display_formats.find({pixel_format_priority[i], color_space});
             if(it != display_formats.end()) {
@@ -55,7 +55,7 @@ namespace acma::vk {
     found_display_format:
 
         //Check present mode support
-        auto present_modes = phys_device->query<device_query::present_modes>(window_surface);
+        auto present_modes = phys_device_ptr->query<device_query::present_modes>(window_surface);
         for(present_mode p : present_mode_priority) {
             if(present_modes[static_cast<std::size_t>(p)]) {
                 _present_mode = p;
@@ -72,7 +72,7 @@ namespace acma::vk {
         if(device_capabilities.maxImageCount > 0)
             image_count = std::min(device_capabilities.maxImageCount, image_count);
 
-        VkSwapchainCreateInfoKHR swap_chain_create_info{
+        const VkSwapchainCreateInfoKHR swap_chain_create_info{
             .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
             .surface = window_surface,
             .minImageCount = image_count,
@@ -88,24 +88,24 @@ namespace acma::vk {
             .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
             .presentMode = static_cast<VkPresentModeKHR>(_present_mode),
             .clipped = VK_TRUE,
-            .oldSwapchain = handle,
+            .oldSwapchain = smart_handle.get(),
         };
 
-        __D2D_VULKAN_VERIFY(vkCreateSwapchainKHR(*logi_device, &swap_chain_create_info, nullptr, &handle));
+        __D2D_VULKAN_VERIFY(sl::invoke(vulkan_fns_ptr->vkCreateSwapchainKHR, *logi_device_ptr, &swap_chain_create_info, nullptr, &smart_handle.get()));
         }
 
         //Get swap chain images
         {
         _image_count = 0;
-        vkGetSwapchainImagesKHR(*logi_device, handle, &_image_count, nullptr);
+        __D2D_VULKAN_VERIFY(sl::invoke(vulkan_fns_ptr->vkGetSwapchainImagesKHR, *logi_device_ptr, smart_handle.get(), &_image_count, nullptr));
         _images = std::make_unique_for_overwrite<VkImage[]>(_image_count);
-        vkGetSwapchainImagesKHR(*logi_device, handle, &_image_count, _images.get());
+        __D2D_VULKAN_VERIFY(sl::invoke(vulkan_fns_ptr->vkGetSwapchainImagesKHR, *logi_device_ptr, smart_handle.get(), &_image_count, _images.get()));
         }
 
         //Create swap chain image views
         _image_views = std::make_unique_for_overwrite<image_view[]>(_image_count);
         for (size_t i = 0; i < _image_count; i++) {
-        	VkImageViewCreateInfo image_view_create_info{
+        	const VkImageViewCreateInfo image_view_create_info{
         	    .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
         	    .image = _images[i],
         	    .viewType = VK_IMAGE_VIEW_TYPE_2D,
@@ -119,9 +119,34 @@ namespace acma::vk {
         	        .layerCount = 1,
         	    },
         	};
-            RESULT_TRY_MOVE(_image_views[i], make<image_view>(logi_device, image_view_create_info));
+            RESULT_TRY_MOVE(_image_views[i], make<image_view>(
+				vulkan_fns_ptr,
+				logi_device_ptr,
+				image_view_create_info
+			));
         }
 
 		return {};
     }
+}
+
+
+namespace acma::impl {
+	result<vk::swap_chain>
+		make<vk::swap_chain>::
+	operator()(
+		sl::reference_ptr<const vk::function_table> vulkan_fns_ptr,
+		sl::reference_ptr<const vk::physical_device> phys_device_ptr,
+		sl::reference_ptr<const vk::logical_device> logi_device_ptr,
+		vk::surface& window_surface,
+		GLFWwindow& window_instance,
+		std::span<const vk::pixel_format_info> pixel_format_priority,
+		vk::color_space_info color_space,
+		std::span<const vk::present_mode> present_mode_priority,
+		sl::in_place_adl_tag_type<vk::swap_chain>
+	) const noexcept {
+		vk::swap_chain ret{{{vulkan_fns_ptr->vkDestroySwapchainKHR, logi_device_ptr}}, {}, {}, {}, {}, {}, {}};
+		RESULT_VERIFY(ret.reset(vulkan_fns_ptr, phys_device_ptr, logi_device_ptr, window_surface, window_instance, pixel_format_priority, color_space, present_mode_priority));
+		return ret;
+	}
 }

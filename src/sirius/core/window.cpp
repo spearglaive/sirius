@@ -1,4 +1,4 @@
-#pragma once
+//#pragma once
 #include "sirius/core/window.hpp"
 
 #include <cstring>
@@ -32,49 +32,24 @@
 
 
 namespace acma {
-    result<window>    window::
-	create(
-		acma::sz2u32 size, std::string_view title
-	) noexcept {
-
-        //Create window
-        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-        glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE); //temporary
-        window ret{};
-		ret.window_handle = std::unique_ptr<GLFWwindow, sl::functor::generic_stateless<glfwDestroyWindow>>(glfwCreateWindow(size.width(), size.height(), title.data(), nullptr, nullptr));
-        __D2D_GLFW_VERIFY(ret.window_handle);
-
-        //Set callbacks
-        glfwSetKeyCallback(ret.window_handle.get(), kb_key_input);
-        glfwSetCharCallback(ret.window_handle.get(), kb_text_input);
-        glfwSetCursorPosCallback(ret.window_handle.get(), mouse_move);
-        glfwSetMouseButtonCallback(ret.window_handle.get(), mouse_button_input);
-        glfwSetScrollCallback(ret.window_handle.get(), mouse_scroll);
-
-        //Create surface
-        RESULT_TRY_MOVE(ret._surface, make<vk::surface>(ret.window_handle.get()));
-
-        return std::move(ret);
-    }
-
-
-
     result<void>    window::
 	initialize(
-		std::shared_ptr<vk::logical_device> logi_device, 
-		vk::physical_device* phys_device,
-		vk::allocator_shared_handle allocator
+		sl::reference_ptr<const vk::function_table> vulkan_fns_ptr,
+		sl::reference_ptr<const vk::logical_device> logi_device_ptr, 
+		sl::reference_ptr<const vk::physical_device> phys_device_ptr,
+		sl::reference_ptr<const vk::allocator> allocator
 	) noexcept {
 		//Create swap chain
 		RESULT_TRY_MOVE(_swap_chain, make<vk::swap_chain>(
-			logi_device, 
-			phys_device,
+			vulkan_fns_ptr,
+			phys_device_ptr,
+			logi_device_ptr,
 			_surface,
 			*window_handle
 		));
 
 		//Create depth image
-		RESULT_TRY_MOVE(_depth_image, make<vk::depth_image>(logi_device, allocator, _swap_chain.extent()));
+		RESULT_TRY_MOVE(_depth_image, make<vk::depth_image>(vulkan_fns_ptr, logi_device_ptr, allocator, _swap_chain.extent()));
 
 
         //Verify window size
@@ -91,9 +66,10 @@ namespace acma {
 	result<bool>    window::
 	verify_swap_chain(
 		VkResult fn_result, 
-		std::shared_ptr<vk::logical_device> logi_device, 
-		vk::physical_device* phys_device,
-		vk::allocator_shared_handle allocator,
+		sl::reference_ptr<const vk::function_table> vulkan_fns_ptr,
+		sl::reference_ptr<const vk::logical_device> logi_device_ptr, 
+		sl::reference_ptr<const vk::physical_device> phys_device_ptr,
+		sl::reference_ptr<const vk::allocator> allocator,
 		bool even_if_suboptimal
 	) noexcept {
 		switch(fn_result) {
@@ -103,11 +79,11 @@ namespace acma {
 			if(!even_if_suboptimal) return false;
 			[[fallthrough]];
 		case VK_ERROR_OUT_OF_DATE_KHR: {
-			vkDeviceWaitIdle(*logi_device);
+			vkDeviceWaitIdle(*logi_device_ptr);
 			
-			RESULT_VERIFY(_swap_chain.reset(logi_device, phys_device, _surface, *window_handle));
+			RESULT_VERIFY(_swap_chain.reset(vulkan_fns_ptr, phys_device_ptr, logi_device_ptr, _surface, *window_handle));
 
-			RESULT_TRY_MOVE(_depth_image, make<vk::depth_image>(logi_device, allocator, _swap_chain.extent()));
+			RESULT_TRY_MOVE(_depth_image, make<vk::depth_image>(vulkan_fns_ptr, logi_device_ptr, allocator, _swap_chain.extent()));
 			return true;
 		}
 		default: 
@@ -199,4 +175,33 @@ namespace acma {
         thread_pool().detach_task(std::bind(process_input, window_ptr, input::mouse_code::scroll, true, input::mouse_aux_t{-pt2d{x, y}}));
         thread_pool().detach_task(std::bind(process_input, window_ptr, input::mouse_code::scroll, false, input::mouse_aux_t{-pt2d{x, y}}));
     }
+}
+
+namespace acma::impl {
+	result<window>
+		make<window>::
+	operator()(
+		acma::sz2u32 size,
+		std::string_view title,
+		sl::in_place_adl_tag_type<window>
+	) const noexcept {
+		//Create window
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+        glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE); //temporary
+        window ret{};
+		ret.window_handle = sl::unique_ptr<GLFWwindow, sl::functor::generic_stateless<glfwDestroyWindow>>(glfwCreateWindow(size.width(), size.height(), title.data(), nullptr, nullptr));
+        __D2D_GLFW_VERIFY(ret.window_handle);
+
+        //Set callbacks
+        glfwSetKeyCallback(ret.window_handle.get(), window::kb_key_input);
+        glfwSetCharCallback(ret.window_handle.get(), window::kb_text_input);
+        glfwSetCursorPosCallback(ret.window_handle.get(), window::mouse_move);
+        glfwSetMouseButtonCallback(ret.window_handle.get(), window::mouse_button_input);
+        glfwSetScrollCallback(ret.window_handle.get(), window::mouse_scroll);
+
+        //Create surface
+        RESULT_TRY_MOVE(ret._surface, acma::make<vk::surface>({std::addressof(vk::impl::vulkan_instance())}, ret.window_handle));
+		
+		return ret;
+	}
 }

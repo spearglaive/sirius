@@ -74,7 +74,7 @@ namespace acma {
 
 
 	constexpr result<vk::image_allocation_unique_ptr> gpu_allocate(
-		vk::allocator_shared_handle const& allocator_ptr,
+		sl::reference_ptr<const vk::allocator> allocator_ptr,
 		vk::image_creation_info_t create_info,
 		bool dedicated_allocation = false
 	) noexcept;

@@ -5,10 +5,12 @@
 #include "sirius/vulkan/core/vulkan.hpp"
 #include <streamline/containers/array.hpp>
 
+#include "sirius/core/make.hpp"
+#include "sirius/vulkan/core/unique_vk_ptr.hpp"
+#include "sirius/vulkan/core/mixin.hpp"
 #include "sirius/core/api.def.h"
 #include "sirius/core/command_family.hpp"
 #include "sirius/core/error.hpp"
-#include "sirius/vulkan/core/vulkan_ptr.hpp"
 #include "sirius/vulkan/device/device_query.hpp"
 #include "sirius/vulkan/device/device_query_traits.hpp"
 #include "sirius/vulkan/device/queue_family_info.hpp"
@@ -34,14 +36,18 @@ namespace acma::vk {
 	};
 }
 
+namespace acma::vk::impl {
+	constexpr sl::uint32_t nidx = (static_cast<std::uint32_t>(sl::npos) >> 1);
+}
+
 namespace acma::vk {
-    struct physical_device : vulkan_ptr_base<VkPhysicalDevice> {
+    struct physical_device {
         SIRIUS_API static result<physical_device> create(VkPhysicalDevice& device_handle) noexcept;
 
 		SIRIUS_API result<void> initialize_queues(bool prefer_synchronous_rendering, bool window_capability) noexcept;
 
-	private:
-		constexpr static sl::uint32_t nidx = (static_cast<std::uint32_t>(sl::npos) >> 1);
+		template<typename T>
+		friend struct ::acma::impl::make;
 
     public:
         template<device_query Query> typename device_query_traits<Query>::return_type query(surface const& s) const noexcept = delete;
@@ -50,8 +56,12 @@ namespace acma::vk {
         template<> SIRIUS_API typename device_query_traits<device_query::display_formats    >::return_type query<device_query::display_formats    >(surface const& s) const noexcept;
         template<> SIRIUS_API typename device_query_traits<device_query::present_modes      >::return_type query<device_query::present_modes      >(surface const& s) const noexcept;
 
+	public:
+		constexpr operator VkPhysicalDevice      &()      & noexcept { return handle; }
+		constexpr operator VkPhysicalDevice const&() const& noexcept { return handle; }
         
     public:
+		VkPhysicalDevice handle;
         std::string_view name;
         device_type type = device_type::unknown;
         extensions_t extensions{};
@@ -79,4 +89,16 @@ namespace acma::vk {
         std::int32_t b_type_rating = b.type == device_type::discrete_gpu ? -1 : static_cast<std::int32_t>(b.type);
         return a_type_rating <=> b_type_rating;
     }
+}
+
+
+
+namespace acma::impl {
+	template<>
+    struct make<vk::physical_device> {
+		SIRIUS_API result<vk::physical_device> operator()(
+			VkPhysicalDevice device_handle,
+			sl::in_place_adl_tag_type<vk::physical_device> = sl::in_place_adl_tag<vk::physical_device>
+		) const noexcept;
+	};
 }

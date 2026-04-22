@@ -8,9 +8,13 @@
 
 
 namespace acma::vk {
-	using allocator = sl::remove_pointer_t<VmaAllocator>;
+	using allocator_handle_t = VmaAllocator;
 }
 
 namespace acma::vk {
-	using allocator_shared_handle = std::shared_ptr<vk::allocator>; //sl::unique_ptr<vk::allocator, sl::functor::generic_stateless<vmaDestroyAllocator>>;
+	struct allocator {
+		constexpr operator allocator_handle_t() const noexcept { return smart_handle.get(); }
+	public:
+		sl::unique_ptr<sl::remove_pointer_t<allocator_handle_t>, sl::functor::generic_stateless<vmaDestroyAllocator>> smart_handle;
+	};
 }

@@ -1,25 +1,36 @@
 #pragma once
-#include <span>
-#include <cstddef>
+#include <streamline/memory/reference_ptr.hpp>
+#include <streamline/containers/array.hpp>
+#include <array>
 
 #include "sirius/vulkan/core/vulkan.hpp"
 
+#include "sirius/core/api.def.h"
+#include "sirius/vulkan/core/mixin.hpp"
+#include "sirius/core/make.hpp"
 #include "sirius/vulkan/device/logical_device.hpp"
-#include "sirius/vulkan/core/vulkan_ptr.hpp"
-
-__D2D_DECLARE_VK_TRAITS_DEVICE(VkShaderModule);
 
 
 namespace acma::vk {
-    struct shader_module : vulkan_ptr<VkShaderModule, vkDestroyShaderModule> {
-        template<std::size_t N>
-        static result<shader_module> create(std::shared_ptr<logical_device> device, std::array<unsigned char, N> data, VkShaderStageFlagBits type) noexcept;
-
-    public: 
-        inline VkPipelineShaderStageCreateInfo stage_info() const noexcept { return shader_stage_info; }
-    private:
-        VkPipelineShaderStageCreateInfo shader_stage_info{};
+    struct shader_module : mixin<VkShaderModule, PFN_vkDestroyShaderModule, logical_device> {
+	public:
+        VkPipelineShaderStageCreateInfo shader_stage_info;
     };
+}
+
+
+namespace acma::impl {
+	template<>
+    struct make<vk::shader_module> {
+        template<sl::size_t N>
+		SIRIUS_API result<vk::shader_module> operator()(
+			sl::reference_ptr<const vk::function_table> vulkan_fns_ptr,
+			sl::reference_ptr<const vk::logical_device> logi_device_ptr,
+			std::array<unsigned char, N> data,
+			VkShaderStageFlagBits stage,
+			sl::in_place_adl_tag_type<vk::shader_module> = sl::in_place_adl_tag<vk::shader_module>
+		) const noexcept;
+	};
 }
 
 #include "sirius/vulkan/memory/shader_module.inl"

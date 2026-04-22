@@ -1,59 +1,41 @@
 #pragma once
 #include <memory>
 #include <streamline/containers/tuple.hpp>
+#include <streamline/memory/reference_ptr.hpp>
 
 #include "sirius/vulkan/core/vulkan.hpp"
 
+#include "sirius/core/make.hpp"
+#include "sirius/vulkan/core/unique_vk_ptr.hpp"
+#include "sirius/vulkan/core/mixin.hpp"
 #include "sirius/core/api.def.h"
 #include "sirius/core/command_family.hpp"
 #include "sirius/vulkan/device/physical_device.hpp"
-#include "sirius/vulkan/core/vulkan_ptr.hpp"
-#include "sirius/traits/vk_traits.hpp"
-
-
-__D2D_DECLARE_VK_TRAITS(VkDevice);
-
-
-#define __D2D_REMOVE_FIRST_INDIRECT(...) __D2D_REMOVE_FIRST(__VA_ARGS__)
-#define __D2D_REMOVE_FIRST(A, ...) __VA_ARGS__
-#define __D2D_VK_EXT_FNS \
-EXT_FN(vkCmdPushDescriptorSet, KHR)
-//EXT_FN(vkCmdPushData, EXT) \
-//EXT_FN(vkWriteSamplerDescriptors, EXT) \
-//EXT_FN(vkWriteResourceDescriptors, EXT) \
-//
 
 namespace acma::vk {
-	namespace extended_function {
-	enum {
-		#define EXT_FN(name, suffix) name,
-		__D2D_VK_EXT_FNS
-		#undef EXT_FN
-
-		num_extended_functions
-	};
-	}
-}
-
-
-namespace acma::vk {
-    struct SIRIUS_API logical_device : vulkan_ptr<VkDevice, vkDestroyDevice> {
-		using vulkan_functions_type = sl::tuple<
-			#define EXT_FN(name, suffix) ,PFN_##name##suffix
-			__D2D_REMOVE_FIRST_INDIRECT(__D2D_VK_EXT_FNS)
-			#undef EXT_FN
-		>;
-
+    struct SIRIUS_API logical_device : mixin<VkDevice, PFN_vkDestroyDevice> {
+		// void initialize(
+		// 	sl::reference_ptr<const vk::function_table> vulkan_fns_ptr,
+		// 	sl::reference_ptr<const vk::physical_device> associated_phys_device_ptr
+		// ) noexcept;
 	public:
-        static result<logical_device> create(physical_device* associated_phys_device, bool windowing) noexcept;
+		template<typename T>
+		friend struct ::acma::impl::make;
 
-	public:
-		constexpr vulkan_functions_type const& vulkan_functions() const& noexcept { return vulkan_fns; }
-
-		
-	private:
-		vulkan_functions_type vulkan_fns;
     public:
         std::array<std::vector<VkQueue>, command_family::num_families> queues;
     };
+}
+
+
+namespace acma::impl {
+	template<>
+    struct make<vk::logical_device> {
+		SIRIUS_API result<vk::logical_device> operator()(
+			sl::reference_ptr<const vk::function_table> vulkan_fns_ptr,
+			sl::reference_ptr<const vk::physical_device> associated_phys_device_ptr,
+			bool windowing,
+			sl::in_place_adl_tag_type<vk::logical_device> = sl::in_place_adl_tag<vk::logical_device>
+		) const noexcept;
+	};
 }

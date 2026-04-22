@@ -20,7 +20,7 @@ namespace acma::timeline {
 	template<>
 	struct command<end_draw_phase> {
 		template<typename RenderProcessT, sl::index_t CommandGroupIdx>
-		constexpr result<void> operator()(RenderProcessT const& proc, window&, timeline::state& timeline_state, sl::empty_t, sl::index_constant_type<CommandGroupIdx>) const noexcept {
+		constexpr result<void> operator()(RenderProcessT const& proc, window& win, timeline::state& timeline_state, sl::empty_t, sl::index_constant_type<CommandGroupIdx>) const noexcept {
 			vk::command_buffer const& graphics_buffer = proc.command_buffers()[proc.frame_index()][CommandGroupIdx];
 			
 			graphics_buffer.end_draw();
@@ -41,7 +41,7 @@ namespace acma::timeline {
 				.dstQueueFamilyIndex = proc.has_dedicated_present_queue() ? 
 					proc.physical_device_ptr()->queue_family_infos[command_family::present].index : 
 					VK_QUEUE_FAMILY_IGNORED,
-			    .image = proc.swap_chain().images()[timeline_state.image_index],
+			    .image = win.swap_chain_ptr()->images()[timeline_state.image_index],
 			    .subresourceRange{.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, .levelCount = 1, .layerCount = 1 }
 			};
 

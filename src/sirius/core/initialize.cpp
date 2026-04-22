@@ -82,7 +82,7 @@ namespace acma {
 
 
 		//Create instance
-        __D2D_VULKAN_VERIFY(vkCreateInstance(&create_info, nullptr, &vk::impl::vulkan_instance()));
+		RESULT_TRY_MOVE(vk::impl::vulkan_instance(), make<vk::instance>(create_info));
 
 
         
@@ -117,7 +117,7 @@ namespace acma {
 namespace acma {
 	void terminate_lib() noexcept {
 		glfwTerminate();
-		vkDestroyInstance(vk::impl::vulkan_instance(), nullptr);
+		vk::impl::vulkan_instance().smart_handle.reset();
 	}
 }
 

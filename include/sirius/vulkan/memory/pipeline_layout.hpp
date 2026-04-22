@@ -3,24 +3,21 @@
 
 #include "sirius/vulkan/core/vulkan.hpp"
 
+#include "sirius/core/api.def.h"
+#include "sirius/vulkan/core/mixin.hpp"
+#include "sirius/core/make.hpp"
 #include "sirius/core/buffer_config_table.hpp"
 #include "sirius/core/asset_heap_config_table.hpp"
 #include "sirius/vulkan/device/logical_device.hpp"
-#include "sirius/vulkan/core/vulkan_ptr.hpp"
 #include "sirius/vulkan/memory/asset_heap.hpp"
 
 
-__D2D_DECLARE_VK_TRAITS_DEVICE(VkPipelineLayout);
-
 namespace acma::vk {
     template<shader_stage_flags_t Stages, typename T, auto BufferConfigs, auto AssetHeapConfigs>
-    struct pipeline_layout : vulkan_ptr<VkPipelineLayout, vkDestroyPipelineLayout> {
-		template<typename RenderProcessT>
-        static result<pipeline_layout> create(
-			std::shared_ptr<logical_device> logi_device,
-			RenderProcessT const& proc
-		) noexcept;
-	
+    struct pipeline_layout : mixin<VkPipelineLayout, PFN_vkDestroyPipelineLayout, logical_device> {
+	public:
+		template<typename>
+		friend struct ::acma::impl::make;
 	private:
 		using asset_heap_stage_filtered_sequence = sl::filtered_sequence_t<
 			sl::index_sequence_of_length_type<decltype(T::asset_heaps)::size()>, 
@@ -62,8 +59,23 @@ namespace acma::vk {
 		constexpr static sl::size_t max_push_descriptor_count = 32;
 		
 	private:
-		descriptor_set_layout_type uniform_set_layout;
+		descriptor_set_layout uniform_set_layout;
     };
 }
+
+
+namespace acma::impl {
+    template<shader_stage_flags_t Stages, typename T, auto BufferConfigs, auto AssetHeapConfigs>
+    struct make<vk::pipeline_layout<Stages, T, BufferConfigs, AssetHeapConfigs>> {
+		template<typename RenderProcessT>
+		SIRIUS_API result<vk::pipeline_layout<Stages, T, BufferConfigs, AssetHeapConfigs>> operator()(
+			sl::reference_ptr<const vk::function_table> vulkan_fns_ptr,
+			sl::reference_ptr<const vk::logical_device> logi_device_ptr,
+			RenderProcessT const& proc,
+			sl::in_place_adl_tag_type<vk::pipeline_layout<Stages, T, BufferConfigs, AssetHeapConfigs>> = sl::in_place_adl_tag<vk::pipeline_layout<Stages, T, BufferConfigs, AssetHeapConfigs>>
+		) const noexcept;
+	};
+}
+
 
 #include "sirius/vulkan/memory/pipeline_layout.inl"

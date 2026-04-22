@@ -1,13 +1,50 @@
 #pragma once
-#include <streamline/metaprogramming/type_traits/isolated_categories.hpp>
+#include <streamline/memory/unique_ptr.hpp>
 
 
 namespace acma::vk {
-	template<typename T>
-	struct unique_handle {
+	template<typename MixinT>
+	struct unique_vk_ptr : public sl::unique_ptr<sl::remove_pointer_t<typename MixinT::handle_type>, typename MixinT::deleter_type> {
+		using mixin_type = MixinT;
+		using handle_type                    = typename mixin_type::handle_type;
+		using deletion_function_pointer_type = typename mixin_type::deletion_function_pointer_type;
+		using deletion_dependent_type        = typename mixin_type::deletion_dependent_type;
+		using deletion_auxiliary_type        = typename mixin_type::deletion_auxiliary_type;
+		using deleter_type                   = typename mixin_type::deleter_type;
+		using base_type = sl::unique_ptr<sl::remove_pointer_t<handle_type>, deleter_type>; 
 		
 
+	public:
+		constexpr unique_vk_ptr() noexcept = default;
+		constexpr ~unique_vk_ptr() noexcept = default;
 
-		typename T::handle_type _handle;
+		constexpr unique_vk_ptr(unique_vk_ptr&&) noexcept = default;
+		constexpr unique_vk_ptr& operator=(unique_vk_ptr&&) noexcept = default;
+
+		constexpr unique_vk_ptr(unique_vk_ptr const&) noexcept = delete;
+		constexpr unique_vk_ptr& operator=(unique_vk_ptr const&) noexcept = delete;
+	public:
+		constexpr unique_vk_ptr(
+			deletion_function_pointer_type fn
+		) noexcept
+		requires(mixin_type::has_function_type) :
+			base_type{nullptr, deleter_type{fn}} {}
+
+
+		constexpr unique_vk_ptr(
+			deletion_function_pointer_type fn,
+			deletion_dependent_type dependent_ptr
+		) noexcept
+		requires(mixin_type::has_dependent_type) :
+			base_type{nullptr, deleter_type{fn, dependent_ptr}} {}
+
+
+		constexpr unique_vk_ptr(
+			deletion_function_pointer_type fn,
+			deletion_dependent_type dependent_ptr,
+			deletion_auxiliary_type aux_ptr
+		) noexcept
+		requires(mixin_type::has_aux_type) :
+			base_type{nullptr, deleter_type{fn, dependent_ptr, aux_ptr}} {}
 	};
 }

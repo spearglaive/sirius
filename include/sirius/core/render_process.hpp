@@ -6,9 +6,10 @@
 #include <streamline/functional/functor/subscript.hpp>
 #include <streamline/functional/functor/identity_index.hpp>
 #include <streamline/functional/functor/generic_stateless.hpp>
+#include <streamline/functional/functor/cast_static.hpp>
 #include <streamline/memory/unique_ptr.hpp>
 
-#include "sirius/core/render_process_pointers.hpp"
+#include "sirius/core/render_process_core.hpp"
 #include "sirius/core/window.fwd.hpp"
 #include "sirius/core/frames_in_flight.def.hpp"
 #include "sirius/timeline/callback_event.hpp"
@@ -30,7 +31,7 @@
 namespace acma {
 	template<auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount>
 	class render_process :
-		public impl::render_process_pointers,
+		public impl::render_process_core,
 		public vk::impl::buffer_group<
 			sl::index_sequence_of_length_type<BufferConfigs.size()>,
 			BufferConfigs,
@@ -97,28 +98,19 @@ namespace acma {
 		}
 
 	public:
-		constexpr std::shared_ptr<vk::logical_device> const& logical_device_ptr() const& noexcept { return logi_device_ptr; }
-		constexpr vk::physical_device* const& physical_device_ptr() const& noexcept { return phys_device_ptr; }
-		constexpr vk::allocator_shared_handle const& allocator_ptr() const& noexcept { return alloc_ptr; }
-
-		constexpr sl::size_t  frame_count() const noexcept { return _frame_count; }
-		constexpr sl::index_t frame_index() const noexcept { return frame_count() % frames_in_flight; }
-
-
-		constexpr bool has_dedicated_present_queue() const noexcept {
-			return 
-				phys_device_ptr->queue_family_infos[command_family::graphics].index != 
-				phys_device_ptr->queue_family_infos[command_family::present].index;
-		}
-
-		constexpr sl::array<command_family::num_families, std::shared_ptr<vk::command_pool>>       const& command_pool_ptrs (this auto const& self) noexcept { return self._command_pool_ptrs; }
-		constexpr sl::array<frames_in_flight, sl::array<command_buffer_count, vk::command_buffer>> const& command_buffers   (this auto const& self) noexcept { return self._command_buffers; }
-		
-		constexpr sl::array<frames_in_flight, sl::array<command_family::num_families, vk::semaphore>> const& command_family_semaphores(this auto const& self) noexcept { return self._generic_timeline_sempahores; }
-		constexpr sl::array<frames_in_flight, sl::array<command_buffer_count, vk::semaphore>>         const& command_buffer_semaphores(this auto const& self) noexcept { return self._command_buffer_semaphores; }
-		constexpr std::vector<vk::semaphore>                                                          const& graphics_semaphores      (this auto const& self) noexcept { return self._graphics_semaphores; }
-		constexpr std::vector<vk::semaphore>                                                          const& pre_present_semaphores   (this auto const& self) noexcept { return self._pre_present_semaphores; }
-		constexpr std::array<vk::semaphore, frames_in_flight>                                         const& acquisition_semaphores   (this auto const& self) noexcept { return self._acquisition_semaphores; }
+		//TODO?: rename these to *_ref_ptr instead of *_ptr?
+		constexpr sl::reference_ptr<const vk::function_table                                   > vulkan_functions_ptr() const& noexcept { return _vulkan_functions_ptr; }
+		constexpr sl::reference_ptr<const vk::physical_device                                  > physical_device_ptr()  const& noexcept { return _physical_device_ptr; }
+		constexpr sl::reference_ptr<const vk::logical_device                                   > logical_device_ptr()   const& noexcept { return _logical_device_ptr; }
+		constexpr sl::reference_ptr<const vk::allocator                                        > allocator_ptr()        const& noexcept { return _allocator_ptr; }
+		constexpr sl::array<impl::command_pool_count, sl::reference_ptr<const vk::command_pool>> command_pool_ptrs()    const& noexcept { return sl::make<sl::array<impl::command_pool_count, sl::reference_ptr<const vk::command_pool>>>(_command_pool_ptrs); }
+	public:
+		inline std::span<const sl::array<command_buffer_count, vk::command_buffer>   , frames_in_flight> command_buffers          () const& noexcept { return std::span<const sl::array<command_buffer_count, vk::command_buffer>   , frames_in_flight>{_command_buffers.data(), frames_in_flight}; }
+		inline std::span<const sl::array<command_family::num_families, vk::semaphore>, frames_in_flight> command_family_semaphores() const& noexcept { return std::span<const sl::array<command_family::num_families, vk::semaphore>, frames_in_flight>{_generic_timeline_sempahores.data(), frames_in_flight}; }
+		inline std::span<const sl::array<command_buffer_count, vk::semaphore>        , frames_in_flight> command_buffer_semaphores() const& noexcept { return std::span<const sl::array<command_buffer_count, vk::semaphore>        , frames_in_flight>{_command_buffer_semaphores.data(), frames_in_flight}; }
+		inline std::span<const vk::semaphore>                                                            graphics_semaphores      () const& noexcept { return std::span<const vk::semaphore>                                                           {_graphics_semaphores.data(), _graphics_semaphores.size()}; }
+		inline std::span<const vk::semaphore>                                                            pre_present_semaphores   () const& noexcept { return std::span<const vk::semaphore>                                                           {_pre_present_semaphores.data(), _pre_present_semaphores.size()}; }
+		inline std::span<const vk::semaphore, frames_in_flight>                                          acquisition_semaphores   () const& noexcept { return std::span<const vk::semaphore, frames_in_flight>                                         {_acquisition_semaphores.data(), frames_in_flight}; }
 
 
 		constexpr auto&& command_family_semaphore_values(this auto&& self) noexcept { return sl::forward_like<decltype(self)>(self._command_family_semaphore_values); }
@@ -126,7 +118,16 @@ namespace acma {
 
 		constexpr auto&& timeline_callbacks(this auto&& self) noexcept {return sl::forward_like<decltype(self)>(self._timeline_callbacks); }
 
+	public:	
+		constexpr sl::size_t  frame_count() const noexcept { return _frame_count; }
+		constexpr sl::index_t frame_index() const noexcept { return frame_count() % frames_in_flight; }
 
+	public:
+		constexpr bool has_dedicated_present_queue() const noexcept {
+			return 
+				_physical_device_ptr->queue_family_infos[command_family::graphics].index != 
+				_physical_device_ptr->queue_family_infos[command_family::present].index;
+		}
 	private:
 		//Any buffer to gpu_local buffer
 		//(cpu_local_gpu_writable buffer to gpu_local buffer not allowed?)
@@ -188,13 +189,12 @@ namespace acma {
 		//std::size_t frame_idx;
 		sl::array<timeline::callback_event::num_callback_events, std::vector<callback_function_type*>> _timeline_callbacks;
 
-		sl::array<command_family::num_families, std::shared_ptr<vk::command_pool>> _command_pool_ptrs;
 		sl::array<frames_in_flight, sl::array<command_buffer_count, vk::command_buffer>> _command_buffers;
 		sl::array<frames_in_flight, sl::array<command_buffer_count, vk::semaphore>> _command_buffer_semaphores;
 		sl::array<frames_in_flight, sl::array<command_buffer_count, sl::uint64_t>> _command_buffer_semaphore_values;
 		sl::array<frames_in_flight, sl::array<command_family::num_families, vk::semaphore>> _generic_timeline_sempahores;
 		sl::array<frames_in_flight, sl::array<command_family::num_families, sl::uint64_t>> _command_family_semaphore_values;
-		std::array<vk::semaphore, frames_in_flight> _acquisition_semaphores;
+		sl::array<frames_in_flight, vk::semaphore> _acquisition_semaphores;
 		std::vector<vk::semaphore> _graphics_semaphores;
 		std::vector<vk::semaphore> _pre_present_semaphores;
 

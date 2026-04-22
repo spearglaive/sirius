@@ -1,19 +1,28 @@
 #include "sirius/vulkan/display/image_sampler.hpp"
-#include "sirius/vulkan/device/physical_device.hpp"
 
-namespace acma::vk {
-    result<image_sampler> image_sampler::create(std::shared_ptr<logical_device> logi_device, physical_device* phys_device, pt3<VkSamplerAddressMode> address_modes) noexcept {
-	    const VkSamplerCreateInfo sampler_create_info {
+
+
+namespace acma::impl {
+	result<vk::image_sampler>
+		make<vk::image_sampler>::
+	operator()(
+		sl::reference_ptr<const vk::function_table> vulkan_fns_ptr,
+		sl::reference_ptr<const vk::logical_device> logi_device_ptr,
+		float max_anisotropy,
+		pt3<VkSamplerAddressMode> address_modes,
+		sl::in_place_adl_tag_type<vk::image_sampler>
+	) const noexcept {
+		const VkSamplerCreateInfo sampler_create_info {
             .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
 	        .magFilter               = VK_FILTER_LINEAR,
 	        .minFilter               = VK_FILTER_LINEAR,
 	        .mipmapMode              = VK_SAMPLER_MIPMAP_MODE_NEAREST,
-	        .addressModeU            = address_modes[0],
-	        .addressModeV            = address_modes[1],
-	        .addressModeW            = address_modes[2],
+	        .addressModeU            = address_modes.x(),
+	        .addressModeV            = address_modes.y(),
+	        .addressModeW            = address_modes.z(),
             .mipLodBias              = 0.0f,
             .anisotropyEnable        = VK_TRUE,
-            .maxAnisotropy           = phys_device->limits.maxSamplerAnisotropy,
+            .maxAnisotropy           = max_anisotropy,
             .compareEnable           = VK_FALSE,
             .compareOp               = VK_COMPARE_OP_ALWAYS,
             .minLod                  = 0.0f,
@@ -22,17 +31,27 @@ namespace acma::vk {
             .unnormalizedCoordinates = VK_FALSE,
         };
 
-        return create(logi_device, sampler_create_info);
-    }
+        return sl::invoke(*this, vulkan_fns_ptr, logi_device_ptr, sampler_create_info);
+	}
 }
 
-namespace acma::vk {
-    result<image_sampler> image_sampler::create(std::shared_ptr<logical_device> logi_device, VkSamplerCreateInfo create_info) noexcept {
-        image_sampler ret{};
-        ret.dependent_handle = logi_device;
-        ret.addr_modes = {create_info.addressModeU, create_info.addressModeV, create_info.addressModeW};
 
-        __D2D_VULKAN_VERIFY(vkCreateSampler(*logi_device, &create_info, nullptr, &ret.handle));
+
+namespace acma::impl {
+	result<vk::image_sampler>
+		make<vk::image_sampler>::
+	operator()(
+		sl::reference_ptr<const vk::function_table> vulkan_fns_ptr,
+		sl::reference_ptr<const vk::logical_device> logi_device_ptr,
+		VkSamplerCreateInfo create_info,
+		sl::in_place_adl_tag_type<vk::image_sampler>
+	) const noexcept {
+		vk::image_sampler ret{
+			{{vulkan_fns_ptr->vkDestroySampler, logi_device_ptr}},
+			{{{create_info.addressModeU, create_info.addressModeV, create_info.addressModeW}}}
+		};
+
+        __D2D_VULKAN_VERIFY(sl::invoke(vulkan_fns_ptr->vkCreateSampler, *logi_device_ptr, &create_info, nullptr, &ret));
         return ret;
-    }
+	}
 }

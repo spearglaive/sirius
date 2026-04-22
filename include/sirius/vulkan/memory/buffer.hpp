@@ -9,7 +9,6 @@
 #include "sirius/vulkan/core/command_buffer.fwd.hpp"
 #include "sirius/core/buffer_config_table.hpp"
 #include "sirius/vulkan/device/logical_device.hpp"
-#include "sirius/vulkan/core/vulkan_ptr.hpp"
 #include "sirius/core/buffer_config.hpp"
 #include "sirius/core/memory_management.hpp"
 #include "sirius/vulkan/memory/buffer_allocation.hpp"

@@ -18,9 +18,7 @@ namespace acma::vk {
 
 		constexpr static sl::uint32_t stage_count = std::popcount(config.stages);
 		for(asset_usage_policy_t j = 0; j < asset_usage_policy::num_usage_policies; ++j) {
-			_descriptor_set_layouts[j] = descriptor_set_layout_type{proc.logical_device_ptr()};
-
-			VkDescriptorSetLayoutBinding set_layout_binding{
+			const VkDescriptorSetLayoutBinding set_layout_binding{
 				.binding = 0,
 				.descriptorType = vk::descriptor_types[j],
 				.descriptorCount = std::min(std::min(
@@ -46,12 +44,14 @@ namespace acma::vk {
 				.pBindings = &set_layout_binding,
 			};
 
-			__D2D_VULKAN_VERIFY(vkCreateDescriptorSetLayout(*proc.logical_device_ptr(), &set_layout_info, nullptr, &_descriptor_set_layouts[j]));
+			RESULT_TRY_MOVE(_descriptor_set_layouts[j], acma::make<descriptor_set_layout>(
+				proc.vulkan_functions_ptr(),
+				proc.logical_device_ptr(),
+				set_layout_info
+			));
 		}
 
 		for(sl::index_t i = 0; i < allocation_count; ++i) {
-			_descriptor_pools[i] = descriptor_pool_type{proc.logical_device_ptr()};
-
 			RESULT_VERIFY(make_pools({}, i));
 		}
 
@@ -74,7 +74,11 @@ namespace acma::vk {
 		RenderProcessT const& proc = static_cast<RenderProcessT const&>(*this);
 
 
-		result<image_sampler> sampler_result = make<image_sampler>(proc.logical_device_ptr(), _sampler_infos[alloc_idx].back());
+		result<image_sampler> sampler_result = acma::make<image_sampler>(
+			proc.vulkan_functions_ptr(),
+			proc.logical_device_ptr(),
+			_sampler_infos[alloc_idx].back()
+		);
 		if(!sampler_result.has_value()) [[unlikely]] {
 			_sampler_infos[alloc_idx].pop_back();
 			return sampler_result.error();
@@ -168,6 +172,7 @@ namespace acma::vk {
 		_images[alloc_idx].reserve(_images[alloc_idx].size() + texture_data_infos.size());
 		for(sl::size_t i = 0; i < texture_data_infos.size(); ++i) {
 			RESULT_VERIFY_UNSCOPED(make<image>(
+				proc.vulkan_functions_ptr(),
 				proc.logical_device_ptr(),
 				proc.allocator_ptr(),
 				static_cast<VkImageCreateInfo>(texture_data_infos[i])
@@ -197,7 +202,7 @@ namespace acma::vk {
 		sl::array<asset_usage_policy::num_usage_policies, std::vector<VkDescriptorImageInfo>> descriptor_infos{};
 		for(sl::index_t i = 0; i < _images[alloc_idx].size(); ++i) {
 			descriptor_infos[_image_usages[alloc_idx][i]].push_back(VkDescriptorImageInfo{
-				.imageView{_images[alloc_idx][i].view()},
+				.imageView{*_images[alloc_idx][i].view_ref()},
 				.imageLayout{_images[alloc_idx][i].current_layout}
 			});
 		}
@@ -207,12 +212,11 @@ namespace acma::vk {
 			});
 		}
 
-		RenderProcessT const& proc = static_cast<RenderProcessT const&>(*this);
 		for(asset_usage_policy_t usage_idx = 0; usage_idx < asset_usage_policy::num_usage_policies; ++usage_idx) {
 			const sl::size_t descriptor_count = descriptor_infos[usage_idx].size();
 			if(descriptor_count == 0) continue;
 
-			VkWriteDescriptorSet write{
+			const VkWriteDescriptorSet write{
 				.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
 				.dstSet = _descriptor_sets[alloc_idx][usage_idx],
 				.dstBinding = 0,
@@ -220,7 +224,7 @@ namespace acma::vk {
 				.descriptorType = vk::descriptor_types[usage_idx],
 				.pImageInfo = descriptor_infos[usage_idx].data(),
 			};
-			vkUpdateDescriptorSets(*proc.logical_device_ptr(), 1, &write, 0, nullptr);
+			_descriptor_sets[alloc_idx][usage_idx].update({&write, 1});
 		}
 
 		return {};
@@ -236,8 +240,7 @@ namespace acma::vk {
 		sl::index_t alloc_idx
 	) noexcept {
 		RenderProcessT const& proc = static_cast<RenderProcessT const&>(*this);
-		{
-		descriptor_pool_type tmp{proc.logical_device_ptr()};
+		
 		sl::array<asset_usage_policy::num_usage_policies, VkDescriptorPoolSize> pool_sizes{};
 		for(sl::index_t i = 0; i < asset_usage_policy::num_usage_policies; ++i) {
 			const sl::uint32_t asset_count = std::max(asset_counts[i], _descriptor_counts[alloc_idx][i]);
@@ -246,7 +249,7 @@ namespace acma::vk {
 				.descriptorCount = std::max(asset_count, static_cast<sl::uint32_t>(1))
 			};
 		}
-		VkDescriptorPoolCreateInfo pool_create_info{
+		const VkDescriptorPoolCreateInfo pool_create_info{
 			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
 			.pNext = nullptr,
 			.flags = VkDescriptorPoolCreateFlags{},
@@ -254,42 +257,42 @@ namespace acma::vk {
 			.poolSizeCount = pool_sizes.size(),
 			.pPoolSizes = pool_sizes.data(),
 		};
-		__D2D_VULKAN_VERIFY(vkCreateDescriptorPool(*proc.logical_device_ptr(), &pool_create_info, nullptr, &tmp));
 
-		_descriptor_pools[alloc_idx] = std::move(tmp);
-		}
+		//const sl::unique_ptr<descriptor_pool> old_descriptor_pool_ptr = std::exchange(_descriptor_pool_ptrs[alloc_idx], sl::unique_ptr<descriptor_pool>{new descriptor_pool});
+		RESULT_TRY_MOVE(_descriptor_pools[alloc_idx], acma::make<descriptor_pool>(
+			proc.vulkan_functions_ptr(),
+			proc.logical_device_ptr(),
+			pool_create_info
+		));
+		
 
-		{
-		//Some graphics drivers are bugged and tweak out when you pass 0 as the asset count
-		//So we make sure that there is always at least 1
-		const sl::array<asset_usage_policy::num_usage_policies, sl::uint32_t> descriptor_counts = sl::make_deduced<sl::generic::array>(
-			asset_counts,
-			[](sl::uint32_t val, auto) {
-				return std::max(val, static_cast<sl::uint32_t>(1));
-			}
-		);
-		VkDescriptorSetVariableDescriptorCountAllocateInfo variable_count_alloc_info{
-			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO,
-			.pNext = nullptr,
-			.descriptorSetCount = asset_usage_policy::num_usage_policies,
-			.pDescriptorCounts = descriptor_counts.data()
+
+		for(sl::index_t i = 0; i < asset_usage_policy::num_usage_policies; ++i) {
+			//Some graphics drivers are bugged and tweak out when you pass 0 as the asset count
+			//So we make sure that there is always at least 1
+			const sl::uint32_t asset_count = std::max(asset_counts[i], _descriptor_counts[alloc_idx][i]);
+			const sl::uint32_t descriptor_count = std::max(asset_count, static_cast<sl::uint32_t>(1));
+
+			const VkDescriptorSetVariableDescriptorCountAllocateInfo variable_count_alloc_info{
+				.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO,
+				.pNext = nullptr,
+				.descriptorSetCount = 1,
+				.pDescriptorCounts = &descriptor_count
+			};
+			const VkDescriptorSetAllocateInfo set_alloc_info{
+				.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+				.pNext = &variable_count_alloc_info,
+				.descriptorPool = _descriptor_pools[alloc_idx],
+				.descriptorSetCount = 1,
+				.pSetLayouts = &_descriptor_set_layouts[i]
+			};
+			RESULT_TRY_MOVE(_descriptor_sets[alloc_idx][i], acma::make<descriptor_set>(
+				proc.vulkan_functions_ptr(),
+				proc.logical_device_ptr(),
+				//_descriptor_pool_ptrs[alloc_idx],
+				set_alloc_info
+			));
 		};
-		const sl::array<asset_usage_policy::num_usage_policies, VkDescriptorSetLayout> set_layout_handles =
-			sl::make_deduced<sl::generic::array>(_descriptor_set_layouts, sl::functor::forward_construct<VkDescriptorSetLayout>{});
-		const VkDescriptorSetAllocateInfo set_alloc_info{
-			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-			.pNext = &variable_count_alloc_info,
-			.descriptorPool = _descriptor_pools[alloc_idx],
-			.descriptorSetCount = asset_usage_policy::num_usage_policies,
-			.pSetLayouts = set_layout_handles.data()
-		};
-
-		sl::array<asset_usage_policy::num_usage_policies, VkDescriptorSet> set_handles;
-		__D2D_VULKAN_VERIFY(vkAllocateDescriptorSets(*proc.logical_device_ptr(), &set_alloc_info, set_handles.data()));
-		for(sl::index_t i = 0; i < asset_usage_policy::num_usage_policies; ++i)
-			*(&_descriptor_sets[alloc_idx][i]) = set_handles[i];
-		}
-
 		return {};
 	}
 }

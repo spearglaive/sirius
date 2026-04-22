@@ -11,9 +11,11 @@ set(CMAKE_VERBOSE_MAKEFILE ON CACHE BOOL "ON")
 
 set(CPP_FILES
     core/initialize.cpp
+	core/window.cpp
 
     vulkan/core/command_pool.cpp
     vulkan/core/decoder.cpp
+    vulkan/core/instance.cpp
     vulkan/core/vulkan.cpp
 
     vulkan/device/logical_device.cpp
@@ -26,10 +28,12 @@ set(CPP_FILES
     vulkan/display/swap_chain.cpp
     
     vulkan/memory/allocator.cpp
+    vulkan/memory/descriptor_pool.cpp
+    vulkan/memory/descriptor_set_layout.cpp
+    vulkan/memory/descriptor_set.cpp
     vulkan/memory/image.cpp
 
     vulkan/sync/semaphore.cpp
-    vulkan/sync/fence.cpp
 )
 list(TRANSFORM CPP_FILES PREPEND src/${PROJECT_NAME}/)
 

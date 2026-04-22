@@ -20,35 +20,36 @@
 
 
 namespace acma {
-    class window {
+    class SIRIUS_API window {
+	public:
+		template<typename T>
+		friend struct ::acma::impl::make;
 	public:
         constexpr window() noexcept :
 			input_info_ptr(new input::info{.category_flags = static_cast<input::category_flags_t>(0b1) << input::category::system}),
 			window_handle(), _surface{}, _swap_chain{}, _depth_image{}, _size{} {}
 	public:
-        inline static result<window> create(
-			acma::sz2u32 size, std::string_view title
-		) noexcept;
-
-		inline result<void> initialize(
-			std::shared_ptr<vk::logical_device> logi_device, 
-			vk::physical_device* phys_device,
-			vk::allocator_shared_handle allocator
+		result<void> initialize(
+			sl::reference_ptr<const vk::function_table> vulkan_fns_ptr,
+			sl::reference_ptr<const vk::logical_device> logi_device_ptr, 
+			sl::reference_ptr<const vk::physical_device> phys_device_ptr,
+			sl::reference_ptr<const vk::allocator> allocator
 		) noexcept;
 		
 	public:
-		inline result<bool> verify_swap_chain(
+		result<bool> verify_swap_chain(
 			VkResult fn_result, 
-			std::shared_ptr<vk::logical_device> logi_device, 
-			vk::physical_device* phys_device,
-			vk::allocator_shared_handle allocator,
+			sl::reference_ptr<const vk::function_table> vulkan_fns_ptr,
+			sl::reference_ptr<const vk::logical_device> logi_device_ptr, 
+			sl::reference_ptr<const vk::physical_device> phys_device_ptr,
+			sl::reference_ptr<const vk::allocator> allocator,
 			bool even_if_suboptimal
 		) noexcept;
 
 	public:
-		constexpr vk::surface     const& surface           (this auto const& self) noexcept { return self._surface; }
-		constexpr vk::swap_chain  const& swap_chain        (this auto const& self) noexcept { return self._swap_chain; }
-		constexpr vk::depth_image const& depth_image       (this auto const& self) noexcept { return self._depth_image; }
+		constexpr sl::reference_ptr<const vk::surface    > surface_ptr    () const& noexcept { return {std::addressof(_surface    )}; }
+		constexpr sl::reference_ptr<const vk::swap_chain > swap_chain_ptr () const& noexcept { return {std::addressof(_swap_chain )}; }
+		constexpr sl::reference_ptr<const vk::depth_image> depth_image_ptr() const& noexcept { return {std::addressof(_depth_image)}; }
 		
 		constexpr extent2 screen_size() const noexcept { return _size; }
     
@@ -61,25 +62,22 @@ namespace acma {
         constexpr auto&& input_modifier_flags    (this auto&& self) noexcept { return sl::forward_like<decltype(self)>(self.input_info_ptr->modifier_flags); }
 
     private:
-        inline static void process_input(GLFWwindow* window_ptr, input::code_t code, bool pressed, input::mouse_aux_t mouse_aux_data) noexcept;
+        static void process_input(GLFWwindow* window_ptr, input::code_t code, bool pressed, input::mouse_aux_t mouse_aux_data) noexcept;
     private:
-        inline static void kb_key_input(GLFWwindow* window_ptr, int key, int scancode, int action, int mods) noexcept;
-        inline static void kb_text_input(GLFWwindow* window_ptr, unsigned int codepoint) noexcept; //not tied to a category
-        inline static void mouse_move(GLFWwindow* window_ptr, double x, double y) noexcept; //can't be a modifier (no release either)
-        inline static void mouse_button_input(GLFWwindow* window_ptr, int button, int action, int mods) noexcept;
-        inline static void mouse_scroll(GLFWwindow* window_ptr, double x, double y) noexcept; //can't be a modifier (no release either)
+        static void kb_key_input(GLFWwindow* window_ptr, int key, int scancode, int action, int mods) noexcept;
+        static void kb_text_input(GLFWwindow* window_ptr, unsigned int codepoint) noexcept; //not tied to a category
+        static void mouse_move(GLFWwindow* window_ptr, double x, double y) noexcept; //can't be a modifier (no release either)
+        static void mouse_button_input(GLFWwindow* window_ptr, int button, int action, int mods) noexcept;
+        static void mouse_scroll(GLFWwindow* window_ptr, double x, double y) noexcept; //can't be a modifier (no release either)
 
-	private: 
-    	template<typename, bool>
-		friend class application;
-
+	private:
     	template<typename TimelineT, auto BufferConfigs, auto AssetHeapConfigs>
 		requires impl::is_buffer_config_table_v<decltype(BufferConfigs)>
 		friend class render_instance;
 		
 	protected:
         sl::unique_ptr<input::info> input_info_ptr;
-        std::unique_ptr<GLFWwindow, sl::functor::generic_stateless<glfwDestroyWindow>> window_handle;
+        sl::unique_ptr<GLFWwindow, sl::functor::generic_stateless<glfwDestroyWindow>> window_handle;
     private:
 		vk::surface _surface;
 		vk::swap_chain _swap_chain;
@@ -90,4 +88,17 @@ namespace acma {
 }
 
 
-#include "sirius/core/window.inl"
+
+
+namespace acma::impl {
+	template<>
+    struct make<window> {
+		SIRIUS_API result<window> operator()(
+			acma::sz2u32 size,
+			std::string_view title,
+			sl::in_place_adl_tag_type<window> = sl::in_place_adl_tag<window>
+		) const noexcept;
+	};
+}
+
+//#include "sirius/core/window.inl"

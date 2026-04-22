@@ -23,14 +23,15 @@ namespace acma::timeline {
 		template<typename RenderProcessT>
 		constexpr result<void> operator()(RenderProcessT& proc, window& win, timeline::state& timeline_state, sl::empty_t, auto) const noexcept {
 			RESULT_TRY_COPY_UNSCOPED(bool swap_chain_updated, win.verify_swap_chain(
-        	    vkAcquireNextImageKHR(
+        	    sl::invoke(proc.vulkan_functions_ptr()->vkAcquireNextImageKHR,
 					*proc.logical_device_ptr(),
-					proc.swap_chain(),
+					*win.swap_chain_ptr(),
 					UINT64_MAX,
 					proc.acquisition_semaphores()[proc.frame_index()],
 					VK_NULL_HANDLE,
 					&timeline_state.image_index
 				),
+				proc.vulkan_functions_ptr(),
 				proc.logical_device_ptr(),
 				proc.physical_device_ptr(),
 				proc.allocator_ptr(),

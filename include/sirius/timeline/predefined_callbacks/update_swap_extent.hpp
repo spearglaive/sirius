@@ -13,7 +13,7 @@ namespace acma::timeline::predefined_callbacks {
 	result<void> update_swap_extent(typename InstanceT::render_process_type& proc, typename InstanceT::window_type& win, auto&) noexcept {
 		std::memcpy(
 			sl::universal::get<SwapExtentBufferKey>(proc).data() + BufferOffsetBytes, 
-			&win.swap_chain().extent(), 
+			&win.swap_chain_ptr()->extent(), 
 			sizeof(extent2)
 		);
 		return {};

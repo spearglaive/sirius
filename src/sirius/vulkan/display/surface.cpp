@@ -1,30 +1,16 @@
 #include "sirius/vulkan/display/surface.hpp"
 
-namespace acma::vk {
-    result<surface> surface::create(GLFWwindow* w) noexcept {
-        surface ret{};
-        __D2D_VULKAN_VERIFY(glfwCreateWindowSurface(impl::vulkan_instance(), w, nullptr, &ret.handle));
+
+namespace acma::impl {
+	result<vk::surface>
+		make<vk::surface>::
+	operator()(
+		sl::reference_ptr<const vk::instance> instance_ptr,
+		sl::reference_ptr<GLFWwindow> window_handle,
+		sl::in_place_adl_tag_type<vk::surface> 
+	) const noexcept {
+		vk::surface ret{{{vkDestroySurfaceKHR, instance_ptr}}};
+        __D2D_VULKAN_VERIFY(glfwCreateWindowSurface(*instance_ptr, window_handle.get(), nullptr, &ret));
         return ret;
-    }
-}
-
-namespace acma::vk {
-	surface::~surface() noexcept {
-		if(this->handle) 
-			vkDestroySurfaceKHR(impl::vulkan_instance(), this->handle, nullptr);
-	}
-
-
-	surface::surface(surface&& other) noexcept{
-        if(this->handle && this->handle != other.handle) 
-            vkDestroySurfaceKHR(impl::vulkan_instance(), this->handle, nullptr);
-		this->handle = std::exchange(other.handle, VK_NULL_HANDLE);
-	}
-
-    surface& surface::operator=(surface&& other) noexcept{
-        if(this->handle && this->handle != other.handle) 
-            vkDestroySurfaceKHR(impl::vulkan_instance(), this->handle, nullptr);
-		this->handle = std::exchange(other.handle, VK_NULL_HANDLE);
-        return *this;
 	}
 }

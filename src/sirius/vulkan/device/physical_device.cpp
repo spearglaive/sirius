@@ -6,11 +6,16 @@
 #include <streamline/algorithm/minmax.hpp>
 
 #include "sirius/core/window.hpp"
+#include "sirius/vulkan/device/queue_family_info.hpp"
 
 
-namespace acma::vk {
-    result<physical_device> physical_device::create(VkPhysicalDevice& device_handle) noexcept {
-        
+namespace acma::impl {
+	result<vk::physical_device>
+		make<vk::physical_device>::
+	operator()(
+		VkPhysicalDevice device_handle,
+		sl::in_place_adl_tag_type<vk::physical_device>
+	) const noexcept {
         //Get device features and properties
 		//VkPhysicalDeviceDescriptorHeapPropertiesEXT device_descriptor_heap_properties{
 		//	.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_HEAP_PROPERTIES_EXT,
@@ -20,24 +25,24 @@ namespace acma::vk {
 			//.pNext = &device_descriptor_heap_properties,
 		};
         VkPhysicalDeviceFeatures device_features;
-        vkGetPhysicalDeviceProperties2(device_handle, &device_properties);
-        vkGetPhysicalDeviceFeatures(device_handle, &device_features);
+        sl::invoke(vkGetPhysicalDeviceProperties2, device_handle, &device_properties);
+        sl::invoke(vkGetPhysicalDeviceFeatures, device_handle, &device_features);
 		
 		
 
         //Get device extensions
-        extensions_t device_extensions{};
+        vk::extensions_t device_extensions{};
         {
         std::uint32_t extension_count;
-        vkEnumerateDeviceExtensionProperties(device_handle, nullptr, &extension_count, nullptr);
+        __D2D_VULKAN_VERIFY(sl::invoke(vkEnumerateDeviceExtensionProperties, device_handle, nullptr, &extension_count, nullptr));
     
         std::vector<VkExtensionProperties> available_extensions(extension_count);
-        vkEnumerateDeviceExtensionProperties(device_handle, nullptr, &extension_count, available_extensions.data());
+        __D2D_VULKAN_VERIFY(sl::invoke(vkEnumerateDeviceExtensionProperties, device_handle, nullptr, &extension_count, available_extensions.data()));
     
         //TODO replace with lookup table
-        for (std::size_t i = 0; i < extension::num_extensions; ++i){
+        for (std::size_t i = 0; i < vk::extension::num_extensions; ++i){
             for (const auto& ext : available_extensions) {
-                if(std::memcmp(ext.extensionName, extension::name[i].data(), extension::name[i].size()) == 0) {
+                if(std::memcmp(ext.extensionName, vk::extension::name[i].data(), vk::extension::name[i].size()) == 0) {
                     device_extensions[i] = true;
                     goto next_extension;
                 }
@@ -47,11 +52,12 @@ namespace acma::vk {
         }
 
         //Create device info
-        physical_device ret{
+       	return vk::physical_device{
+			.handle = device_handle,
             .name = device_properties.properties.deviceName,
-            .type = static_cast<device_type>(device_properties.properties.deviceType),
+            .type = static_cast<vk::device_type>(device_properties.properties.deviceType),
             .extensions = device_extensions,
-            .features = std::bit_cast<features_t>(device_features),
+            .features = std::bit_cast<vk::features_t>(device_features),
             .limits = device_properties.properties.limits,
 			.descriptor_count_limits{{
 				device_properties.properties.limits.maxDescriptorSetSamplers,
@@ -84,35 +90,35 @@ namespace acma::vk {
 				// 	device_descriptor_heap_properties.maxResourceHeapSize
 				// },
 			}},
-            .queue_family_infos = sl::universal::make<sl::array<command_family::num_families, queue_family_info>>(
+            .queue_family_infos = sl::universal::make<sl::array<command_family::num_families, vk::queue_family_info>>(
 				sl::in_place_tag,
 				false, 
-				nidx,
+				vk::impl::nidx,
 				0
 			),
 			.max_queue_count = 0,
         };
-        ret.handle = device_handle;
-        return ret;
-    }
+	}
+}
 
 
+namespace acma::vk {
 	result<void> physical_device::initialize_queues(bool prefer_synchronous_rendering, bool window_capability) noexcept {
         //Get device queue family indicies
 		sl::uint32_t device_max_queue_count = 0;
         auto device_queue_family_infos = sl::universal::make<sl::array<command_family::num_families, queue_family_info>>(
 			sl::in_place_tag,
 			false, 
-			nidx,
+			impl::nidx,
 			0
 		);
         
 		{
         std::uint32_t family_count = 0;
-        vkGetPhysicalDeviceQueueFamilyProperties(handle, &family_count, nullptr);
+        sl::invoke(vkGetPhysicalDeviceQueueFamilyProperties, handle, &family_count, nullptr);
 
         std::vector<VkQueueFamilyProperties> families(family_count);
-        vkGetPhysicalDeviceQueueFamilyProperties(handle, &family_count, families.data());
+        sl::invoke(vkGetPhysicalDeviceQueueFamilyProperties, handle, &family_count, families.data());
 
         constexpr std::array<VkQueueFlagBits, command_family::num_distinct_families> flag_bit = {
             VK_QUEUE_GRAPHICS_BIT,
@@ -130,14 +136,14 @@ namespace acma::vk {
 			const sl::uint32_t queue_count = families[idx].queueCount;
 			device_max_queue_count = sl::algo::max(max_queue_count, queue_count);
 			if(window_capability) {
-            	vkGetPhysicalDeviceSurfaceSupportKHR(handle, idx, dummy_window.surface(), &supports_present);
-				if(supports_present && (device_queue_family_infos[command_family::present].index == nidx || !prefer_synchronous_rendering)) 
+            	sl::invoke(vkGetPhysicalDeviceSurfaceSupportKHR, handle, idx, *dummy_window.surface_ptr(), &supports_present);
+				if(supports_present && (device_queue_family_infos[command_family::present].index == impl::nidx || !prefer_synchronous_rendering)) 
 					device_queue_family_infos[command_family::present] = queue_family_info{true, idx, queue_count};
 			}
 
             for(std::size_t family_id = 0; family_id < command_family::num_distinct_families; ++family_id) {    
 				if(!(families[idx].queueFlags & flag_bit[family_id])) continue;
-				if(device_queue_family_infos[family_id].index != nidx && prefer_synchronous_rendering) continue;
+				if(device_queue_family_infos[family_id].index != impl::nidx && prefer_synchronous_rendering) continue;
 				device_queue_family_infos[family_id] = queue_family_info{static_cast<bool>(supports_present), idx, queue_count};
             }
         }
@@ -147,7 +153,7 @@ namespace acma::vk {
 		//TODO: only check for queues that we actually need (based on graphics timeline)?
 		const sl::size_t num_queue_families_to_verify = command_family::num_distinct_families + static_cast<sl::size_t>(window_capability);
 		for(std::size_t i = 0; i < num_queue_families_to_verify; ++i)
-			if(device_queue_family_infos[i].index == nidx)
+			if(device_queue_family_infos[i].index == impl::nidx)
 				return static_cast<errc>(error::device_lacks_necessary_queue_base + i);
 
 		queue_family_infos = device_queue_family_infos;
@@ -161,7 +167,7 @@ namespace acma::vk {
 namespace acma::vk {
     template<> typename device_query_traits<device_query::surface_capabilites>::return_type physical_device::query<device_query::surface_capabilites>(surface const& s) const noexcept {
         VkSurfaceCapabilitiesKHR device_surface_capabilities;
-        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(handle, s, &device_surface_capabilities);
+        sl::invoke(vkGetPhysicalDeviceSurfaceCapabilitiesKHR, handle, s, &device_surface_capabilities);
         return device_surface_capabilities;
     }
 
@@ -169,12 +175,12 @@ namespace acma::vk {
         std::set<display_format> formats;
         
         std::uint32_t format_count;
-        vkGetPhysicalDeviceSurfaceFormatsKHR(handle, s, &format_count, nullptr);
+        sl::invoke(vkGetPhysicalDeviceSurfaceFormatsKHR, handle, s, &format_count, nullptr);
 
         std::vector<VkSurfaceFormatKHR> surface_formats;
         if (format_count != 0) {
             surface_formats.resize(format_count);
-            vkGetPhysicalDeviceSurfaceFormatsKHR(handle, s, &format_count, surface_formats.data());
+            sl::invoke(vkGetPhysicalDeviceSurfaceFormatsKHR, handle, s, &format_count, surface_formats.data());
         }
 
         //TODO replace with lookup table
@@ -189,12 +195,12 @@ namespace acma::vk {
         typename device_query_traits<device_query::present_modes>::return_type device_present_modes;
         
         uint32_t present_mode_count;
-        vkGetPhysicalDeviceSurfacePresentModesKHR(handle, s, &present_mode_count, nullptr);
+        sl::invoke(vkGetPhysicalDeviceSurfacePresentModesKHR, handle, s, &present_mode_count, nullptr);
 
         std::vector<VkPresentModeKHR> supported_present_modes;
         if (present_mode_count != 0) {
             supported_present_modes.resize(present_mode_count);
-            vkGetPhysicalDeviceSurfacePresentModesKHR(handle, s, &present_mode_count, supported_present_modes.data());
+            sl::invoke(vkGetPhysicalDeviceSurfacePresentModesKHR, handle, s, &present_mode_count, supported_present_modes.data());
         }
 
         for(VkPresentModeKHR p : supported_present_modes)

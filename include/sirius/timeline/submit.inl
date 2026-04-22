@@ -127,7 +127,7 @@ namespace acma::timeline {
 				.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
 				.srcQueueFamilyIndex = proc.physical_device_ptr()->queue_family_infos[command_family::graphics].index,
 				.dstQueueFamilyIndex = proc.physical_device_ptr()->queue_family_infos[command_family::present].index,
-				.image = proc.swap_chain().images()[timeline_state.image_index],
+				.image = win.swap_chain_ptr()->images()[timeline_state.image_index],
 				.subresourceRange{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
 			};
 
@@ -170,11 +170,12 @@ namespace acma::timeline {
 				&proc.pre_present_semaphores()[timeline_state.image_index] : 
 				&proc.graphics_semaphores()[timeline_state.image_index],
 			.swapchainCount = 1,
-			.pSwapchains = &proc.swap_chain(),
+			.pSwapchains = &win.swap_chain_ptr()->smart_handle.get(),
 			.pImageIndices = &timeline_state.image_index,
 		};
 		RESULT_TRY_COPY_UNSCOPED(bool swap_chain_updated, win.verify_swap_chain(
 			vkQueuePresentKHR(proc.logical_device_ptr()->queues[command_family::present][timeline_state.queue_indices[command_family::present]++], &present_info),
+			proc.vulkan_functions_ptr(),
 			proc.logical_device_ptr(),
 			proc.physical_device_ptr(),
 			proc.allocator_ptr(),

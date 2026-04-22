@@ -5,44 +5,36 @@
 
 #include "sirius/core/asset_heap_key_t.hpp"
 #include "sirius/core/asset_heap_config.hpp"
-#include "sirius/vulkan/core/vulkan_ptr.hpp"
 #include "sirius/vulkan/device/logical_device.hpp"
 #include "sirius/vulkan/display/image_sampler.hpp"
 #include "sirius/vulkan/memory/buffer.hpp"
+#include "sirius/vulkan/memory/descriptor_set_layout.hpp"
+#include "sirius/vulkan/memory/descriptor_pool.hpp"
+#include "sirius/vulkan/memory/descriptor_set.hpp"
 #include "sirius/vulkan/memory/image.hpp"
 #include "sirius/vulkan/memory/allocation_counts.hpp"
 #include "sirius/vulkan/memory/texture_data_info.hpp"
 #include "sirius/core/memory_management.fwd.hpp"
 
 
-__D2D_DECLARE_VK_TRAITS_DEVICE(VkDescriptorSetLayout);
-__D2D_DECLARE_VK_TRAITS_DEVICE(VkDescriptorPool);
-
-namespace acma::vk {
-	using descriptor_set_layout_type = vulkan_ptr<VkDescriptorSetLayout, vkDestroyDescriptorSetLayout>;
-}
-
 namespace acma::vk {
 	template<asset_heap_key_t K, auto AssetHeapConfigs, typename RenderProcessT>
 	class asset_heap {
+	public:
+		template<typename T>
+		friend struct ::acma::impl::make;
 	public:
 		result<void> initialize() noexcept;
 	public:
 		constexpr static asset_heap_config config = AssetHeapConfigs[K];
 		constexpr static sl::size_t allocation_count = impl::allocation_counts[config.coupling];
-		
-
-	private:
-		using descriptor_pool_type = vulkan_ptr<VkDescriptorPool, vkDestroyDescriptorPool>;
-		using descriptor_set_type = vulkan_ptr_base<VkDescriptorSet>;
-
 
 	public:
 		constexpr sl::size_t total_size() const noexcept { return _images.size() + _sampler_infos.size(); }
 		//constexpr sl::size_t capacity() const noexcept { return allocated_bytes; }
 
 	public:
-		constexpr sl::array<asset_usage_policy::num_usage_policies, descriptor_set_type> const& descirptor_sets() const& noexcept { return _descriptor_sets[this->allocation_index()]; }
+		constexpr sl::array<asset_usage_policy::num_usage_policies, descriptor_set> const& descirptor_sets() const& noexcept { return _descriptor_sets[this->allocation_index()]; }
 
 	public:
 		template<typename T>
@@ -124,11 +116,11 @@ namespace acma::vk {
 		sl::array<allocation_count, std::vector<image_sampler>> _samplers;
 		sl::array<allocation_count, std::vector<VkSamplerCreateInfo>> _sampler_infos;
 		
-		sl::array<allocation_count, descriptor_pool_type> _descriptor_pools;
+		sl::array<allocation_count, descriptor_pool> _descriptor_pools;
 		sl::array<allocation_count, sl::array<asset_usage_policy::num_usage_policies, sl::uint32_t>> _descriptor_counts;
-		sl::array<allocation_count, sl::array<asset_usage_policy::num_usage_policies, descriptor_set_type>> _descriptor_sets;
+		sl::array<allocation_count, sl::array<asset_usage_policy::num_usage_policies, descriptor_set>> _descriptor_sets;
 
-		sl::array<asset_usage_policy::num_usage_policies, descriptor_set_layout_type> _descriptor_set_layouts;
+		sl::array<asset_usage_policy::num_usage_policies, descriptor_set_layout> _descriptor_set_layouts;
 		//sl::array<asset_usage_policy::num_usage_policies, VkWriteDescriptorSet> _descriptor_writes;
 	};
 }

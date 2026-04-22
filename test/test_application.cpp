@@ -90,7 +90,7 @@ int main(){
 	inst.timeline_callbacks()[acma::timeline::callback_event::on_frame_begin].push_back([](typename render_instance::render_process_type& proc, acma::window& win, auto&) noexcept -> acma::result<void> {
 		{
 		draw_constants constants {
-			.swap_extent = win.swap_chain().extent(),
+			.swap_extent = win.swap_chain_ptr()->extent(),
 			.position_buff_addr = sl::universal::get<buffer_id::positions>(proc).gpu_address()
 		};
 		std::memcpy(
@@ -386,14 +386,14 @@ int main(){
     if(auto r = render.get(); !r.has_value()) {
         std::cout << std::format("rendering error {}: {}", static_cast<std::int64_t>(r.error()), acma::error::code_descs.find(r.error())->second)<< std::endl;
 
-        auto formats = inst.physical_device_ptr()->query<acma::vk::device_query::display_formats>(inst.surface());
-        std::cout << std::format("{} formats ({} is selected):", formats.size(), static_cast<std::uint32_t>(inst.swap_chain().format().pixel_format.id));
+        auto formats = inst.physical_device_ptr()->query<acma::vk::device_query::display_formats>(*inst.surface_ptr());
+        std::cout << std::format("{} formats ({} is selected):", formats.size(), static_cast<std::uint32_t>(inst.swap_chain_ptr()->format().pixel_format.id));
         for(auto f : formats)
             std::cout << std::format("{},", static_cast<std::uint32_t>(f.pixel_format.id));
         std::cout << std::endl;
 
-        auto present_modes = inst.physical_device_ptr()->query<acma::vk::device_query::present_modes>(inst.surface());
-        std::cout << std::format("{} present_modes ({} is selected):", present_modes.size(), static_cast<std::uint32_t>(inst.swap_chain().mode()));
+        auto present_modes = inst.physical_device_ptr()->query<acma::vk::device_query::present_modes>(*inst.surface_ptr());
+        std::cout << std::format("{} present_modes ({} is selected):", present_modes.size(), static_cast<std::uint32_t>(inst.swap_chain_ptr()->mode()));
         for(bool b : present_modes)
             std::cout << std::format("{},", b);
         std::cout << std::endl;

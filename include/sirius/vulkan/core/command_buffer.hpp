@@ -4,10 +4,11 @@
 #include <cstddef>
 #include <memory>
 #include <span>
+#include <streamline/memory/reference_ptr.hpp>
 
-#include "sirius/vulkan/core/vulkan.hpp"
 #include <frozen/unordered_map.h>
 
+#include "sirius/vulkan/core/vulkan.hpp"
 #include "sirius/core/buffer_config_table.hpp"
 #include "sirius/core/render_process.fwd.hpp"
 #include "sirius/vulkan/memory/bind_point.hpp"
@@ -15,15 +16,17 @@
 #include "sirius/vulkan/memory/asset_heap.hpp"
 #include "sirius/vulkan/memory/image.hpp"
 #include "sirius/vulkan/device/logical_device.hpp"
-#include "sirius/vulkan/core/vulkan_ptr.hpp"
 #include "sirius/vulkan/core/command_pool.hpp"
 #include "sirius/arith/rect.hpp"
 #include "sirius/vulkan/memory/pipeline.hpp"
 #include "sirius/vulkan/sync/semaphore.hpp"
 
-
 namespace acma::vk {
-    struct command_buffer : vulkan_ptr_base<VkCommandBuffer> {
+    struct command_buffer : mixin<VkCommandBuffer, PFN_vkFreeCommandBuffers, logical_device, command_pool> {
+	public:
+		template<typename T>
+		friend struct ::acma::impl::make;
+
 	private:
 		template<typename Seq, sl::size_t N, buffer_config_table<N> BufferConfigs, buffer_usage_policy_flags_t BufferUsage>
 		using filtered_by_usage_sequence_type = sl::filtered_sequence_t<Seq, []<buffer_key_t K>(buffer_key_constant_type<K>){
@@ -43,8 +46,6 @@ namespace acma::vk {
 		constexpr static sl::size_t dispatch_command_count = dispatch_command_buffers_sequence_type<T, N, BufferConfigs>::size();
 
 	public:
-        inline static result<command_buffer> create(std::shared_ptr<logical_device> logi_device, physical_device* phys_device, std::shared_ptr<command_pool> pool) noexcept;
-    public:
     	inline result<void> begin(bool one_time = false) const noexcept;
     	inline result<void> end() const noexcept;
 
@@ -107,10 +108,25 @@ namespace acma::vk {
         };
 
     private:
-        std::shared_ptr<logical_device> logi_device_ptr;
-        physical_device* phys_device_ptr;
-        std::shared_ptr<command_pool> cmd_pool_ptr;
+		sl::reference_ptr<const vk::function_table> vulkan_fns_ptr;
+        sl::reference_ptr<const physical_device> phys_device_ptr;
+        sl::reference_ptr<const logical_device> logi_device_ptr;
+        sl::reference_ptr<const command_pool> cmd_pool_ptr;
     };
+}
+
+
+namespace acma::impl {
+	template<>
+    struct make<vk::command_buffer> {
+		SIRIUS_API inline result<vk::command_buffer> operator()(
+			sl::reference_ptr<const vk::function_table> vulkan_fns_ptr,
+			sl::reference_ptr<const vk::physical_device> phys_device_ptr,
+			sl::reference_ptr<const vk::logical_device> logi_device_ptr,
+			sl::reference_ptr<const vk::command_pool> cmd_pool_ptr,
+			sl::in_place_adl_tag_type<vk::command_buffer> = sl::in_place_adl_tag<vk::command_buffer>
+		) const noexcept;
+	};
 }
 
 #include "sirius/vulkan/core/command_buffer.inl"
