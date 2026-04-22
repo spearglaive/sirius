@@ -79,7 +79,7 @@ namespace acma {
 			if(!even_if_suboptimal) return false;
 			[[fallthrough]];
 		case VK_ERROR_OUT_OF_DATE_KHR: {
-			vkDeviceWaitIdle(*logi_device_ptr);
+			sl::invoke(vulkan_fns_ptr->vkDeviceWaitIdle, *logi_device_ptr);
 			
 			RESULT_VERIFY(_swap_chain.reset(vulkan_fns_ptr, phys_device_ptr, logi_device_ptr, _surface, *window_handle));
 

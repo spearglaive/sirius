@@ -146,21 +146,21 @@ namespace acma::timeline {
 				.pSemaphores = &proc.command_family_semaphores()[frame_idx][command_family::present],
 				.pValues = &proc.command_family_semaphore_values()[frame_idx][command_family::present],
 			};
-			__D2D_VULKAN_VERIFY(vkWaitSemaphores(*proc.logical_device_ptr(), &wait_info, std::numeric_limits<sl::uint64_t>::max()));
+			__D2D_VULKAN_VERIFY(sl::invoke(proc.vulkan_functions_ptr()->vkWaitSemaphores, *proc.logical_device_ptr(), &wait_info, std::numeric_limits<sl::uint64_t>::max()));
 
 			VkSemaphoreSignalInfo family_signal_info{
 				.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SIGNAL_INFO,
 				.semaphore = proc.command_family_semaphores()[frame_idx][command_family::present],
 				.value = ++proc.command_family_semaphore_values()[frame_idx][command_family::present],
 			};
-			__D2D_VULKAN_VERIFY(vkSignalSemaphore(*proc.logical_device_ptr(), &family_signal_info));
+			__D2D_VULKAN_VERIFY(sl::invoke(proc.vulkan_functions_ptr()->vkSignalSemaphore, *proc.logical_device_ptr(), &family_signal_info));
 
 			VkSemaphoreSignalInfo buffer_signal_info{
 				.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SIGNAL_INFO,
 				.semaphore = proc.command_buffer_semaphores()[frame_idx][CommandGroupIdx],
 				.value = ++proc.command_buffer_semaphore_values()[frame_idx][CommandGroupIdx],
 			};
-			__D2D_VULKAN_VERIFY(vkSignalSemaphore(*proc.logical_device_ptr(), &buffer_signal_info));
+			__D2D_VULKAN_VERIFY(sl::invoke(proc.vulkan_functions_ptr()->vkSignalSemaphore, *proc.logical_device_ptr(), &buffer_signal_info));
 		}
 
 		VkPresentInfoKHR present_info{
@@ -174,7 +174,10 @@ namespace acma::timeline {
 			.pImageIndices = &timeline_state.image_index,
 		};
 		RESULT_TRY_COPY_UNSCOPED(bool swap_chain_updated, win.verify_swap_chain(
-			vkQueuePresentKHR(proc.logical_device_ptr()->queues[command_family::present][timeline_state.queue_indices[command_family::present]++], &present_info),
+			sl::invoke(proc.vulkan_functions_ptr()->vkQueuePresentKHR, 
+				proc.logical_device_ptr()->queues[command_family::present][timeline_state.queue_indices[command_family::present]++],
+				&present_info
+			),
 			proc.vulkan_functions_ptr(),
 			proc.logical_device_ptr(),
 			proc.physical_device_ptr(),

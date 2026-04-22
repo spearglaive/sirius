@@ -15,6 +15,7 @@ set(CPP_FILES
 
     vulkan/core/command_pool.cpp
     vulkan/core/decoder.cpp
+    vulkan/core/function_table.cpp
     vulkan/core/instance.cpp
     vulkan/core/vulkan.cpp
 
@@ -52,7 +53,7 @@ list(REMOVE_DUPLICATES SHADER_OUTPUT_FILES)
 
 set(PUBLIC_DEPENDENCIES
 	streamline
-	vulkan
+	#vulkan
 
 	glfw
 )

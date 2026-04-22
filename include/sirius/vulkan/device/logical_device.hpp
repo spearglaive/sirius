@@ -5,6 +5,7 @@
 
 #include "sirius/vulkan/core/vulkan.hpp"
 
+#include "sirius/vulkan/core/function_table.hpp"
 #include "sirius/core/make.hpp"
 #include "sirius/vulkan/core/unique_vk_ptr.hpp"
 #include "sirius/vulkan/core/mixin.hpp"
@@ -12,12 +13,20 @@
 #include "sirius/core/command_family.hpp"
 #include "sirius/vulkan/device/physical_device.hpp"
 
+
+namespace acma {
+	SIRIUS_API result<VkDevice> make_device_handle(
+		sl::reference_ptr<const vk::physical_device> associated_phys_device_ptr,
+		bool windowing
+	) noexcept;
+}
+
 namespace acma::vk {
     struct SIRIUS_API logical_device : mixin<VkDevice, PFN_vkDestroyDevice> {
-		// void initialize(
-		// 	sl::reference_ptr<const vk::function_table> vulkan_fns_ptr,
-		// 	sl::reference_ptr<const vk::physical_device> associated_phys_device_ptr
-		// ) noexcept;
+		friend result<VkDevice> acma::make_device_handle(
+			sl::reference_ptr<const vk::physical_device> associated_phys_device_ptr,
+			bool windowing
+		) noexcept;
 	public:
 		template<typename T>
 		friend struct ::acma::impl::make;
@@ -35,6 +44,7 @@ namespace acma::impl {
 			sl::reference_ptr<const vk::function_table> vulkan_fns_ptr,
 			sl::reference_ptr<const vk::physical_device> associated_phys_device_ptr,
 			bool windowing,
+			VkDevice const&& handle,
 			sl::in_place_adl_tag_type<vk::logical_device> = sl::in_place_adl_tag<vk::logical_device>
 		) const noexcept;
 	};

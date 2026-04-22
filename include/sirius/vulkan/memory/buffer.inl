@@ -45,7 +45,7 @@ namespace acma::vk {
 		RenderProcessT& proc = static_cast<RenderProcessT&>(*this);
 		const sl::index_t alloc_idx = this->allocation_index();
 		if(new_capacity_bytes <= this->allocated_bytes()) {
-			vkDestroyBuffer(*proc.logical_device_ptr(), buff_alloc_ptrs[alloc_idx]->handle, nullptr);
+			sl::invoke(proc.vulkan_functions_ptr()->vkDestroyBuffer, *proc.logical_device_ptr(), buff_alloc_ptrs[alloc_idx]->handle, nullptr);
 			buff_alloc_ptrs[alloc_idx]->handle = VK_NULL_HANDLE;
 
 			buffer_creation_info_t create_info = buff_alloc_ptrs[alloc_idx]->creation_info;
@@ -65,7 +65,7 @@ namespace acma::vk {
 				.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO_KHR,
 				.buffer = buff_alloc_ptrs[alloc_idx]->handle
 			};
-			buff_alloc_ptrs[alloc_idx]->device_address = vkGetBufferDeviceAddress(*proc.logical_device_ptr(), &device_address_info);
+			buff_alloc_ptrs[alloc_idx]->device_address = sl::invoke(proc.vulkan_functions_ptr()->vkGetBufferDeviceAddress, *proc.logical_device_ptr(), &device_address_info);
 		}
 		else {
 			vk::buffer_allocation_unique_ptr old_alloc = std::move(buff_alloc_ptrs[alloc_idx]);

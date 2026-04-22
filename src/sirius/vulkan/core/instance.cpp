@@ -9,8 +9,10 @@ namespace acma::impl {
 		VkInstanceCreateInfo create_info,
 		sl::in_place_adl_tag_type<vk::instance>
 	) const noexcept {
-		vk::instance ret{{{vkDestroyInstance}}};
-        __D2D_VULKAN_VERIFY(sl::invoke(vkCreateInstance, &create_info, nullptr, &ret));
-        return ret;
+		VkInstance handle = VK_NULL_HANDLE;
+        __D2D_VULKAN_VERIFY(sl::invoke(vkCreateInstance, &create_info, nullptr, &handle));
+		volkLoadInstanceOnly(handle);
+
+		return vk::instance{{{vkDestroyInstance, handle}}};
 	}
 }

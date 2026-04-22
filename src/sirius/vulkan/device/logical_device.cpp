@@ -10,8 +10,37 @@ namespace acma::impl {
 		sl::reference_ptr<const vk::function_table> vulkan_fns_ptr,
 		sl::reference_ptr<const vk::physical_device> associated_phys_device_ptr,
 		bool windowing,
+		VkDevice const&& handle,
 		sl::in_place_adl_tag_type<vk::logical_device>
 	) const noexcept {
+        vk::logical_device ret{{{vulkan_fns_ptr->vkDestroyDevice, sl::move(handle)}}, {}};
+
+		const sl::size_t queue_create_info_count = command_family::num_distinct_families + static_cast<sl::size_t>(windowing);
+
+        //Create queues
+        for(std::size_t i = 0; i < queue_create_info_count; ++i) {
+			const sl::uint32_t queue_count = associated_phys_device_ptr->queue_family_infos[i].queue_count;
+			ret.queues[i].resize(queue_count);
+            for(sl::size_t j = 0; j < queue_count; ++j) {
+				sl::invoke(
+					vulkan_fns_ptr->vkGetDeviceQueue,
+					ret,
+					static_cast<sl::uint32_t>(associated_phys_device_ptr->queue_family_infos[i].index),
+					j,
+					&ret.queues[i][j]
+				);
+			}
+		}
+
+		return ret;
+	};
+}
+
+namespace acma {
+	result<VkDevice> make_device_handle(
+		sl::reference_ptr<const vk::physical_device> associated_phys_device_ptr,
+		bool windowing
+	) noexcept {
 		const sl::size_t queue_create_info_count = command_family::num_distinct_families + static_cast<sl::size_t>(windowing);
 		if(associated_phys_device_ptr->max_queue_count == 0)
 			return errc::vulkan_device_lost;
@@ -78,7 +107,7 @@ namespace acma::impl {
             .multiDrawIndirect = VK_TRUE,
             .samplerAnisotropy = VK_TRUE,
         };
-		VkPhysicalDeviceFeatures2 desired_features {
+		const VkPhysicalDeviceFeatures2 desired_features {
 			.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
 			.pNext = &desired_1_1_features,
 			.features = desired_base_features,
@@ -92,7 +121,7 @@ namespace acma::impl {
                 enabled_extensions.push_back(vk::extension::name[i].data());
 
         //Create logical device
-        VkDeviceCreateInfo device_create_info{
+        const VkDeviceCreateInfo device_create_info{
             .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
             .pNext = &desired_features,
             .queueCreateInfoCount = queue_create_count,
@@ -103,29 +132,8 @@ namespace acma::impl {
             .pEnabledFeatures = VK_NULL_HANDLE,
         };
 
-        vk::logical_device ret{{{vulkan_fns_ptr->vkDestroyDevice}}, {}};
-        __D2D_VULKAN_VERIFY(sl::invoke(vkCreateDevice, associated_phys_device_ptr->handle, &device_create_info, nullptr, &ret));
-
-
-        //Create queues
-        for(std::size_t i = 0; i < queue_create_info_count; ++i) {
-			const sl::uint32_t queue_count = associated_phys_device_ptr->queue_family_infos[i].queue_count;
-			ret.queues[i].resize(queue_count);
-            for(sl::size_t j = 0; j < queue_count; ++j)
-				sl::invoke(
-					vulkan_fns_ptr->vkGetDeviceQueue,
-					ret, static_cast<sl::uint32_t>(associated_phys_device_ptr->queue_family_infos[i].index), j, &ret.queues[i][j]
-				);
-		}
-
-		return ret;
-	};
-}
-
-namespace acma::vk {
-	// void logical_device::initialize(
-	// 	sl::reference_ptr<const vk::function_table> vulkan_fns_ptr,
-	// 	sl::reference_ptr<const vk::physical_device> associated_phys_device_ptr
-	// ) noexcept {
-	// }
+        VkDevice ret_handle;
+        __D2D_VULKAN_VERIFY(sl::invoke(vkCreateDevice, associated_phys_device_ptr->handle, &device_create_info, nullptr, &ret_handle));
+		return ret_handle;
+	}
 }

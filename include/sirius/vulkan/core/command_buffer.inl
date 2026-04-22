@@ -14,18 +14,18 @@ namespace acma::vk {
 			.pNext = nullptr,
 			.flags = one_time ? VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT : 0U,
 		};
-		__D2D_VULKAN_VERIFY(vkBeginCommandBuffer(smart_handle.get(), &begin_info));
+		__D2D_VULKAN_VERIFY(sl::invoke(vulkan_fns_ptr->vkBeginCommandBuffer, smart_handle.get(), &begin_info));
 		return {};
 	}
 
 	result<void> command_buffer::end() const noexcept {
-		__D2D_VULKAN_VERIFY(vkEndCommandBuffer(smart_handle.get()));
+		__D2D_VULKAN_VERIFY(sl::invoke(vulkan_fns_ptr->vkEndCommandBuffer, smart_handle.get()));
 		return {};
 	}
 
 
 	result<void> command_buffer::reset() const noexcept {
-		__D2D_VULKAN_VERIFY(vkResetCommandBuffer(smart_handle.get(), 0));
+		__D2D_VULKAN_VERIFY(sl::invoke(vulkan_fns_ptr->vkResetCommandBuffer, smart_handle.get(), 0));
 		return {};
 	}
 
@@ -54,18 +54,18 @@ namespace acma::vk {
 			.pSignalSemaphoreInfos = signal_semaphore_infos.data(),
 		};
 		auto const& queues = logi_device_ptr->queues[family];
-		__D2D_VULKAN_VERIFY(vkQueueSubmit2(queues[queue_idx % queues.size()], 1, &submit_info, out_fence));
+		__D2D_VULKAN_VERIFY(sl::invoke(vulkan_fns_ptr->vkQueueSubmit2, queues[queue_idx % queues.size()], 1, &submit_info, out_fence));
 		return {};
 	}
 
 	result<void> command_buffer::wait(command_family_t family, sl::uint32_t queue_idx) const noexcept {
 		auto const& queues = logi_device_ptr->queues[family];
-		__D2D_VULKAN_VERIFY(vkQueueWaitIdle(queues[queue_idx % queues.size()]));
+		__D2D_VULKAN_VERIFY(sl::invoke(vulkan_fns_ptr->vkQueueWaitIdle, queues[queue_idx % queues.size()]));
 		return {};
 	}
 
 	void command_buffer::free() const noexcept {
-		return vkFreeCommandBuffers(*logi_device_ptr, *cmd_pool_ptr, 1, &smart_handle.get());
+		return sl::invoke(vulkan_fns_ptr->vkFreeCommandBuffers, *logi_device_ptr, *cmd_pool_ptr, 1, &smart_handle.get());
 	}
 }
 

@@ -30,7 +30,7 @@ namespace acma::timeline {
 			auto& dst_buff = sl::universal::get<DstBufferKey>(proc);
 			if(SizeBytes <= dst_buff.capacity())
 				return dst_buff.try_resize(SizeBytes);
-			vkDeviceWaitIdle(*proc.logical_device_ptr()); //TEMP
+			sl::invoke(proc.vulkan_functions_ptr()->vkDeviceWaitIdle, *proc.logical_device_ptr()); //TEMP
 			return dst_buff.resize(SizeBytes);
 		};
 	};
@@ -45,7 +45,7 @@ namespace acma::timeline {
 			const sl::size_t new_size = src_buff.size_bytes();
 			if(new_size <= dst_buff.capacity())
 				return dst_buff.try_resize(new_size);
-			vkDeviceWaitIdle(*proc.logical_device_ptr()); //TEMP
+			sl::invoke(proc.vulkan_functions_ptr()->vkDeviceWaitIdle, *proc.logical_device_ptr()); //TEMP
 			return dst_buff.resize(new_size);
 		};
 	};

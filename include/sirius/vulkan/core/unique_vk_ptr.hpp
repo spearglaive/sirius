@@ -25,26 +25,41 @@ namespace acma::vk {
 		constexpr unique_vk_ptr& operator=(unique_vk_ptr const&) noexcept = delete;
 	public:
 		constexpr unique_vk_ptr(
-			deletion_function_pointer_type fn
-		) noexcept
-		requires(mixin_type::has_function_type) :
-			base_type{nullptr, deleter_type{fn}} {}
-
-
-		constexpr unique_vk_ptr(
 			deletion_function_pointer_type fn,
-			deletion_dependent_type dependent_ptr
+			handle_type h = nullptr
 		) noexcept
-		requires(mixin_type::has_dependent_type) :
-			base_type{nullptr, deleter_type{fn, dependent_ptr}} {}
+		requires(
+			mixin_type::has_function_type &&
+			!mixin_type::has_dependent_type &&
+			!mixin_type::has_aux_type
+		) :
+			base_type{h, deleter_type{fn}} {}
 
 
 		constexpr unique_vk_ptr(
 			deletion_function_pointer_type fn,
 			deletion_dependent_type dependent_ptr,
-			deletion_auxiliary_type aux_ptr
+			handle_type h = nullptr
 		) noexcept
-		requires(mixin_type::has_aux_type) :
-			base_type{nullptr, deleter_type{fn, dependent_ptr, aux_ptr}} {}
+		requires(
+			mixin_type::has_function_type &&
+			mixin_type::has_dependent_type &&
+			!mixin_type::has_aux_type
+		) :
+			base_type{h, deleter_type{fn, dependent_ptr}} {}
+
+
+		constexpr unique_vk_ptr(
+			deletion_function_pointer_type fn,
+			deletion_dependent_type dependent_ptr,
+			deletion_auxiliary_type aux_ptr,
+			handle_type h = nullptr
+		) noexcept
+		requires(
+			mixin_type::has_function_type &&
+			mixin_type::has_dependent_type &&
+			mixin_type::has_aux_type
+		) :
+			base_type{h, deleter_type{fn, dependent_ptr, aux_ptr}} {}
 	};
 }

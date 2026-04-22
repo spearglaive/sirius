@@ -1,8 +1,10 @@
 #pragma once
+#include <memory>
+
+#include "sirius/vulkan/core/vulkan.hpp"
+
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
-#include <memory>
-#include "sirius/vulkan/core/vulkan.hpp"
 
 #include "sirius/core/api.def.h"
 #include "sirius/vulkan/core/mixin.hpp"

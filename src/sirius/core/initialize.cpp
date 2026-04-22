@@ -26,6 +26,8 @@ namespace acma {
 			    return error::vulkan_not_supported;
 		}
 
+		//Initialize loader
+		__D2D_VULKAN_VERIFY(volkInitialize());
 
         // Set application info
         const VkApplicationInfo app_info{

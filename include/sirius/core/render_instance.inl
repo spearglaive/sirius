@@ -11,9 +11,10 @@
 #include <streamline/functional/functor/invoke_each_result.hpp>
 #include <streamline/functional/functor/forward_construct.hpp>
 
+#include "sirius/vulkan/core/vulkan.hpp"
+
 #include <GLFW/glfw3.h>
 #include <result/verify.h>
-#include "sirius/vulkan/core/vulkan.hpp"
 
 
 #include "sirius/timeline/command.fwd.hpp"
@@ -108,27 +109,33 @@ namespace acma {
 		//Set open flag
 		should_be_open = std::make_unique<std::atomic<bool>>(true);
 
-		//Initialize function pointers
-		this->_vulkan_functions_ptr = sl::unique_ptr<vk::function_table>{new vk::function_table{}};
 
 		//Initialize physical device
 		this->_physical_device_ptr = sl::reference_ptr<vk::physical_device>{std::addressof(device)};
 		RESULT_VERIFY(this->_physical_device_ptr->initialize_queues(prefer_synchronous_rendering, Windowing));
 
+		{
 		//Create logical device
+		VkDevice logical_device_handle = VK_NULL_HANDLE;
+		RESULT_TRY_COPY(logical_device_handle, make_device_handle(this->_physical_device_ptr, Windowing));
+
+		//Initialize function pointers
+		this->_vulkan_functions_ptr = sl::unique_ptr<vk::function_table>{new vk::function_table};
+		make_function_table(*this->_vulkan_functions_ptr, logical_device_handle);
+
+		//Initialize logical device
 		this->_logical_device_ptr = sl::unique_ptr<vk::logical_device>{new vk::logical_device};
         RESULT_TRY_MOVE(*this->_logical_device_ptr, acma::make<vk::logical_device>(
 			this->_vulkan_functions_ptr,
 			this->_physical_device_ptr,
-			Windowing
+			Windowing,
+			sl::move(logical_device_handle)
 		));
-		this->_vulkan_functions_ptr->vkCmdPushDescriptorSetKHR = reinterpret_cast<PFN_vkCmdPushDescriptorSetKHR>(vkGetDeviceProcAddr(*this->_logical_device_ptr, "vkCmdPushDescriptorSetKHR"));
-		
-
+		}
 
 		//Create allocator
 		{
-		const VmaAllocatorCreateInfo allocator_create_info {
+		VmaAllocatorCreateInfo allocator_create_info {
 			.flags =
 				VMA_ALLOCATOR_CREATE_KHR_DEDICATED_ALLOCATION_BIT |
 				VMA_ALLOCATOR_CREATE_KHR_BIND_MEMORY2_BIT |
@@ -140,10 +147,9 @@ namespace acma {
 			.vulkanApiVersion = VK_API_VERSION_1_3,
 		};
 
-		//TODO
-		// VmaVulkanFunctions vma_vk_funcs;
-		// __D2D_VULKAN_VERIFY(vmaImportVulkanFunctionsFromVolk(&allocator_create_info, &vma_vk_funcs));
-		// allocator_create_info.pVulkanFunctions = vma_vk_funcs;
+		VmaVulkanFunctions vma_vk_funcs;
+		__D2D_VULKAN_VERIFY(vmaImportVulkanFunctionsFromVolk(&allocator_create_info, &vma_vk_funcs));
+		allocator_create_info.pVulkanFunctions = &vma_vk_funcs;
 
 		this->_allocator_ptr = sl::unique_ptr<vk::allocator>{new vk::allocator{}};
 		__D2D_VULKAN_VERIFY(vmaCreateAllocator(&allocator_create_info, &this->_allocator_ptr->smart_handle.get()));

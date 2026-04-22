@@ -8,6 +8,7 @@
 #include <future>
 
 #include "sirius/core/initialize.hpp"
+#include "sirius/vulkan/core/function_table.hpp"
 #include "sirius/timeline/command_traits.hpp"
 #include "sirius/timeline/setup.hpp"
 #include "sirius/input/category.hpp"
@@ -53,18 +54,6 @@ namespace acma {
 		constexpr static sl::size_t frames_in_flight = D2D_FRAMES_IN_FLIGHT;
 		constexpr static sl::size_t N = BufferConfigs.size();
 		constexpr static sl::size_t M = AssetHeapConfigs.size();
-
-	public:
-		static result<render_instance> create(
-			vk::physical_device& device, 
-			bool prefer_synchronous_rendering
-		) noexcept;
-		static result<render_instance> create(
-			vk::physical_device& device, 
-			bool prefer_synchronous_rendering,
-			acma::sz2u32 window_size,
-			std::string_view window_title = {}
-		) noexcept;
 
 	private:
 		template<bool Windowing>

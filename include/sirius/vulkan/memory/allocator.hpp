@@ -15,6 +15,10 @@ namespace acma::vk {
 	struct allocator {
 		constexpr operator allocator_handle_t() const noexcept { return smart_handle.get(); }
 	public:
+		constexpr allocator_handle_t const* operator&() const& noexcept { return &smart_handle.get(); }
+		constexpr allocator_handle_t      * operator&()      & noexcept { return &smart_handle.get(); }
+		
+	public:
 		sl::unique_ptr<sl::remove_pointer_t<allocator_handle_t>, sl::functor::generic_stateless<vmaDestroyAllocator>> smart_handle;
 	};
 }
