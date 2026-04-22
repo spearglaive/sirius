@@ -23,7 +23,7 @@ namespace acma::impl {
 		vk::pipeline<vk::bind_point::graphics, T, BufferConfigs, AssetHeapConfigs> ret{};
 		ret.smart_handle = {vulkan_fns_ptr->vkDestroyPipeline, logi_device_ptr};
 
-		RESULT_TRY_MOVE(ret._layout, (acma::make<vk::pipeline_layout<shader_stage::all_graphics, T, BufferConfigs, AssetHeapConfigs>>(
+		RESULT_TRY_MOVE(ret._layout, (acma::make<vk::pipeline_layout<vk::bind_point::graphics, T, BufferConfigs, AssetHeapConfigs>>(
 			vulkan_fns_ptr,
 			logi_device_ptr,
 			sl::forward<RenderProcessT>(proc)
@@ -179,7 +179,7 @@ namespace acma::impl {
 		vk::pipeline<vk::bind_point::compute, T, BufferConfigs, AssetHeapConfigs> ret{};
 		ret.smart_handle = {vulkan_fns_ptr->vkDestroyPipeline, logi_device_ptr};
 
-		RESULT_TRY_MOVE(ret._layout, (acma::make<vk::pipeline_layout<shader_stage::compute, T, BufferConfigs, AssetHeapConfigs>>(
+		RESULT_TRY_MOVE(ret._layout, (acma::make<vk::pipeline_layout<vk::bind_point::compute, T, BufferConfigs, AssetHeapConfigs>>(
 			vulkan_fns_ptr,
 			logi_device_ptr,
 			sl::forward<RenderProcessT>(proc)

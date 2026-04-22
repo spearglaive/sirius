@@ -28,22 +28,11 @@ namespace acma::vk {
 		friend struct ::acma::impl::make;
 
 	private:
-		template<typename Seq, sl::size_t N, buffer_config_table<N> BufferConfigs, buffer_usage_policy_flags_t BufferUsage>
-		using filtered_by_usage_sequence_type = sl::filtered_sequence_t<Seq, []<buffer_key_t K>(buffer_key_constant_type<K>){
-			return BufferConfigs[K].usage & BufferUsage;
-		}>;
+		template<typename T> constexpr static bool has_index_info = requires{ T::index_info; };
+		template<typename T> constexpr static bool has_asset_heap = requires{ T::asset_heap; };
+		template<typename T> constexpr static bool has_push_constants = T::push_constant_infos.size() > 0;
+		template<typename T> constexpr static bool has_uniform_buffers = T::uniform_buffers.size() > 0;
 
-		template<typename T, sl::size_t N, buffer_config_table<N> BufferConfigs>
-		using     draw_command_buffers_sequence_type = filtered_by_usage_sequence_type<decltype(T::buffers), N, BufferConfigs, buffer_usage_policy::draw_commands>;
-		template<typename T, sl::size_t N, buffer_config_table<N> BufferConfigs>
-		using       draw_count_buffers_sequence_type = filtered_by_usage_sequence_type<decltype(T::buffers), N, BufferConfigs, buffer_usage_policy::draw_count>;
-		template<typename T, sl::size_t N, buffer_config_table<N> BufferConfigs>
-		using dispatch_command_buffers_sequence_type = filtered_by_usage_sequence_type<decltype(T::buffers), N, BufferConfigs, buffer_usage_policy::dispatch_commands>;
-
-		template<typename T, sl::size_t N, buffer_config_table<N> BufferConfigs>
-		constexpr static sl::size_t draw_command_count = std::min(draw_command_buffers_sequence_type<T, N, BufferConfigs>::size(), draw_count_buffers_sequence_type<T, N, BufferConfigs>::size());
-		template<typename T, sl::size_t N, buffer_config_table<N> BufferConfigs>
-		constexpr static sl::size_t dispatch_command_count = dispatch_command_buffers_sequence_type<T, N, BufferConfigs>::size();
 
 	public:
     	inline result<void> begin(bool one_time = false) const noexcept;
@@ -54,17 +43,55 @@ namespace acma::vk {
     	inline result<void> wait(command_family_t family, sl::uint32_t queue_idx = 0) const noexcept;
     	inline void free() const noexcept;
 		
-		
-		template<buffer_key_t K, typename T, auto BufferConfigs, auto AssetHeapConfigs, typename RenderProcessT>
-		void bind_buffer(buffer<K, BufferConfigs, RenderProcessT> const& buff, pipeline_layout<shader_stage::all_graphics, T, BufferConfigs, AssetHeapConfigs> const& layout) const noexcept;
-		template<buffer_key_t K, typename T, auto BufferConfigs, auto AssetHeapConfigs, typename RenderProcessT>
-		void bind_buffer(buffer<K, BufferConfigs, RenderProcessT> const& buff, pipeline_layout<shader_stage::compute, T, BufferConfigs, AssetHeapConfigs> const& layout) const noexcept;
-
-		template<buffer_key_t K, auto AssetHeapConfigs, typename RenderProcessT, shader_stage_flags_t ShaderStages, typename T, auto BufferConfigs>
-		void bind_asset_heap(asset_heap<K, AssetHeapConfigs, RenderProcessT> const& heap, pipeline_layout<ShaderStages, T, BufferConfigs, AssetHeapConfigs> const& layout) const noexcept;
-    	
+	public:
 		template<bind_point_t BindPoint, typename T, auto BufferConfigs, auto AssetHeapConfigs>
 		void bind_pipeline(pipeline<BindPoint, T, BufferConfigs, AssetHeapConfigs> const& p) const noexcept;
+	public:
+		template<typename T, auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount>
+		void bind_index_buffer(
+			render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount> const& render_proc
+		) const noexcept requires has_index_info<T>;
+
+		template<bind_point_t BindPoint, typename T, auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount>
+		void bind_push_constants(
+			render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount> const& render_proc,
+			pipeline_layout<BindPoint, T, BufferConfigs, AssetHeapConfigs> const& layout
+		) const noexcept requires has_push_constants<T>;
+
+		template<bind_point_t BindPoint, typename T, auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount>
+		void bind_uniform_buffers(
+			render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount> const& render_proc,
+			pipeline_layout<BindPoint, T, BufferConfigs, AssetHeapConfigs> const& layout
+		) const noexcept requires has_uniform_buffers<T>;
+
+		template<bind_point_t BindPoint, typename T, auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount>
+		void bind_asset_heap(
+			render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount> const& render_proc,
+			pipeline_layout<BindPoint, T, BufferConfigs, AssetHeapConfigs> const& layout
+		) const noexcept requires has_asset_heap<T>;
+	public:
+		template<typename T, auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount>
+		void bind_index_buffer(
+			render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount> const&
+		) const noexcept requires (!has_index_info<T>) {}
+
+		template<bind_point_t BindPoint, typename T, auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount>
+		void bind_push_constants(
+			render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount> const&,
+			pipeline_layout<BindPoint, T, BufferConfigs, AssetHeapConfigs> const&
+		) const noexcept requires (!has_push_constants<T>) {}
+
+		template<bind_point_t BindPoint, typename T, auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount>
+		void bind_uniform_buffers(
+			render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount> const&,
+			pipeline_layout<BindPoint, T, BufferConfigs, AssetHeapConfigs> const&
+		) const noexcept requires (!has_uniform_buffers<T>) {}
+
+		template<bind_point_t BindPoint, typename T, auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount>
+		void bind_asset_heap(
+			render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount> const&,
+			pipeline_layout<BindPoint, T, BufferConfigs, AssetHeapConfigs> const&
+		) const noexcept requires (!has_asset_heap<T>) {}
 
 	public:
         inline void begin_draw(std::span<const VkRenderingAttachmentInfo> color_attachments, VkRenderingAttachmentInfo const& depth_attachment, rect<std::uint32_t> render_area_bounds, rect<float> viewport_bounds, rect<std::uint32_t> scissor_bounds) const noexcept;
@@ -73,15 +100,26 @@ namespace acma::vk {
     public:
 		template<typename T, auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount>
         void draw(
+			render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount> const& render_proc
+		) const noexcept;
+
+		template<typename T, auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount>
+        void dispatch(
+			render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount> const& render_proc
+		) const noexcept;
+
+    public:
+		template<typename T, auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount>
+        void draw(
 			render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount> const& render_proc,
-			sl::array<decltype(T::draw_buffers)::size(), sl::uoffset_t> draw_command_buffer_offsets = {}, 
-			sl::array<decltype(T::draw_buffers)::size(), sl::uoffset_t> draw_count_buffer_offsets = {} 
+			sl::array<decltype(T::draw_infos)::size(), sl::uoffset_t> draw_command_buffer_offsets, 
+			sl::array<decltype(T::draw_infos)::size(), sl::uoffset_t> draw_count_buffer_offsets
 		) const noexcept;
 
 		template<typename T, auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount>
         void dispatch(
 			render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount> const& render_proc,
-			sl::array<decltype(T::dispatch_buffers)::size(), sl::uoffset_t> buffer_offsets = {}
+			sl::array<decltype(T::dispatch_infos)::size(), sl::uoffset_t> buffer_offsets
 		) const noexcept;
         
     public:

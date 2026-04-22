@@ -50,14 +50,9 @@ namespace acma::timeline {
 
 			compute_buffer.bind_pipeline(pipeline);
 
-			//For each buffer declared by type T, bind the buffer (if applicable)
-			[&compute_buffer, &proc, &pipeline]<buffer_key_t... Ks>(buffer_key_sequence_type<Ks...>){
-				((compute_buffer.bind_buffer(proc[buffer_key_constant<Ks>], pipeline.layout())), ...);
-			}(T::buffers);
-
-			[&compute_buffer, &proc, &pipeline]<asset_heap_key_t... Ks>(asset_heap_key_sequence_type<Ks...>){
-				((compute_buffer.bind_asset_heap(proc[asset_heap_key_constant<Ks>], pipeline.layout())), ...);
-			}(T::asset_heaps);
+			compute_buffer.bind_push_constants(proc, pipeline.layout());
+			compute_buffer.bind_uniform_buffers(proc, pipeline.layout());
+			compute_buffer.bind_asset_heap(proc, pipeline.layout());
 
 			compute_buffer.template dispatch<T>(proc); 
 			return {};

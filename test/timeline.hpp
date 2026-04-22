@@ -95,6 +95,12 @@ namespace acma::test {
 
 		acma::fill<::buffer_id::all_ones_cpu_side, ~sl::uint32_t{0}>,
 		
+		acma::buffer_dependency<acma::command_family::compute,
+			acma::render_stage::clear, acma::memory_operation::write,
+			acma::render_stage::copy, acma::memory_operation::read,
+			buffer_key_sequence_type<::buffer_id::all_ones_cpu_side>
+		>,
+
 		acma::move_buffer_data<::buffer_id::all_ones_gpu_side, ::buffer_id::all_ones_cpu_side>,
 
 		acma::submit<acma::command_family::transfer, signal_completion_at<acma::render_stage::copy | acma::render_stage::clear>>,

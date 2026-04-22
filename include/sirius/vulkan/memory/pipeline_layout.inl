@@ -5,62 +5,52 @@
 #include <streamline/functional/functor/invoke_each.hpp>
 #include <streamline/metaprogramming/integer_sequence.hpp>
 
+#include "sirius/core/push_constant_buffer_info.hpp"
+
 
 namespace acma::impl {
-    template<shader_stage_flags_t Stages, typename T, auto BufferConfigs, auto AssetHeapConfigs>
+    template<vk::bind_point_t BindPoint, typename T, auto BufferConfigs, auto AssetHeapConfigs>
 	template<typename RenderProcessT>
-	result<vk::pipeline_layout<Stages, T, BufferConfigs, AssetHeapConfigs>>
-		make<vk::pipeline_layout<Stages, T, BufferConfigs, AssetHeapConfigs>>::
+	result<vk::pipeline_layout<BindPoint, T, BufferConfigs, AssetHeapConfigs>>
+		make<vk::pipeline_layout<BindPoint, T, BufferConfigs, AssetHeapConfigs>>::
 	operator()(
 		sl::reference_ptr<const vk::function_table> vulkan_fns_ptr,
 		sl::reference_ptr<const vk::logical_device> logi_device_ptr,
 		RenderProcessT const& proc,
-		sl::in_place_adl_tag_type<vk::pipeline_layout<Stages, T, BufferConfigs, AssetHeapConfigs>>
+		sl::in_place_adl_tag_type<vk::pipeline_layout<BindPoint, T, BufferConfigs, AssetHeapConfigs>>
 	) const noexcept {
-		using pipeline_layout = vk::pipeline_layout<Stages, T, BufferConfigs, AssetHeapConfigs>;
+		using pipeline_layout = vk::pipeline_layout<BindPoint, T, BufferConfigs, AssetHeapConfigs>;
 
 		pipeline_layout ret{};
 		ret.smart_handle = {vulkan_fns_ptr->vkDestroyPipelineLayout, logi_device_ptr};
 
-		using push_constant_usage_filtered_sequence = sl::filtered_sequence_t<
-			sl::index_sequence_of_length_type<decltype(T::buffers)::size()>,
-			[]<sl::index_t I>(sl::index_constant_type<I>) noexcept { 
-				constexpr buffer_key_t key = sl::universal::get<I>(T::buffers);
-				constexpr buffer_config cfg = BufferConfigs[key];
-				return cfg.usage == buffer_usage_policy::push_constant && (cfg.stages & Stages);
+		constexpr static auto push_constant_ranges = sl::make<sl::array<T::push_constant_infos.size(), VkPushConstantRange>>(
+			T::push_constant_infos,
+			[](push_constant_buffer_info info, auto) noexcept -> VkPushConstantRange {
+				const buffer_config cfg = BufferConfigs[info.buffer_key];
+				return {cfg.stages, static_cast<sl::uint32_t>(info.offset), static_cast<std::uint32_t>(cfg.initial_capacity_bytes)};
 			}
-		>;
-		constexpr auto push_constant_ranges = sl::make<sl::array<push_constant_usage_filtered_sequence::size(), VkPushConstantRange>>(
-			T::buffers,
-			[](buffer_key_t key, auto) noexcept -> VkPushConstantRange {
-				const buffer_config cfg = BufferConfigs[key];
-				return {cfg.stages, 0, static_cast<std::uint32_t>(cfg.initial_capacity_bytes)};
-			},
-			push_constant_usage_filtered_sequence{}
 		);
 
 
-
-		{
-		const sl::array<pipeline_layout::uniform_buffer_count, VkDescriptorSetLayoutBinding> bindings = sl::make<sl::array<pipeline_layout::uniform_buffer_count, VkDescriptorSetLayoutBinding>>(
-			T::uniform_buffer_order,
-			[](buffer_key_t key, auto) noexcept {
+		constexpr static auto uniform_bindings = sl::make<sl::array<T::uniform_buffers.size(), VkDescriptorSetLayoutBinding>>(
+			T::uniform_buffers,
+			[]<sl::index_t I>(buffer_key_t key, sl::index_constant_type<I>) noexcept {
 				return VkDescriptorSetLayoutBinding{
-					.binding = pipeline_layout::uniform_buffer_binding_indices[key],
+					.binding = I,
 					.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 					.descriptorCount = 1,
 					.stageFlags = BufferConfigs[key].stages,
 					.pImmutableSamplers = nullptr,
 				};
-			},
-			typename pipeline_layout::uniform_stage_filtered_sequence{}
+			}
 		);
-		const VkDescriptorSetLayoutCreateInfo set_layout_info{
+		constexpr static VkDescriptorSetLayoutCreateInfo set_layout_info{
 			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
 			.pNext = nullptr,
 			.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT,
-			.bindingCount = bindings.size(),
-			.pBindings = bindings.data(),
+			.bindingCount = uniform_bindings.size(),
+			.pBindings = uniform_bindings.data(),
 		};
 
 		RESULT_TRY_MOVE(ret.uniform_set_layout, acma::make<vk::descriptor_set_layout>(
@@ -68,29 +58,15 @@ namespace acma::impl {
 			logi_device_ptr,
 			set_layout_info
 		));
-		}
 
 
-		using set_layout_handle_array_type = sl::array<pipeline_layout::asset_heap_count * asset_usage_policy::num_usage_policies + 1, VkDescriptorSetLayout>;
-		constexpr auto create_handles = []<sl::index_t I>(
-			set_layout_handle_array_type& arr,
-			sl::index_t& out_idx,
-			RenderProcessT const& proc,
-			sl::index_constant_type<I>
-		) noexcept {
-			constexpr asset_heap_key_t key = sl::universal::get<I>(T::asset_heaps);
-			for(asset_usage_policy_t j = 0; j < asset_usage_policy::num_usage_policies; ++j) 
-				arr[1 + (out_idx * asset_usage_policy::num_usage_policies) + j] = sl::universal::get<key>(proc)._descriptor_set_layouts[j];
-			++out_idx;
-		};
-		sl::index_t set_layout_handle_idx = 0;
-		set_layout_handle_array_type set_layout_handles{};
-		sl::invoke(
-			sl::functor::invoke_each<create_handles>{},
-			typename pipeline_layout::asset_heap_stage_filtered_sequence{},
-			set_layout_handles, set_layout_handle_idx, proc
-		);
+		constexpr bool has_asset_heap = requires{ T::asset_heap; };
+		constexpr sl::size_t descriptor_set_count = has_asset_heap ? asset_usage_policy::num_usage_policies : 0;
+		sl::array<1 + descriptor_set_count, VkDescriptorSetLayout> set_layout_handles{};
 		set_layout_handles[0] = ret.uniform_set_layout;
+		if constexpr(has_asset_heap)
+			for(asset_usage_policy_t j = 0; j < descriptor_set_count; ++j) 
+				set_layout_handles[1 + j] = sl::universal::get<T::asset_heap>(proc)._descriptor_set_layouts[j];
 		
 		
 		const VkPipelineLayoutCreateInfo pipeline_layout_create_info{

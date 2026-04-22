@@ -34,7 +34,8 @@ namespace acma::vk {
 		//constexpr sl::size_t capacity() const noexcept { return allocated_bytes; }
 
 	public:
-		constexpr sl::array<asset_usage_policy::num_usage_policies, descriptor_set> const& descirptor_sets() const& noexcept { return _descriptor_sets[this->allocation_index()]; }
+		constexpr auto const& descriptor_sets() const& noexcept { return _descriptor_sets[this->allocation_index()]; }
+		constexpr auto const& descriptor_set_handles() const& noexcept { return _descriptor_set_handles[this->allocation_index()]; }
 
 	public:
 		template<typename T>
@@ -105,9 +106,6 @@ namespace acma::vk {
 		
 
 	private:
-    	template<shader_stage_flags_t, typename, auto, auto>
-		friend struct pipeline_layout;
-
 		friend struct command_buffer;
 	private:
 		sl::array<allocation_count, sl::size_t> initialized_image_counts;
@@ -119,6 +117,7 @@ namespace acma::vk {
 		sl::array<allocation_count, descriptor_pool> _descriptor_pools;
 		sl::array<allocation_count, sl::array<asset_usage_policy::num_usage_policies, sl::uint32_t>> _descriptor_counts;
 		sl::array<allocation_count, sl::array<asset_usage_policy::num_usage_policies, descriptor_set>> _descriptor_sets;
+		sl::array<allocation_count, sl::array<asset_usage_policy::num_usage_policies, VkDescriptorSet>> _descriptor_set_handles;
 
 		sl::array<asset_usage_policy::num_usage_policies, descriptor_set_layout> _descriptor_set_layouts;
 		//sl::array<asset_usage_policy::num_usage_policies, VkWriteDescriptorSet> _descriptor_writes;

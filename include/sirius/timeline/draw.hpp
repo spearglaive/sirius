@@ -52,14 +52,10 @@ namespace acma::timeline {
 
 			graphics_buffer.bind_pipeline(pipeline);
 
-			//For each buffer declared by type T, bind the buffer (if applicable)
-			[&graphics_buffer, &proc, &pipeline]<buffer_key_t... Ks>(buffer_key_sequence_type<Ks...>){
-				((graphics_buffer.bind_buffer(proc[buffer_key_constant<Ks>], pipeline.layout())), ...);
-			}(T::buffers);
-
-			[&graphics_buffer, &proc, &pipeline]<asset_heap_key_t... Ks>(asset_heap_key_sequence_type<Ks...>){
-				((graphics_buffer.bind_asset_heap(proc[asset_heap_key_constant<Ks>], pipeline.layout())), ...);
-			}(T::asset_heaps);
+			graphics_buffer.template bind_index_buffer<T>(proc);
+			graphics_buffer.bind_push_constants(proc, pipeline.layout());
+			graphics_buffer.bind_uniform_buffers(proc, pipeline.layout());
+			graphics_buffer.bind_asset_heap(proc, pipeline.layout());
 
 			graphics_buffer.template draw<T>(proc); 
 

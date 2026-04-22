@@ -292,6 +292,7 @@ namespace acma::vk {
 				//_descriptor_pool_ptrs[alloc_idx],
 				set_alloc_info
 			));
+			_descriptor_set_handles[alloc_idx][i] = _descriptor_sets[alloc_idx][i].smart_handle.get();
 		};
 		return {};
 	}

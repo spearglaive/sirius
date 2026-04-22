@@ -26,7 +26,7 @@ namespace acma::vk {
 		constexpr auto&& layout(this auto&& self) noexcept { return sl::forward_like<decltype(self)>(self._layout); }
 
 	private:
-		pipeline_layout<shader_stage::all_graphics, T, BufferConfigs, AssetHeapConfigs> _layout;
+		pipeline_layout<bind_point::graphics, T, BufferConfigs, AssetHeapConfigs> _layout;
     };
 
 
@@ -39,7 +39,7 @@ namespace acma::vk {
 		constexpr auto&& layout(this auto&& self) noexcept { return sl::forward_like<decltype(self)>(self._layout); }
 
 	private:
-		pipeline_layout<shader_stage::compute, T, BufferConfigs, AssetHeapConfigs> _layout;
+		pipeline_layout<bind_point::compute, T, BufferConfigs, AssetHeapConfigs> _layout;
     };
 }
 
