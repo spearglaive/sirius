@@ -121,6 +121,7 @@ namespace acma {
 	public:	
 		constexpr sl::size_t  frame_count() const noexcept { return _frame_count; }
 		constexpr sl::index_t frame_index() const noexcept { return frame_count() % frames_in_flight; }
+		constexpr sl::index_t next_frame_index() const noexcept { return (frame_count() + 1) % frames_in_flight; }
 
 	public:
 		constexpr bool has_dedicated_present_queue() const noexcept {
