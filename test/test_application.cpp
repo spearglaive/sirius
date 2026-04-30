@@ -309,10 +309,10 @@ int main(){
     acma::input::event_set& left_inactive = inst.input_inactive_bindings()[acma::input::combination{{acma::input::generic_code::any}, acma::input::key_code::kb_a}];
     left_inactive.applicable_categories.set(acma::input::category::system);
     left_inactive.event_ids[acma::input::category::system] = 1;
-    inst.input_event_functions().try_emplace(acma::input::categorized_event_t{0, acma::input::category::system}, [](void*, acma::input::combination, bool pressed, acma::input::categorized_event_t, acma::input::mouse_aux_t, void*){
+    inst.input_event_functions().try_emplace(acma::input::categorized_event_t{0, acma::input::category::system}, [](acma::window&, acma::input::combination, bool pressed, acma::input::categorized_event_t, acma::input::mouse_aux_t){
         std::cout << "left active (by " << (pressed ? std::string_view("press") : std::string_view("release")) << ")" << std::endl;
     });
-    inst.input_event_functions().try_emplace(acma::input::categorized_event_t{1, acma::input::category::system}, [](void*, acma::input::combination, bool pressed, acma::input::categorized_event_t, acma::input::mouse_aux_t, void*){
+    inst.input_event_functions().try_emplace(acma::input::categorized_event_t{1, acma::input::category::system}, [](acma::window&, acma::input::combination, bool pressed, acma::input::categorized_event_t, acma::input::mouse_aux_t){
         std::cout << "left inactive (by " << (pressed ? std::string_view("press") : std::string_view("release")) << ")" << std::endl;
     });
     //inst.input_active_bindings().insert_or_assign(acma::input::combination{{}, acma::input::key_code::kb_a}, left_active);
@@ -329,7 +329,7 @@ int main(){
     acma::input::event_set& ctrl_g_a = inst.input_active_bindings()[acma::input::combination{{acma::input::key_code::kb_left_ctrl, acma::input::key_code::kb_g}, acma::input::key_code::kb_a}];
     ctrl_g_a.applicable_categories.set(acma::input::category::system);
     ctrl_g_a.event_ids[acma::input::category::system] = 2;
-    inst.input_event_functions().try_emplace(acma::input::categorized_event_t{2, acma::input::category::system}, [](void*, acma::input::combination, bool, acma::input::categorized_event_t, acma::input::mouse_aux_t, void*){
+    inst.input_event_functions().try_emplace(acma::input::categorized_event_t{2, acma::input::category::system}, [](acma::window&, acma::input::combination, bool, acma::input::categorized_event_t, acma::input::mouse_aux_t){
         std::cout << "advanced key event called" << std::endl;
     });
 
@@ -339,21 +339,21 @@ int main(){
     //acma::input::event_set& inactive_mouse_move = inst.input_inactive_bindings()[acma::input::combination{{acma::input::generic_code::any}, acma::input::mouse_code::move}];
     //inactive_mouse_move.applicable_categories.set(acma::input::category::system);
     //inactive_mouse_move.event_ids[acma::input::category::system] = 3;
-    //inst.input_event_functions().try_emplace(acma::input::categorized_event_t{3, acma::input::category::system}, [](void*, acma::input::combination, bool, acma::input::categorized_event_t, acma::input::mouse_aux_t, void*){
+    //inst.input_event_functions().try_emplace(acma::input::categorized_event_t{3, acma::input::category::system}, [](acma::window&, acma::input::combination, bool, acma::input::categorized_event_t, acma::input::mouse_aux_t){
     //    std::cout << "mouse move (inactive)" << std::endl;
     //});
 
     acma::input::event_set& shift_mouse_move = inst.input_active_bindings()[acma::input::combination{{acma::input::key_code::kb_left_shift}, acma::input::mouse_code::move}];
     shift_mouse_move.applicable_categories.set(acma::input::category::system);
     shift_mouse_move.event_ids[acma::input::category::system] = 4;
-    inst.input_event_functions().try_emplace(acma::input::categorized_event_t{4, acma::input::category::system}, [](void*, acma::input::combination, bool, acma::input::categorized_event_t, acma::input::mouse_aux_t, void*){
+    inst.input_event_functions().try_emplace(acma::input::categorized_event_t{4, acma::input::category::system}, [](acma::window&, acma::input::combination, bool, acma::input::categorized_event_t, acma::input::mouse_aux_t){
         std::cout << "shift mouse move" << std::endl;
     });
 
     acma::input::event_set& shift_scroll_up = inst.input_active_bindings()[acma::input::combination{{acma::input::key_code::kb_left_shift}, acma::input::mouse_code::scroll}];
     shift_scroll_up.applicable_categories.set(acma::input::category::system);
     shift_scroll_up.event_ids[acma::input::category::system] = 5;
-    inst.input_event_functions().try_emplace(acma::input::categorized_event_t{5, acma::input::category::system}, [](void*, acma::input::combination, bool, acma::input::categorized_event_t, acma::input::mouse_aux_t scroll_magnitude, void*){
+    inst.input_event_functions().try_emplace(acma::input::categorized_event_t{5, acma::input::category::system}, [](acma::window&, acma::input::combination, bool, acma::input::categorized_event_t, acma::input::mouse_aux_t scroll_magnitude){
         if(scroll_magnitude->y() >= 0) return;
         std::cout << "shift scroll" << std::endl;
     });
@@ -363,7 +363,7 @@ int main(){
     left_mouse_btn.applicable_categories.set(acma::input::category::system);
     left_mouse_btn.event_ids[acma::input::category::system] = 6;
     //inst.input_modifier_flags()[acma::input::mouse_code::button_1] |= acma::input::modifier_flags::no_modifiers_allowed;
-    inst.input_event_functions().try_emplace(acma::input::categorized_event_t{6, acma::input::category::system}, [](void*, acma::input::combination, bool, acma::input::categorized_event_t, acma::input::mouse_aux_t, void*){
+    inst.input_event_functions().try_emplace(acma::input::categorized_event_t{6, acma::input::category::system}, [](acma::window&, acma::input::combination, bool, acma::input::categorized_event_t, acma::input::mouse_aux_t){
         std::cout << "left mouse button" << std::endl;
     });
 	}

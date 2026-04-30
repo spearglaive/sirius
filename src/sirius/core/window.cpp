@@ -35,7 +35,7 @@ namespace acma {
     result<void>    window::
 	initialize(
 		sl::reference_ptr<const vk::function_table> vulkan_fns_ptr,
-		sl::reference_ptr<const vk::logical_device> logi_device_ptr, 
+		sl::reference_ptr<const vk::logical_device> logi_device_ptr,
 		sl::reference_ptr<const vk::physical_device> phys_device_ptr,
 		sl::reference_ptr<const vk::allocator> allocator
 	) noexcept {
@@ -65,9 +65,9 @@ namespace acma {
 namespace acma {
 	result<bool>    window::
 	verify_swap_chain(
-		VkResult fn_result, 
+		VkResult fn_result,
 		sl::reference_ptr<const vk::function_table> vulkan_fns_ptr,
-		sl::reference_ptr<const vk::logical_device> logi_device_ptr, 
+		sl::reference_ptr<const vk::logical_device> logi_device_ptr,
 		sl::reference_ptr<const vk::physical_device> phys_device_ptr,
 		sl::reference_ptr<const vk::allocator> allocator,
 		bool even_if_suboptimal
@@ -80,13 +80,13 @@ namespace acma {
 			[[fallthrough]];
 		case VK_ERROR_OUT_OF_DATE_KHR: {
 			sl::invoke(vulkan_fns_ptr->vkDeviceWaitIdle, *logi_device_ptr);
-			
+
 			RESULT_VERIFY(_swap_chain.reset(vulkan_fns_ptr, phys_device_ptr, logi_device_ptr, _surface, *window_handle));
 
 			RESULT_TRY_MOVE(_depth_image, make<vk::depth_image>(vulkan_fns_ptr, logi_device_ptr, allocator, _swap_chain.extent()));
 			return true;
 		}
-		default: 
+		default:
 			return static_cast<errc>(__D2D_VKRESULT_TO_ERRC(fn_result));
 		}
 	}
@@ -94,8 +94,10 @@ namespace acma {
 
 
 namespace acma {
-    void window::process_input(GLFWwindow* window_ptr, input::code_t code, bool pressed, input::mouse_aux_t mouse_aux_data) noexcept {
-        input::info* input_info_ptr = static_cast<input::info*>(glfwGetWindowUserPointer(window_ptr));
+    void window::process_input(GLFWwindow* window_handle_ptr, input::code_t code, bool pressed, input::mouse_aux_t mouse_aux_data) noexcept {
+    	void* user_ptr = glfwGetWindowUserPointer(window_handle_ptr);
+        window* window_ptr = static_cast<window*>(user_ptr);
+        auto const& input_info_ptr = window_ptr->input_info_ptr;
 
         std::unique_lock<std::mutex> current_combo_lock(input_info_ptr->current_combo_mutex);
         input_info_ptr->current_combo.main_input() = code;
@@ -103,7 +105,7 @@ namespace acma {
         input::combination combo = (input_info_ptr->modifier_flags[code] & input::modifier_flags::no_modifiers_allowed) ? input::combination{{}, code} : input_info_ptr->current_combo;
         input_info_ptr->current_combo.set(code, pressed);
         current_combo_lock.unlock();
-        
+
         input::binding_map const& bind_map = pressed ? input_info_ptr->active_bindings : input_info_ptr->inactive_bindings;
         auto event_set_it = bind_map.find(combo);
         if(event_set_it != bind_map.end()) goto invoke_event;
@@ -119,7 +121,7 @@ namespace acma {
         if(event_set_it != bind_map.end()) goto invoke_event;
 
         return;
-        
+
     invoke_event:
         input::category_flags_t category_flags = input_info_ptr->category_flags & event_set_it->second.applicable_categories;
         //const unsigned long long category_flags = category_bitset.to_ullong();
@@ -128,7 +130,7 @@ namespace acma {
             input::event_id_t event_id = event_set_it->second.event_ids[category_id];
             auto event_fn_it = input_info_ptr->event_fns.find(input::categorized_event_t{event_id, category_id});
             if(event_fn_it != input_info_ptr->event_fns.end()) {
-                std::invoke(event_fn_it->second, input_info_ptr, combo, pressed, input::categorized_event_t{event_id, category_id}, mouse_aux_data, glfwGetWindowUserPointer(window_ptr));
+                sl::invoke(event_fn_it->second, *window_ptr, combo, pressed, input::categorized_event_t{event_id, category_id}, mouse_aux_data);
                 //return;
             }
             category_flags.reset(category_id);
@@ -136,9 +138,9 @@ namespace acma {
     }
 
 
-    void window::kb_key_input(GLFWwindow* window_ptr, int key, int, int action, int) noexcept {
+    void window::kb_key_input(GLFWwindow* window_handle_ptr, int key, int, int action, int) noexcept {
         if(key == GLFW_KEY_UNKNOWN) return;
-		
+
         switch(action) {
         case GLFW_RELEASE:
         case GLFW_PRESS:
@@ -147,33 +149,35 @@ namespace acma {
             return;
         }
 
-        thread_pool().detach_task(std::bind(process_input, window_ptr, input::codes_map[key], static_cast<bool>(action), input::mouse_aux_t{}));
-        //return process_input(window_ptr, input::codes_map[key], static_cast<bool>(action), input::mouse_aux_t{});
+        thread_pool().detach_task(std::bind(process_input, window_handle_ptr, input::codes_map[key], static_cast<bool>(action), input::mouse_aux_t{}));
+        //return process_input(window_handle_ptr, input::codes_map[key], static_cast<bool>(action), input::mouse_aux_t{});
     }
 
-    void window::kb_text_input(GLFWwindow* window_ptr, unsigned int codepoint) noexcept {
-        input::info* input_info_ptr = static_cast<input::info*>(glfwGetWindowUserPointer(window_ptr));
+    void window::kb_text_input(GLFWwindow* window_handle_ptr, unsigned int codepoint) noexcept {
+   		void* user_ptr = glfwGetWindowUserPointer(window_handle_ptr);
+       	window* window_ptr = static_cast<window*>(user_ptr);
+        auto const& input_info_ptr = window_ptr->input_info_ptr;
 
         input::text_event_function_type* text_input_fn = input_info_ptr->text_input_fn;
         if(!text_input_fn) return;
-        thread_pool().detach_task(std::bind(text_input_fn, input_info_ptr, codepoint));
+        thread_pool().detach_task(std::bind(text_input_fn, std::ref(*window_ptr), codepoint));
         //std::invoke(text_input_fn, win_ptr, codepoint);
     }
 
-    void window::mouse_move(GLFWwindow* window_ptr, double x, double y) noexcept {
-        thread_pool().detach_task(std::bind(process_input, window_ptr, input::mouse_code::move, true, input::mouse_aux_t{pt2d{x, y}}));
-        thread_pool().detach_task(std::bind(process_input, window_ptr, input::mouse_code::move, false, input::mouse_aux_t{pt2d{x, y}}));
-        //return process_input(window_ptr, input::mouse_code::move, std::nullopt, pt2d{x, y});
+    void window::mouse_move(GLFWwindow* window_handle_ptr, double x, double y) noexcept {
+        thread_pool().detach_task(std::bind(process_input, window_handle_ptr, input::mouse_code::move, true, input::mouse_aux_t{pt2d{x, y}}));
+        thread_pool().detach_task(std::bind(process_input, window_handle_ptr, input::mouse_code::move, false, input::mouse_aux_t{pt2d{x, y}}));
+        //return process_input(window_handle_ptr, input::mouse_code::move, std::nullopt, pt2d{x, y});
     }
 
-    void window::mouse_button_input(GLFWwindow* window_ptr, int button, int action, int) noexcept {
-        thread_pool().detach_task(std::bind(process_input, window_ptr, input::codes_map[button], static_cast<bool>(action), input::mouse_aux_t{}));
-        //return process_input(window_ptr, input::codes_map[button], static_cast<bool>(action), input::mouse_aux_t{});
+    void window::mouse_button_input(GLFWwindow* window_handle_ptr, int button, int action, int) noexcept {
+        thread_pool().detach_task(std::bind(process_input, window_handle_ptr, input::codes_map[button], static_cast<bool>(action), input::mouse_aux_t{}));
+        //return process_input(window_handle_ptr, input::codes_map[button], static_cast<bool>(action), input::mouse_aux_t{});
     }
 
-    void window::mouse_scroll(GLFWwindow* window_ptr, double x, double y) noexcept {
-        thread_pool().detach_task(std::bind(process_input, window_ptr, input::mouse_code::scroll, true, input::mouse_aux_t{-pt2d{x, y}}));
-        thread_pool().detach_task(std::bind(process_input, window_ptr, input::mouse_code::scroll, false, input::mouse_aux_t{-pt2d{x, y}}));
+    void window::mouse_scroll(GLFWwindow* window_handle_ptr, double x, double y) noexcept {
+        thread_pool().detach_task(std::bind(process_input, window_handle_ptr, input::mouse_code::scroll, true, input::mouse_aux_t{-pt2d{x, y}}));
+        thread_pool().detach_task(std::bind(process_input, window_handle_ptr, input::mouse_code::scroll, false, input::mouse_aux_t{-pt2d{x, y}}));
     }
 }
 
@@ -201,7 +205,7 @@ namespace acma::impl {
 
         //Create surface
         RESULT_TRY_MOVE(ret._surface, acma::make<vk::surface>({std::addressof(vk::impl::vulkan_instance())}, ret.window_handle));
-		
+
 		return ret;
 	}
 }

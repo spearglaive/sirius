@@ -31,16 +31,16 @@ namespace acma {
 	public:
 		result<void> initialize(
 			sl::reference_ptr<const vk::function_table> vulkan_fns_ptr,
-			sl::reference_ptr<const vk::logical_device> logi_device_ptr, 
+			sl::reference_ptr<const vk::logical_device> logi_device_ptr,
 			sl::reference_ptr<const vk::physical_device> phys_device_ptr,
 			sl::reference_ptr<const vk::allocator> allocator
 		) noexcept;
-		
+
 	public:
 		result<bool> verify_swap_chain(
-			VkResult fn_result, 
+			VkResult fn_result,
 			sl::reference_ptr<const vk::function_table> vulkan_fns_ptr,
-			sl::reference_ptr<const vk::logical_device> logi_device_ptr, 
+			sl::reference_ptr<const vk::logical_device> logi_device_ptr,
 			sl::reference_ptr<const vk::physical_device> phys_device_ptr,
 			sl::reference_ptr<const vk::allocator> allocator,
 			bool even_if_suboptimal
@@ -50,9 +50,9 @@ namespace acma {
 		constexpr sl::reference_ptr<const vk::surface    > surface_ptr    () const& noexcept { return {std::addressof(_surface    )}; }
 		constexpr sl::reference_ptr<const vk::swap_chain > swap_chain_ptr () const& noexcept { return {std::addressof(_swap_chain )}; }
 		constexpr sl::reference_ptr<const vk::depth_image> depth_image_ptr() const& noexcept { return {std::addressof(_depth_image)}; }
-		
+
 		constexpr extent2 screen_size() const noexcept { return _size; }
-    
+
 	public:
         constexpr auto&& current_input_categories(this auto&& self) noexcept { return sl::forward_like<decltype(self)>(self.input_info_ptr->category_flags); }
         constexpr auto&& input_active_bindings   (this auto&& self) noexcept { return sl::forward_like<decltype(self)>(self.input_info_ptr->active_bindings); }
@@ -74,7 +74,7 @@ namespace acma {
     	template<typename TimelineT, auto BufferConfigs, auto AssetHeapConfigs>
 		requires impl::is_buffer_config_table_v<decltype(BufferConfigs)>
 		friend class render_instance;
-		
+
 	protected:
         sl::unique_ptr<input::info> input_info_ptr;
         sl::unique_ptr<GLFWwindow, sl::functor::generic_stateless<glfwDestroyWindow>> window_handle;

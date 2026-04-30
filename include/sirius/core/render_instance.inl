@@ -74,8 +74,6 @@ namespace acma::impl {
 		));
 		RESULT_VERIFY(static_cast<window&>(ret).initialize(ret._vulkan_functions_ptr, ret._logical_device_ptr, ret._physical_device_ptr, ret._allocator_ptr));
 
-        glfwSetWindowUserPointer(ret.window_handle.get(), ret.input_info_ptr.get());
-
 		//Create swap chain sempahores
 		ret._graphics_semaphores.reserve(ret._swap_chain.image_count());
 		ret._pre_present_semaphores.reserve(ret._swap_chain.image_count());
@@ -282,6 +280,7 @@ namespace acma {
 		static_assert(impl::window_capability, "Cannot poll window events with windowing capabilities disabled");
 		if(!has_window) return;
 
+		glfwSetWindowUserPointer(this->window_handle.get(), static_cast<window*>(this));
         glfwPollEvents();
 
 		if(!this->window_handle) [[unlikely]] return;
