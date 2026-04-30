@@ -22,7 +22,6 @@ namespace acma::test {
 		constexpr static sl::array<1, buffer_key_t> uniform_buffers{{
 			::buffer_id::offset
 		}};
-		constexpr static asset_heap_key_t asset_heap = ::asset_heap_id::compute;
 	public:
 		constexpr static sl::array<1, dispatch_info> dispatch_infos{{
 			{::buffer_id::dispatch_commands}

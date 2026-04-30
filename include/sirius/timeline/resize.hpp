@@ -1,4 +1,4 @@
-#pragma once 
+#pragma once
 #include <streamline/numeric/int.hpp>
 
 #include "sirius/core/window.hpp"
@@ -28,8 +28,10 @@ namespace acma::timeline {
 		template<typename RenderProcessT, sl::index_t CommandGroupIdx>
 		constexpr result<void> operator()(RenderProcessT& proc, window&, timeline::state&, sl::empty_t, sl::index_constant_type<CommandGroupIdx>) const noexcept {
 			auto& dst_buff = sl::universal::get<DstBufferKey>(proc);
+
 			if(SizeBytes <= dst_buff.capacity())
 				return dst_buff.try_resize(SizeBytes);
+
 			sl::invoke(proc.vulkan_functions_ptr()->vkDeviceWaitIdle, *proc.logical_device_ptr()); //TEMP
 			return dst_buff.resize(SizeBytes);
 		};
@@ -43,8 +45,10 @@ namespace acma::timeline {
 			auto const& src_buff = sl::universal::get<SrcBufferKey>(proc);
 			auto& dst_buff = sl::universal::get<DstBufferKey>(proc);
 			const sl::size_t new_size = src_buff.size_bytes();
+
 			if(new_size <= dst_buff.capacity())
 				return dst_buff.try_resize(new_size);
+
 			sl::invoke(proc.vulkan_functions_ptr()->vkDeviceWaitIdle, *proc.logical_device_ptr()); //TEMP
 			return dst_buff.resize(new_size);
 		};

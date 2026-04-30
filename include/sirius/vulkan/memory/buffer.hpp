@@ -16,6 +16,7 @@
 #include "sirius/vulkan/memory/texture_data_info.hpp"
 #include "sirius/core/memory_management.fwd.hpp"
 #include "sirius/vulkan/memory/asset_heap.fwd.hpp"
+#include "sirius/vulkan/memory/clear_frame.hpp"
 //#include "sirius/core/render_process.fwd.hpp"
 //#include "sirius/core/frames_in_flight.def.hpp"
 //#include "sirius/vulkan/memory/asset_group.hpp"
@@ -32,6 +33,7 @@ namespace acma::vk::impl {
 	struct buffer_properties {
 		constexpr static buffer_config config = BufferConfigs[K];
 		constexpr static sl::size_t allocation_count = allocation_counts[config.coupling];
+		constexpr static bool requires_clear_every_frame = impl::requires_clear<config.coupling, config.memory>;
 
 	protected:
 		constexpr sl::index_t allocation_index() const noexcept;
@@ -64,7 +66,7 @@ namespace acma::vk::impl {
 		constexpr gpu_address_t gpu_address() const noexcept { return buff_alloc_ptrs[this->allocation_index()]->device_address; }
 		constexpr VkBuffer handle() const noexcept { return buff_alloc_ptrs[this->allocation_index()]->handle; }
 		constexpr operator VkBuffer() const noexcept { return handle(); }
-		
+
 		constexpr auto&& allocation_ptr(this auto&& self) noexcept { return sl::forward_like<decltype(self)>(self.buff_alloc_ptrs[self.allocation_index()]); }
 	private:
 		constexpr auto&& allocated_bytes(this auto&& self) noexcept { return sl::forward_like<decltype(self)>(self.buff_alloc_ptrs[self.allocation_index()]->allocation_info.size); }
@@ -87,6 +89,8 @@ namespace acma::vk::impl {
 		sl::uoffset_t offset;
         VkBufferUsageFlags flags;
 		VkDescriptorType descriptor_type;
+	protected:
+		[[no_unique_address]] impl::clear_frame<config.coupling, config.memory> last_clear_frame;
 	};
 
 
@@ -112,7 +116,7 @@ namespace acma::vk::impl {
 		consteval sl::size_t size_bytes() const noexcept { return config.initial_capacity_bytes; }
 		consteval sl::size_t capacity() const noexcept { return config.initial_capacity_bytes; }
 		consteval sl::size_t capacity_bytes() const noexcept { return config.initial_capacity_bytes; }
-		
+
 	public:
 		friend ::acma::vk::command_buffer;
 
@@ -158,7 +162,7 @@ namespace acma::vk {
 
 	public:
 		template<typename T>
-		constexpr result<void> push_back(T&& t) 
+		constexpr result<void> push_back(T&& t)
 		noexcept(sl::traits::is_noexcept_constructible_from_v<T, T&&>)
 		requires(sl::traits::is_constructible_from_v<T, T&&> && config.memory != memory_policy::push_constant);
 
@@ -181,7 +185,7 @@ namespace acma::vk {
 
 	protected:
 		template<typename T>
-		constexpr result<void> push_to(sl::uoffset_t offset, T&& t) 
+		constexpr result<void> push_to(sl::uoffset_t offset, T&& t)
 		noexcept(sl::traits::is_noexcept_constructible_from_v<T, T&&>);
 
 		template<typename T, typename... Args>
@@ -196,7 +200,7 @@ namespace acma::vk {
 	requires (
 		static_cast<bool>(impl::buffer_base<K, BufferConfigs, RenderProcessT>::config.usage & (buffer_usage_policy::texture_data))
 	)
-	class buffer<K, BufferConfigs, RenderProcessT> : 
+	class buffer<K, BufferConfigs, RenderProcessT> :
 		public impl::buffer_base<K, BufferConfigs, RenderProcessT>
 	{
 	protected:
@@ -212,13 +216,13 @@ namespace acma::vk {
 
 		constexpr result<void> try_push_back(texture_view t) noexcept;
 
-	private:	
+	private:
 		template<asset_heap_key_t J, auto AssetHeapConfigs, typename _RenderProcessT>
 		friend class asset_heap;
 
-		template<asset_heap_key_t DstK, buffer_key_t SrcK, auto AssetHeapConfigs, auto _BufferConfigs, typename _RenderProcessT>
+		template<buffer_key_t SrcK, auto _BufferConfigs, typename _RenderProcessT>
 		friend constexpr result<void> acma::gpu_copy(
-			vk::asset_heap<DstK, AssetHeapConfigs, _RenderProcessT> & dst,
+			std::span<vk::image> dst,
 			vk::buffer<SrcK, _BufferConfigs, _RenderProcessT> const& src,
 			sl::uint64_t timeout
 		) noexcept;
@@ -235,7 +239,7 @@ namespace acma::vk {
 // 		buffer<K, BufferConfigs, RenderProcessT>::config.usage == buffer_usage_policy::asset_heap_table &&
 // 		buffer<K, BufferConfigs, RenderProcessT>::config.memory != memory_policy::gpu_local
 // 	)
-// 	class buffer<K, BufferConfigs, RenderProcessT> : 
+// 	class buffer<K, BufferConfigs, RenderProcessT> :
 // 		public impl::buffer_base<K, BufferConfigs, RenderProcessT>
 // 	{
 // 		struct asset_group_info : descriptor_info {
@@ -299,7 +303,7 @@ namespace acma::vk {
 	requires (
 		impl::buffer_base<K, BufferConfigs, RenderProcessT>::config.memory == memory_policy::gpu_local
 	)
-	class buffer<K, BufferConfigs, RenderProcessT> : 
+	class buffer<K, BufferConfigs, RenderProcessT> :
 		public impl::buffer_base<K, BufferConfigs, RenderProcessT> {};
 }
 

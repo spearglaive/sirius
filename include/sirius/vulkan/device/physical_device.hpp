@@ -1,16 +1,16 @@
 #pragma once
 #include <string_view>
 #include <compare>
-#include "sirius/vulkan/core/vulkan.hpp"
-#include "sirius/vulkan/core/vulkan.hpp"
 #include <streamline/containers/array.hpp>
 
+#include "sirius/vulkan/core/vulkan.hpp"
 #include "sirius/core/make.hpp"
 #include "sirius/vulkan/core/unique_vk_ptr.hpp"
 #include "sirius/vulkan/core/mixin.hpp"
 #include "sirius/core/api.def.h"
 #include "sirius/core/command_family.hpp"
 #include "sirius/core/error.hpp"
+#include "sirius/core/asset_heap_config.hpp"
 #include "sirius/vulkan/device/device_query.hpp"
 #include "sirius/vulkan/device/device_query_traits.hpp"
 #include "sirius/vulkan/device/queue_family_info.hpp"
@@ -20,7 +20,6 @@
 #include "sirius/vulkan/display/surface.hpp"
 #include "sirius/vulkan/memory/asset_group.hpp"
 #include "sirius/vulkan/memory/descriptor_heap.hpp"
-#include "sirius/vulkan/memory/asset_usage_policy.hpp"
 
 
 namespace acma::vk {
@@ -59,7 +58,7 @@ namespace acma::vk {
 	public:
 		constexpr operator VkPhysicalDevice      &()      & noexcept { return handle; }
 		constexpr operator VkPhysicalDevice const&() const& noexcept { return handle; }
-        
+
     public:
 		VkPhysicalDevice handle;
         std::string_view name;

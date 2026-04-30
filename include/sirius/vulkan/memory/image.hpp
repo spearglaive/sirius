@@ -41,7 +41,7 @@ namespace acma::vk {
         constexpr VkSampleCountFlagBits sample_count()    const noexcept { return alloc_ptr->creation_info.samples; }
         constexpr VkImageTiling         tiling()          const noexcept { return alloc_ptr->creation_info.tiling; }
         constexpr VkImageUsageFlags     usage()           const noexcept { return alloc_ptr->creation_info.usage; }
-		
+
         constexpr sl::size_t            size_bytes()      const noexcept { return alloc_ptr->allocation_info.size; }
 
         constexpr VkImageLayout layout() const noexcept { return this->current_layout; }
@@ -54,10 +54,10 @@ namespace acma::vk {
     public:
 		template<asset_heap_key_t K, auto AssetHeapConfigs, typename RenderProcessT>
 		friend class asset_heap;
-		
-		template<asset_heap_key_t DstK, buffer_key_t SrcK, auto AssetHeapConfigs, auto BufferConfigs, typename RenderProcessT>
+
+		template<buffer_key_t SrcK, auto BufferConfigs, typename RenderProcessT>
 		friend constexpr result<void> acma::gpu_copy(
-			vk::asset_heap<DstK, AssetHeapConfigs, RenderProcessT> & dst,
+			std::span<vk::image> dst,
 			vk::buffer<SrcK, BufferConfigs, RenderProcessT> const& src,
 			sl::uint64_t timeout
 		) noexcept;

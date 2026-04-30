@@ -8,6 +8,7 @@
 #include "sirius/vulkan/device/logical_device.hpp"
 #include "sirius/vulkan/display/image_sampler.hpp"
 #include "sirius/vulkan/memory/buffer.hpp"
+#include "sirius/vulkan/memory/clear_frame.hpp"
 #include "sirius/vulkan/memory/descriptor_set_layout.hpp"
 #include "sirius/vulkan/memory/descriptor_pool.hpp"
 #include "sirius/vulkan/memory/descriptor_set.hpp"
@@ -17,29 +18,97 @@
 #include "sirius/core/memory_management.fwd.hpp"
 
 
+namespace acma::vk::impl {
+	template<asset_heap_key_t K, auto AssetHeapConfigs, typename RenderProcessT>
+	class asset_heap_base {
+	public:
+		constexpr static asset_heap_config config = AssetHeapConfigs[K];
+		constexpr static sl::size_t allocation_count = impl::allocation_counts[config.coupling];
+		constexpr static VkDescriptorType descriptor_type = vk::descriptor_types[config.usage];
+		constexpr static bool requires_clear_every_frame = impl::requires_clear<config.coupling, config.image_memory>;
+
+	public:
+		constexpr result<void> initialize() noexcept;
+
+	public:
+		constexpr descriptor_set        const& set()        const& noexcept { return _descriptor_sets[this->allocation_index()]; }
+		constexpr descriptor_set_layout const& set_layout() const& noexcept { return _descriptor_set_layout; }
+		//constexpr sl::array<allocation_count, > const& descriptor_set_handles() const& noexcept { return _descriptor_set_handles[this->allocation_index()]; }
+
+	protected:
+		constexpr sl::index_t allocation_index() const& noexcept {
+			return (static_cast<RenderProcessT const&>(*this).frame_count()) % allocation_count;
+		}
+
+
+	protected:
+		constexpr result<void> update_descriptors(
+			std::span<const VkDescriptorImageInfo> infos
+		) noexcept;
+
+	protected:
+		descriptor_set_layout _descriptor_set_layout;
+		sl::array<allocation_count, descriptor_pool> _descriptor_pools;
+		sl::array<allocation_count, sl::uint32_t> _descriptor_capacities;
+		sl::array<allocation_count, descriptor_set> _descriptor_sets;
+	protected:
+		[[no_unique_address]] impl::clear_frame<config.coupling, config.image_memory> last_clear_frame;
+	};
+}
+
+
 namespace acma::vk {
 	template<asset_heap_key_t K, auto AssetHeapConfigs, typename RenderProcessT>
-	class asset_heap {
+	class asset_heap : public impl::asset_heap_base<K, AssetHeapConfigs, RenderProcessT> {
+		using base_type = impl::asset_heap_base<K, AssetHeapConfigs, RenderProcessT>;
 	public:
 		template<typename T>
 		friend struct ::acma::impl::make;
 	public:
-		result<void> initialize() noexcept;
-	public:
-		constexpr static asset_heap_config config = AssetHeapConfigs[K];
-		constexpr static sl::size_t allocation_count = impl::allocation_counts[config.coupling];
+		using base_type::config;
+		using base_type::allocation_count;
+		using base_type::descriptor_type;
+
 
 	public:
-		constexpr sl::size_t total_size() const noexcept { return _images.size() + _sampler_infos.size(); }
-		//constexpr sl::size_t capacity() const noexcept { return allocated_bytes; }
+	 	template<buffer_key_t BufferKey, auto BufferConfigs>
+		constexpr result<void> emplace_back(buffer<BufferKey, BufferConfigs, RenderProcessT> const& texture_data_buffer) noexcept;
 
 	public:
-		constexpr auto const& descriptor_sets() const& noexcept { return _descriptor_sets[this->allocation_index()]; }
-		constexpr auto const& descriptor_set_handles() const& noexcept { return _descriptor_set_handles[this->allocation_index()]; }
+		constexpr image const* data() const& noexcept { return _images[this->allocation_index()].data(); }
+		constexpr image      * data()      & noexcept { return _images[this->allocation_index()].data(); }
+	public:
+		constexpr sl::size_t size()       const noexcept { return _images[this->allocation_index()].size(); }
+		constexpr sl::size_t size_bytes() const noexcept { return _images[this->allocation_index()].size() * sizeof(image); }
+
+	public:
+		constexpr void clear() noexcept;
+
+	private:
+		constexpr result<void> make_images(std::vector<texture_data_info> const& texture_data_infos) noexcept;
+
+
+	private:
+		sl::array<allocation_count, std::vector<image>> _images;
+	};
+}
+
+namespace acma::vk {
+	template<asset_heap_key_t K, auto AssetHeapConfigs, typename RenderProcessT>
+	requires(AssetHeapConfigs[K].usage == asset_usage_policy::sampler)
+	class asset_heap<K, AssetHeapConfigs, RenderProcessT> : public impl::asset_heap_base<K, AssetHeapConfigs, RenderProcessT> {
+		using base_type = impl::asset_heap_base<K, AssetHeapConfigs, RenderProcessT>;
+	public:
+		template<typename T>
+		friend struct ::acma::impl::make;
+	public:
+		using base_type::config;
+		using base_type::allocation_count;
+		using base_type::descriptor_type;
 
 	public:
 		template<typename T>
-		constexpr result<void> push_back(T&& t) 
+		constexpr result<void> push_back(T&& t)
 		noexcept(sl::traits::is_noexcept_constructible_from_v<VkSamplerCreateInfo, T&&>)
 		requires(sl::traits::is_constructible_from_v<VkSamplerCreateInfo, T&&>);
 
@@ -47,80 +116,20 @@ namespace acma::vk {
 		constexpr result<void> emplace_back(Args&&... args)
 		noexcept(sl::traits::is_noexcept_constructible_from_v<VkSamplerCreateInfo, Args&&...>)
 		requires(sl::traits::is_constructible_from_v<VkSamplerCreateInfo, Args&&...>);
-		
-	public:
-	 	// template<sl::index_t J, sl::size_t N, auto BufferConfigs>
-		// constexpr result<void> emplace_back(buffer<BufferKey, BufferConfigs, RenderProcessT> const& uniform_buffer) noexcept
-		// requires((buffer<BufferKey, BufferConfigs, RenderProcessT>::config.usage & buffer_usage_policy::uniform) == buffer_usage_policy::uniform);
-
-	 	// template<sl::index_t J, sl::size_t N, auto BufferConfigs>
-		// constexpr result<void> try_emplace_back(buffer<BufferKey, BufferConfigs, RenderProcessT> const& uniform_buffer) noexcept
-		// requires((buffer<BufferKey, BufferConfigs, RenderProcessT>::config.usage & buffer_usage_policy::uniform) == buffer_usage_policy::uniform);
 
 	public:
-	 	template<buffer_key_t BufferKey, auto BufferConfigs>
-		constexpr result<void> emplace_back(buffer<BufferKey, BufferConfigs, RenderProcessT> const& texture_data_buffer) noexcept
-		requires((buffer<BufferKey, BufferConfigs, RenderProcessT>::config.usage & buffer_usage_policy::texture_data) == buffer_usage_policy::texture_data);
-
-	private:
-
-		constexpr result<void> resize(sl::array<asset_usage_policy::num_usage_policies, sl::uint32_t> asset_counts) noexcept;
-
-
-	private:
-		constexpr result<void> make_images(std::vector<texture_data_info> const& texture_data_infos) noexcept;
-
-		constexpr result<void> update_descriptors(
-			sl::array<asset_usage_policy::num_usage_policies, sl::uint32_t> counts,
-			sl::index_t alloc_idx
-		) noexcept;
-
-	private:
-		result<void> make_pools(
-			sl::array<asset_usage_policy::num_usage_policies, sl::uint32_t> asset_counts,
-			sl::index_t alloc_idx
-		) noexcept;
-
-	 	template<buffer_key_t BufferKey, auto BufferConfigs>
-		result<void> upload_image_data(
-			buffer<BufferKey, BufferConfigs, RenderProcessT> const& texture_data_buffer,
-			sl::index_t alloc_idx,
-			sl::index_t image_start_idx,
-			sl::uint64_t timeout = std::numeric_limits<sl::uint64_t>::max()
-		) noexcept;
-
-
-	private:
-		constexpr sl::index_t allocation_index() const& noexcept {
-			return (static_cast<RenderProcessT const&>(*this).frame_count()) % allocation_count;
-		}
-
+		constexpr image_sampler const* data() const& noexcept { return _samplers[this->allocation_index()].data(); }
+		constexpr image_sampler      * data()      & noexcept { return _samplers[this->allocation_index()].data(); }
+	public:
+		constexpr sl::size_t size()       const noexcept { return _samplers[this->allocation_index()].size(); }
+		constexpr sl::size_t size_bytes() const noexcept { return _samplers[this->allocation_index()].size() * sizeof(image_sampler); }
 
 	public:
-		template<asset_heap_key_t DstK, buffer_key_t SrcK, auto _AssetHeapConfigs, auto _BufferConfigs, typename _RenderProcessT>
-		friend constexpr result<void> acma::gpu_copy(
-			vk::asset_heap<DstK, _AssetHeapConfigs, _RenderProcessT> & dst,
-			vk::buffer<SrcK, _BufferConfigs, _RenderProcessT> const& src,
-			sl::uint64_t timeout
-		) noexcept;
-		
+		constexpr void clear() noexcept;
 
 	private:
-		friend struct command_buffer;
-	private:
-		sl::array<allocation_count, sl::size_t> initialized_image_counts;
-		sl::array<allocation_count, std::vector<image>> _images;
-		sl::array<allocation_count, std::vector<asset_usage_policy_t>> _image_usages;
 		sl::array<allocation_count, std::vector<image_sampler>> _samplers;
 		sl::array<allocation_count, std::vector<VkSamplerCreateInfo>> _sampler_infos;
-		
-		sl::array<allocation_count, descriptor_pool> _descriptor_pools;
-		sl::array<allocation_count, sl::array<asset_usage_policy::num_usage_policies, sl::uint32_t>> _descriptor_counts;
-		sl::array<allocation_count, sl::array<asset_usage_policy::num_usage_policies, descriptor_set>> _descriptor_sets;
-		sl::array<allocation_count, sl::array<asset_usage_policy::num_usage_policies, VkDescriptorSet>> _descriptor_set_handles;
-
-		sl::array<asset_usage_policy::num_usage_policies, descriptor_set_layout> _descriptor_set_layouts;
-		//sl::array<asset_usage_policy::num_usage_policies, VkWriteDescriptorSet> _descriptor_writes;
 	};
 }
 

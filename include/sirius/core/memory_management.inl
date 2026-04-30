@@ -37,7 +37,7 @@ namespace acma {
 			static_cast<RenderProcessT&>(dst),
 			dst.allocation_ptr(),
 			sl::constant<buffer_config, BufferConfigs[DstK]>,
-			src.allocation_ptr(), 
+			src.allocation_ptr(),
 			sl::constant<buffer_config, BufferConfigs[SrcK]>,
 			size, dst_offset, src_offset
 		);
@@ -62,7 +62,7 @@ namespace acma{
 
 
 		if(size.width() == 0 || size.height() == 0 || size.depth() == 0) return {};
-		
+
 		const VkImageLayout original_layout = src.layout();
 
 		sl::array<2, VkImageMemoryBarrier2> pre_copy_barriers {{
@@ -125,13 +125,13 @@ namespace acma{
 		}
 
 		sl::invoke(proc.vulkan_functions_ptr()->vkCmdCopyImage,
-			transfer_command_buffer, 
+			transfer_command_buffer,
 			src, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
 			dst, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			src.mip_level_count(), copy_regions.get()
 		);
 
-		if(original_layout == VK_IMAGE_LAYOUT_UNDEFINED) 
+		if(original_layout == VK_IMAGE_LAYOUT_UNDEFINED)
 			dst.current_layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL; \
 		else {
 			sl::array<1, VkImageMemoryBarrier2> post_copy_barriers{{
@@ -156,16 +156,16 @@ namespace acma{
 			transfer_command_buffer.pipeline_barrier({}, {}, post_copy_barriers);
 
 			dst.current_layout = original_layout;
-		}		
+		}
 
 		return proc.end_dedicated_copy(post_copy_wait_value, timeline::impl::dedicated_command_group::out_of_timeline_copy, timeout);
 	}
 }
-	
+
 namespace acma{
-	template<asset_heap_key_t DstK, buffer_key_t SrcK, auto AssetHeapConfigs, auto BufferConfigs, typename RenderProcessT>
+	template<buffer_key_t SrcK, auto BufferConfigs, typename RenderProcessT>
 	constexpr result<void> gpu_copy(
-		vk::asset_heap<DstK, AssetHeapConfigs, RenderProcessT>& dst,
+		std::span<vk::image> dst,
 		vk::buffer<SrcK, BufferConfigs, RenderProcessT> const& src,
 		sl::uint64_t timeout
 	) noexcept {
@@ -173,20 +173,19 @@ namespace acma{
 			(vk::buffer<SrcK, BufferConfigs, RenderProcessT>::config.usage & buffer_usage_policy::texture_data) == buffer_usage_policy::texture_data,
 			"Source buffer in buffer -> asset heap copy must have `buffer_usage_policy::texture_data` as its usage policy"
 		);
-		
-		RenderProcessT& proc = static_cast<RenderProcessT&>(dst);
+
+		RenderProcessT const& proc = static_cast<RenderProcessT const&>(src);
 
 		const sl::index_t frame_idx = proc.frame_index();
-		const sl::index_t alloc_idx = dst.allocation_index();
 		auto const& transfer_command_buffer = proc.command_buffers()[frame_idx][timeline::impl::dedicated_command_group::out_of_timeline_copy];
 
 		RESULT_TRY_COPY_UNSCOPED(const sl::uint64_t post_copy_wait_value, proc.begin_dedicated_copy(timeline::impl::dedicated_command_group::out_of_timeline_copy, timeout), pcwv_result);
-		
+
 		std::vector<vk::texture_data_info> const& texture_data_infos = src.texture_data_infos;
-		for(sl::index_t i = 0; i < texture_data_infos.size(); ++i) {
+		for(sl::index_t i = 0; i < sl::algo::min(texture_data_infos.size(), dst.size()); ++i) {
 			if(texture_data_infos[i].size == 0) continue;
-			
-			vk::image& dst_image = dst._images[alloc_idx][dst.initialized_image_counts[alloc_idx] + i];
+
+			vk::image& dst_image = dst[i];
 
 			//VkBufferMemoryBarrier2 pre_copy_buffer_barrier{
 			//    .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
@@ -198,7 +197,7 @@ namespace acma{
 			//	.offset = texture_data_infos[i].offset,
 			//	.size = texture_data_infos[i].size
 			//};
-			VkImageMemoryBarrier2 pre_copy_image_barrier{
+			const VkImageMemoryBarrier2 pre_copy_image_barrier{
 			    .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
 				.srcStageMask = VK_PIPELINE_STAGE_2_NONE,
 				.srcAccessMask = VK_ACCESS_2_NONE,
@@ -218,7 +217,7 @@ namespace acma{
 			transfer_command_buffer.pipeline_barrier({}, {/*&pre_copy_buffer_barrier, 1*/}, {&pre_copy_image_barrier, 1});
 
 			const sl::uint32_t copy_region_count = std::min(dst_image.mip_level_count(), static_cast<sl::uint32_t>(max_mip_levels));
-			std::unique_ptr<VkBufferImageCopy[]> copy_regions = std::make_unique_for_overwrite<VkBufferImageCopy[]>(copy_region_count);
+			const std::unique_ptr<VkBufferImageCopy[]> copy_regions = std::make_unique_for_overwrite<VkBufferImageCopy[]>(copy_region_count);
 			for(sl::uint32_t j = 0; j < copy_region_count; ++j) {
 				new (&copy_regions[j]) VkBufferImageCopy{
 					texture_data_infos[i].offset + texture_data_infos[i].mip_offsets[j],
@@ -239,13 +238,13 @@ namespace acma{
 			}
 
 			sl::invoke(proc.vulkan_functions_ptr()->vkCmdCopyBufferToImage,
-				transfer_command_buffer, 
+				transfer_command_buffer,
 				static_cast<VkBuffer>(src),
 				*dst_image.handle_ref(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 				copy_region_count, copy_regions.get()
 			);
 
-			sl::array<1, VkImageMemoryBarrier2> post_copy_barriers{{
+			const sl::array<1, VkImageMemoryBarrier2> post_copy_barriers{{
 				VkImageMemoryBarrier2{
 				    .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
 					.srcStageMask = VK_PIPELINE_STAGE_2_COPY_BIT,
@@ -268,8 +267,10 @@ namespace acma{
 
 			dst_image.current_layout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL;
 		}
-		
+
 		return proc.end_dedicated_copy(post_copy_wait_value, timeline::impl::dedicated_command_group::out_of_timeline_copy, timeout);
+
+		//TODO: warn if dst.size() != src.texture_data_infos.size()
 	}
 }
 
@@ -292,8 +293,8 @@ namespace acma {
 				.creation_info{
     			    .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
 					//clang 21 is bugged - std::max here causes it to crash
-					.size = Config.initial_capacity_bytes > 16 ? 
-						Config.initial_capacity_bytes : 
+					.size = Config.initial_capacity_bytes > 16 ?
+						Config.initial_capacity_bytes :
 						static_cast<sl::size_t>(16),
     			    .usage = (usage & all_direct_flags),
     			    .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
@@ -309,12 +310,12 @@ namespace acma {
 			buff_alloc_ptr->creation_info.usage |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
 		// if (usage & buffer_usage_policy::asset_heap_table)
 			// ret.flags |= VK_BUFFER_USAGE_DESCRIPTOR_HEAP_BIT_EXT;
-		
-		
+
+
 		if (memory_policy::is_cpu_visible(Config.memory)) {
 			buff_alloc_ptr->allocation_creation_info.flags |= VMA_ALLOCATION_CREATE_MAPPED_BIT;
-			buff_alloc_ptr->allocation_creation_info.flags |= (memory_policy::is_cpu_writable(Config.memory) ? 
-				VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT : 
+			buff_alloc_ptr->allocation_creation_info.flags |= (memory_policy::is_cpu_writable(Config.memory) ?
+				VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT :
 				VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT);
 		}
 
@@ -373,7 +374,7 @@ namespace acma {
 			.buffer = buff_alloc_ptr->handle
 		};
 		buff_alloc_ptr->device_address = sl::invoke(process.vulkan_functions_ptr()->vkGetBufferDeviceAddress, *process.logical_device_ptr(), &device_address_info);
-		
+
         return buff_alloc_ptr;
 	}
 }
@@ -405,7 +406,7 @@ namespace acma {
 			&img_alloc_ptr->allocation_handle,
 			&img_alloc_ptr->allocation_info
 		));
-		
+
         return img_alloc_ptr;
 	}
 }

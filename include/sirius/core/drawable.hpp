@@ -28,6 +28,7 @@ namespace acma {
 	public:
 		constexpr static sl::array<0, push_constant_buffer_info> push_constant_infos{};
 	public:
+		constexpr static sl::array<0, asset_heap_key_t> asset_heaps{};
 		constexpr static sl::array<0, buffer_key_t> uniform_buffers{};
 	public:
 		constexpr static sl::array<0, draw_info> draw_infos{};

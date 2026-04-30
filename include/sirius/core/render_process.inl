@@ -19,12 +19,12 @@ namespace acma {
 		!memory_policy::is_cpu_visible(DstConfig.memory)
 	) {
 		// static_assert(
-		// 	memory_policy::is_cpu_writable(buffer_type<SrcK>::config.memory) || 
+		// 	memory_policy::is_cpu_writable(buffer_type<SrcK>::config.memory) ||
 		// 	!memory_policy::is_cpu_visible(buffer_type<SrcK>::config.memory),
 		// 	"Copy from cpu_local_gpu_writable buffer to a gpu_local buffer is not allowed."
 		// );
 
-		if(dst_offset + size > dst->creation_info.size || src_offset + size > src->creation_info.size) 
+		if(dst_offset + size > dst->creation_info.size || src_offset + size > src->creation_info.size)
 			return errc::invalid_argument;
 
 		//TODO: use next frame index if theres no garauntee current transfer command buffer is not in use
@@ -32,7 +32,7 @@ namespace acma {
 
 		const sl::index_t frame_idx = frame_index();
 		vk::command_buffer const& transfer_command_buffer = command_buffers()[frame_idx][timeline::impl::dedicated_command_group::out_of_timeline_copy];
-		
+
 
 		RESULT_TRY_COPY_UNSCOPED(const sl::uint64_t post_copy_wait_value, begin_dedicated_copy(timeline::impl::dedicated_command_group::out_of_timeline_copy, timeout), pcwv_result);
 
@@ -114,7 +114,7 @@ namespace acma {
 namespace acma{
 	template<auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount>
 	constexpr result<sl::uint64_t>    render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount>::
-	begin_dedicated_copy(sl::index_t command_group_idx, sl::uint64_t timeout) & noexcept {
+	begin_dedicated_copy(sl::index_t command_group_idx, sl::uint64_t timeout) const& noexcept {
 		const sl::index_t frame_idx = frame_index();
 		vk::command_buffer const& transfer_command_buffer = command_buffers()[frame_idx][command_group_idx];
 
@@ -125,7 +125,7 @@ namespace acma{
 
 
 		RESULT_VERIFY(command_buffer_semaphores()[frame_idx][command_group_idx].wait(semaphore_pre_value, timeout));
-		
+
 		RESULT_VERIFY(transfer_command_buffer.reset());
         RESULT_VERIFY(transfer_command_buffer.begin(true));
 

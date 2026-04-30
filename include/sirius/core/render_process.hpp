@@ -42,7 +42,7 @@ namespace acma {
 			AssetHeapConfigs,
 			render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount>
 		>
-	{	
+	{
 
 	public:
 		constexpr static sl::size_t frames_in_flight = D2D_FRAMES_IN_FLIGHT;
@@ -72,27 +72,27 @@ namespace acma {
 
 	public:
 		template<buffer_key_t Key>
-		constexpr auto&& operator[](this auto&& self, sl::constant_type<buffer_key_t, Key>) noexcept 
+		constexpr auto&& operator[](this auto&& self, sl::constant_type<buffer_key_t, Key>) noexcept
 		requires (BufferConfigs.contains(Key)) {
 			return static_cast<sl::copy_cvref_t<decltype(self), buffer_type<Key>>>(self);
 		}
-		
-		
+
+
 		template<buffer_key_t Key>
-		constexpr auto&& get(this auto&& self, sl::constant_type<buffer_key_t, Key> = {}) noexcept 
+		constexpr auto&& get(this auto&& self, sl::constant_type<buffer_key_t, Key> = {}) noexcept
 		requires (BufferConfigs.contains(Key)) {
 			return sl::forward_like<decltype(self)>(self[sl::constant<buffer_key_t, Key>]);
 		}
-		
+
 	public:
 		template<asset_heap_key_t Key>
-		constexpr auto&& operator[](this auto&& self, sl::constant_type<asset_heap_key_t, Key>) noexcept 
+		constexpr auto&& operator[](this auto&& self, sl::constant_type<asset_heap_key_t, Key>) noexcept
 		requires (AssetHeapConfigs.contains(Key)) {
 			return static_cast<sl::copy_cvref_t<decltype(self), asset_heap_type<Key>>>(self);
 		}
-		
+
 		template<asset_heap_key_t Key>
-		constexpr auto&& get(this auto&& self, sl::constant_type<asset_heap_key_t, Key> = {}) noexcept 
+		constexpr auto&& get(this auto&& self, sl::constant_type<asset_heap_key_t, Key> = {}) noexcept
 		requires (AssetHeapConfigs.contains(Key)) {
 			return sl::forward_like<decltype(self)>(self[sl::constant<asset_heap_key_t, Key>]);
 		}
@@ -113,20 +113,20 @@ namespace acma {
 		inline std::span<const vk::semaphore, frames_in_flight>                                          acquisition_semaphores   () const& noexcept { return std::span<const vk::semaphore, frames_in_flight>                                         {_acquisition_semaphores.data(), frames_in_flight}; }
 
 
-		constexpr auto&& command_family_semaphore_values(this auto&& self) noexcept { return sl::forward_like<decltype(self)>(self._command_family_semaphore_values); }
-		constexpr auto&& command_buffer_semaphore_values(this auto&& self) noexcept { return sl::forward_like<decltype(self)>(self._command_buffer_semaphore_values); }
+		constexpr auto&& command_family_semaphore_values(this auto&& self) noexcept { return sl::forward<decltype(self)>(self)._command_family_semaphore_values; }
+		constexpr auto&& command_buffer_semaphore_values(this auto&& self) noexcept { return sl::forward<decltype(self)>(self)._command_buffer_semaphore_values; }
 
 		constexpr auto&& timeline_callbacks(this auto&& self) noexcept {return sl::forward_like<decltype(self)>(self._timeline_callbacks); }
 
-	public:	
+	public:
 		constexpr sl::size_t  frame_count() const noexcept { return _frame_count; }
 		constexpr sl::index_t frame_index() const noexcept { return frame_count() % frames_in_flight; }
 		constexpr sl::index_t next_frame_index() const noexcept { return (frame_count() + 1) % frames_in_flight; }
 
 	public:
 		constexpr bool has_dedicated_present_queue() const noexcept {
-			return 
-				_physical_device_ptr->queue_family_infos[command_family::graphics].index != 
+			return
+				_physical_device_ptr->queue_family_infos[command_family::graphics].index !=
 				_physical_device_ptr->queue_family_infos[command_family::present].index;
 		}
 	private:
@@ -167,9 +167,9 @@ namespace acma {
 		//gpu_local buffer to cpu_local_gpu_writable buffer
 		//(gpu_local buffer to cpu_local_upload buffer not allowed)
 
-		
+
 	public:
-		constexpr result<sl::uint64_t> begin_dedicated_copy(sl::index_t command_group_idx, sl::uint64_t timeout) & noexcept;
+		constexpr result<sl::uint64_t> begin_dedicated_copy(sl::index_t command_group_idx, sl::uint64_t timeout) const& noexcept;
 		constexpr result<void> end_dedicated_copy(sl::uint64_t wait_value, sl::index_t command_group_idx, sl::uint64_t timeout) const& noexcept;
 
 	public:
@@ -192,9 +192,11 @@ namespace acma {
 
 		sl::array<frames_in_flight, sl::array<command_buffer_count, vk::command_buffer>> _command_buffers;
 		sl::array<frames_in_flight, sl::array<command_buffer_count, vk::semaphore>> _command_buffer_semaphores;
-		sl::array<frames_in_flight, sl::array<command_buffer_count, sl::uint64_t>> _command_buffer_semaphore_values;
 		sl::array<frames_in_flight, sl::array<command_family::num_families, vk::semaphore>> _generic_timeline_sempahores;
-		sl::array<frames_in_flight, sl::array<command_family::num_families, sl::uint64_t>> _command_family_semaphore_values;
+
+		mutable sl::array<frames_in_flight, sl::array<command_buffer_count, sl::uint64_t>> _command_buffer_semaphore_values;
+		mutable sl::array<frames_in_flight, sl::array<command_family::num_families, sl::uint64_t>> _command_family_semaphore_values;
+
 		sl::array<frames_in_flight, vk::semaphore> _acquisition_semaphores;
 		std::vector<vk::semaphore> _graphics_semaphores;
 		std::vector<vk::semaphore> _pre_present_semaphores;

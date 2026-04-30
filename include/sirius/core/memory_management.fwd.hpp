@@ -50,9 +50,9 @@ namespace acma {
 	) noexcept;
 
 
-	template<asset_heap_key_t DstK, buffer_key_t SrcK, auto AssetHeapConfigs, auto BufferConfigs, typename RenderProcessT>
+	template<buffer_key_t SrcK, auto BufferConfigs, typename RenderProcessT>
 	constexpr result<void> gpu_copy(
-		vk::asset_heap<DstK, AssetHeapConfigs, RenderProcessT> & dst,
+		std::span<vk::image> dst,
 		vk::buffer<SrcK, BufferConfigs, RenderProcessT> const& src,
 		sl::uint64_t timeout = std::numeric_limits<sl::uint64_t>::max()
 	) noexcept;
@@ -64,7 +64,7 @@ namespace acma {
 		RenderProcessT const& process,
 		sl::constant_type<buffer_config, Config> = {}
 	) noexcept;
-	
+
 	template<typename RenderProcessT>
 	constexpr result<vk::buffer_allocation_unique_ptr> gpu_allocate_like(
 		RenderProcessT const& process,

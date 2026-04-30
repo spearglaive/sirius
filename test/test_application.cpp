@@ -40,9 +40,9 @@ extern "C" const char* __asan_default_options() { return "detect_leaks=0"; }
 using render_instance = acma::render_instance<acma::test::intermediate_timeline, buffer_configs, asset_heap_configs>;
 
 using command_traits_type = acma::timeline::impl::command_traits<
-	acma::test::basic_timeline, 
-	0, 
-	sl::index_sequence_type<>, 
+	acma::test::basic_timeline,
+	0,
+	sl::index_sequence_type<>,
 	sl::integer_sequence_type<acma::command_family_t>
 >;
 
@@ -73,19 +73,19 @@ int main(){
 
     std::cout << std::filesystem::current_path() << std::endl;
     const std::filesystem::path assets_path = std::filesystem::canonical(std::filesystem::path("../../test/assets"));
-	
+
 	acma::vk::physical_device& selected_device = *acma::devices().begin();
     acma::result<render_instance> inst_result = acma::make<render_instance>(selected_device, true, acma::sz2u32{1600, 900});
     if(!inst_result.has_value()) return inst_result.error();
     render_instance inst = *std::move(inst_result);
 
- 
+
 	//llfio::mapped_file_handle mh;
 	//RESULT_TRY_MOVE(mh, acma::decoder::open_file(assets_path / "test_font.ttf"));
 	//RESULT_VERIFY(acma::decoder::decode_font(mh));
 
 
-	
+
 	//Set callback to update gpu address
 	inst.timeline_callbacks()[acma::timeline::callback_event::on_frame_begin].push_back([](typename render_instance::render_process_type& proc, acma::window& win, auto&) noexcept -> acma::result<void> {
 		{
@@ -171,8 +171,8 @@ int main(){
 	{
 	RESULT_VERIFY(staging_buffer.resize(rect_indices.size_bytes()));
 	std::memcpy(staging_buffer.data(), rect_indices.data(), rect_indices.size_bytes());
-	
-	
+
+
 	RESULT_VERIFY(staging_buffer.upload_to(sl::universal::get<buffer_id::rectangle_indices>(inst)));
 
 	//Equivalent to:
@@ -272,28 +272,28 @@ int main(){
         .borderColor             = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK,
         .unnormalizedCoordinates = VK_FALSE,
 	};
-	RESULT_VERIFY(sl::universal::get<asset_heap_id::graphics>(inst).push_back(sl::move(sampler_info)));
+	RESULT_VERIFY(sl::universal::get<asset_heap_id::samplers>(inst).push_back(sl::move(sampler_info)));
 
 
 	RESULT_VERIFY(sl::universal::get<buffer_id::texture_staging>(inst).push_back(sampled_tex));
 	//RESULT_VERIFY(sl::universal::get<buffer_id::texture_staging>(inst).push_back(storage_t));
-	RESULT_VERIFY(sl::universal::get<asset_heap_id::graphics>(inst).emplace_back(sl::universal::get<buffer_id::texture_staging>(inst)));
+	RESULT_VERIFY(sl::universal::get<asset_heap_id::textures>(inst).emplace_back(sl::universal::get<buffer_id::texture_staging>(inst)));
 
 	sl::universal::get<buffer_id::texture_staging>(inst).clear();
 
 	RESULT_VERIFY(sl::universal::get<buffer_id::texture_staging>(inst).push_back(font_tex));
-	RESULT_VERIFY(sl::universal::get<asset_heap_id::graphics>(inst).emplace_back(sl::universal::get<buffer_id::texture_staging>(inst)));
+	RESULT_VERIFY(sl::universal::get<asset_heap_id::textures>(inst).emplace_back(sl::universal::get<buffer_id::texture_staging>(inst)));
 
 
 
-	
+
 
     //2nd window
     /* {
     auto w2 = app.add_window("sirius Test (Second Window)");
     if(!w.has_value()) return w2.error();
     } */
-	 
+
 	{
     //for(auto const& event_fn : acma::input::defaults::interactable::event_fns<window>())
     //    inst.input_event_functions().insert(event_fn);
@@ -331,7 +331,7 @@ int main(){
     ctrl_g_a.event_ids[acma::input::category::system] = 2;
     inst.input_event_functions().try_emplace(acma::input::categorized_event_t{2, acma::input::category::system}, [](void*, acma::input::combination, bool, acma::input::categorized_event_t, acma::input::mouse_aux_t, void*){
         std::cout << "advanced key event called" << std::endl;
-    }); 
+    });
 
     inst.current_input_categories().set(acma::input::category::ui);
     //inst.current_input_categories().set(2);
@@ -341,14 +341,14 @@ int main(){
     //inactive_mouse_move.event_ids[acma::input::category::system] = 3;
     //inst.input_event_functions().try_emplace(acma::input::categorized_event_t{3, acma::input::category::system}, [](void*, acma::input::combination, bool, acma::input::categorized_event_t, acma::input::mouse_aux_t, void*){
     //    std::cout << "mouse move (inactive)" << std::endl;
-    //}); 
+    //});
 
     acma::input::event_set& shift_mouse_move = inst.input_active_bindings()[acma::input::combination{{acma::input::key_code::kb_left_shift}, acma::input::mouse_code::move}];
     shift_mouse_move.applicable_categories.set(acma::input::category::system);
     shift_mouse_move.event_ids[acma::input::category::system] = 4;
     inst.input_event_functions().try_emplace(acma::input::categorized_event_t{4, acma::input::category::system}, [](void*, acma::input::combination, bool, acma::input::categorized_event_t, acma::input::mouse_aux_t, void*){
         std::cout << "shift mouse move" << std::endl;
-    }); 
+    });
 
     acma::input::event_set& shift_scroll_up = inst.input_active_bindings()[acma::input::combination{{acma::input::key_code::kb_left_shift}, acma::input::mouse_code::scroll}];
     shift_scroll_up.applicable_categories.set(acma::input::category::system);
@@ -356,7 +356,7 @@ int main(){
     inst.input_event_functions().try_emplace(acma::input::categorized_event_t{5, acma::input::category::system}, [](void*, acma::input::combination, bool, acma::input::categorized_event_t, acma::input::mouse_aux_t scroll_magnitude, void*){
         if(scroll_magnitude->y() >= 0) return;
         std::cout << "shift scroll" << std::endl;
-    }); 
+    });
 
 
     acma::input::event_set& left_mouse_btn = inst.input_active_bindings()[acma::input::combination{{}, acma::input::mouse_code::button_1}];
@@ -365,7 +365,7 @@ int main(){
     //inst.input_modifier_flags()[acma::input::mouse_code::button_1] |= acma::input::modifier_flags::no_modifiers_allowed;
     inst.input_event_functions().try_emplace(acma::input::categorized_event_t{6, acma::input::category::system}, [](void*, acma::input::combination, bool, acma::input::categorized_event_t, acma::input::mouse_aux_t, void*){
         std::cout << "left mouse button" << std::endl;
-    }); 
+    });
 	}
 
 
@@ -382,7 +382,7 @@ int main(){
         //if(auto r = app.render(); !r.has_value()) [[unlikely]]
         //    return r.error();
     }
-    
+
     if(auto r = render.get(); !r.has_value()) {
         std::cout << std::format("rendering error {}: {}", static_cast<std::int64_t>(r.error()), acma::error::code_descs.find(r.error())->second)<< std::endl;
 

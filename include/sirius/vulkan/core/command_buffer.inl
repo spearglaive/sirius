@@ -92,8 +92,8 @@ namespace acma::vk {
 
 namespace acma::vk {
 	void command_buffer::begin_draw(
-		std::span<const VkRenderingAttachmentInfo> color_attachments, 
-		VkRenderingAttachmentInfo const& depth_attachment, 
+		std::span<const VkRenderingAttachmentInfo> color_attachments,
+		VkRenderingAttachmentInfo const& depth_attachment,
 		rect<std::uint32_t> render_area_bounds,
 		rect<float> viewport_bounds,
 		rect<std::uint32_t> scissor_bounds
@@ -150,7 +150,7 @@ namespace acma::vk {
 			index_type
 		);
 	}
-	
+
 
 	template<bind_point_t BindPoint, typename T, auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount>
 	void command_buffer::bind_push_constants(
@@ -175,7 +175,7 @@ namespace acma::vk {
 				sl::universal::get<info.buffer_key>(proc).data()
 			);
 		};
-		
+
 		sl::invoke(
 			sl::functor::invoke_each<bind_push_constant>{},
 			sl::index_sequence_of_length<T::push_constant_infos.size()>,
@@ -185,7 +185,7 @@ namespace acma::vk {
 		);
 	}
 
-	
+
 	template<bind_point_t BindPoint, typename T, auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount>
 	void command_buffer::bind_uniform_buffers(
 		render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount> const& render_proc,
@@ -220,12 +220,12 @@ namespace acma::vk {
 				};
 			}
 		);
-		
+
 		sl::invoke(vulkan_fns_ptr->vkCmdPushDescriptorSetKHR,
 			smart_handle.get(),
 			static_cast<VkPipelineBindPoint>(BindPoint),
 			layout,
-			0, 
+			0,
 			writes.size(),
 			writes.data()
 		);
@@ -235,18 +235,27 @@ namespace acma::vk {
 	void command_buffer::bind_asset_heap(
 		render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount> const& render_proc,
 		pipeline_layout<BindPoint, T, BufferConfigs, AssetHeapConfigs> const& layout
-	) const noexcept requires has_asset_heap<T> {
-		const sl::array<asset_usage_policy::num_usage_policies, VkDescriptorSet> descriptor_set_handles = 
-			sl::universal::make_deduced<sl::generic::array>(sl::universal::get<T::asset_heap>(render_proc).descriptor_sets(), sl::functor::forward_construct<VkDescriptorSet>{});
+	) const noexcept requires has_asset_heaps<T> {
+		const auto descriptor_set_handles = sl::make<sl::array<T::asset_heaps.size(), VkDescriptorSet>>(
+			render_proc,
+			sl::in_place_repeat_tag<T::asset_heaps.size()>,
+			[]<sl::index_t I>(
+				render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount> const& proc,
+				sl::index_constant_type<I>
+			) noexcept {
+				auto const& asset_heap = sl::universal::get<T::asset_heaps[I]>(proc);
+				return static_cast<VkDescriptorSet>(asset_heap.set());
+			}
+		);
 
 		sl::invoke(vulkan_fns_ptr->vkCmdBindDescriptorSets,
 			smart_handle.get(),
 			static_cast<VkPipelineBindPoint>(BindPoint),
 			layout,
 			1,
-			asset_usage_policy::num_usage_policies,
+			descriptor_set_handles.size(),
 			descriptor_set_handles.data(),
-			//sl::universal::get<T::asset_heap>(render_proc).descriptor_set_handles().data(), 
+			//sl::universal::get<T::asset_heap>(render_proc).descriptor_set_handles().data(),
 			0, nullptr
 		);
 	}
@@ -285,7 +294,7 @@ namespace acma::vk {
 		);
 	}
 
-	
+
 	template<typename T, auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount>
 	void command_buffer::dispatch(
 		render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount> const& render_proc
@@ -308,13 +317,13 @@ namespace acma::vk {
 	template<typename T, auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount>
 	void command_buffer::draw(
 		render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount> const& render_proc,
-		sl::array<decltype(T::draw_infos)::size(), sl::uoffset_t> draw_command_buffer_offsets, 
-		sl::array<decltype(T::draw_infos)::size(), sl::uoffset_t> draw_count_buffer_offsets 
+		sl::array<decltype(T::draw_infos)::size(), sl::uoffset_t> draw_command_buffer_offsets,
+		sl::array<decltype(T::draw_infos)::size(), sl::uoffset_t> draw_count_buffer_offsets
 	) const noexcept {
 		constexpr auto draw_command = []<sl::index_t I>(
 			VkCommandBuffer cmd_buff,
 			render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount> const& proc,
-			sl::array<decltype(T::draw_infos)::size(), sl::uoffset_t> draw_cmd_buff_offsets, 
+			sl::array<decltype(T::draw_infos)::size(), sl::uoffset_t> draw_cmd_buff_offsets,
 			sl::array<decltype(T::draw_infos)::size(), sl::uoffset_t> draw_cnt_buff_offsets,
 			sl::index_constant_type<I>
 		) noexcept -> void {
@@ -337,7 +346,7 @@ namespace acma::vk {
 
 		return sl::functor::invoke_each<draw_command>{}(sl::index_sequence_of_length<decltype(T::draw_infos)::size()>, this->smart_handle.get(), render_proc, draw_command_buffer_offsets, draw_count_buffer_offsets);
 	}
-	
+
 	template<typename T, auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount>
 	void command_buffer::dispatch(
 		render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount> const& render_proc,
@@ -346,7 +355,7 @@ namespace acma::vk {
 		constexpr auto dispatch_command = []<sl::index_t I>(
 			VkCommandBuffer cmd_buff,
 			render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount> const& proc,
-			sl::array<decltype(T::dispatch_infos)::size(), sl::uoffset_t> buff_offsets, 
+			sl::array<decltype(T::dispatch_infos)::size(), sl::uoffset_t> buff_offsets,
 			sl::index_constant_type<I>
 		) noexcept -> void {
 			constexpr dispatch_info info = T::dispatch_infos[I];
@@ -360,8 +369,8 @@ namespace acma::vk {
 
 namespace acma::vk {
 	void command_buffer::copy(
-		vk::buffer_allocation_unique_ptr& dst, 
-		vk::buffer_allocation_unique_ptr const& src, 
+		vk::buffer_allocation_unique_ptr& dst,
+		vk::buffer_allocation_unique_ptr const& src,
 		std::span<const VkBufferCopy> copy_regions
 	) const noexcept {
 		return sl::invoke(vulkan_fns_ptr->vkCmdCopyBuffer, smart_handle.get(), src->handle, dst->handle, copy_regions.size(), copy_regions.data());
@@ -369,13 +378,13 @@ namespace acma::vk {
 
 
 	void command_buffer::copy(
-		vk::buffer_allocation_unique_ptr& dst, 
-		vk::buffer_allocation_unique_ptr const& src, 
-		std::size_t size, 
-		sl::uoffset_t dst_offset, 
+		vk::buffer_allocation_unique_ptr& dst,
+		vk::buffer_allocation_unique_ptr const& src,
+		std::size_t size,
+		sl::uoffset_t dst_offset,
 		sl::uoffset_t src_offset
 	) const noexcept {
-		VkBufferCopy copy_region{ 
+		VkBufferCopy copy_region{
 			.srcOffset = src_offset,
 			.dstOffset = dst_offset,
 			.size = size,
@@ -387,8 +396,8 @@ namespace acma::vk {
 namespace acma::vk {
 	template<buffer_key_t DstK, buffer_key_t SrcK, auto BufferConfigs, typename RenderProcessT>
 	void command_buffer::copy(
-		buffer<DstK, BufferConfigs, RenderProcessT>& dst, 
-		buffer<SrcK, BufferConfigs, RenderProcessT> const& src, 
+		buffer<DstK, BufferConfigs, RenderProcessT>& dst,
+		buffer<SrcK, BufferConfigs, RenderProcessT> const& src,
 		std::span<const VkBufferCopy> copy_regions
 	) const noexcept {
 		return copy(dst.allocation_ptr(), src.allocation_ptr(), copy_regions);
@@ -397,13 +406,13 @@ namespace acma::vk {
 
 	template<buffer_key_t DstK, buffer_key_t SrcK, auto BufferConfigs, typename RenderProcessT>
 	void command_buffer::copy(
-		buffer<DstK, BufferConfigs, RenderProcessT>& dst, 
-		buffer<SrcK, BufferConfigs, RenderProcessT> const& src, 
-		std::size_t size, 
-		sl::uoffset_t dst_offset, 
+		buffer<DstK, BufferConfigs, RenderProcessT>& dst,
+		buffer<SrcK, BufferConfigs, RenderProcessT> const& src,
+		std::size_t size,
+		sl::uoffset_t dst_offset,
 		sl::uoffset_t src_offset
 	) const noexcept {
-		VkBufferCopy copy_region{ 
+		VkBufferCopy copy_region{
 			.srcOffset = src_offset,
 			.dstOffset = dst_offset,
 			.size = size,

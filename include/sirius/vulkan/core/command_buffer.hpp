@@ -29,7 +29,7 @@ namespace acma::vk {
 
 	private:
 		template<typename T> constexpr static bool has_index_info = requires{ T::index_info; };
-		template<typename T> constexpr static bool has_asset_heap = requires{ T::asset_heap; };
+		template<typename T> constexpr static bool has_asset_heaps = T::asset_heaps.size() > 0;
 		template<typename T> constexpr static bool has_push_constants = T::push_constant_infos.size() > 0;
 		template<typename T> constexpr static bool has_uniform_buffers = T::uniform_buffers.size() > 0;
 
@@ -42,7 +42,7 @@ namespace acma::vk {
     	inline result<void> submit(command_family_t family, std::span<const semaphore_submit_info> wait_semaphore_infos = {}, std::span<const semaphore_submit_info> signal_semaphore_infos = {}, VkFence out_fence = VK_NULL_HANDLE, sl::uint32_t queue_idx = 0) const noexcept;
     	inline result<void> wait(command_family_t family, sl::uint32_t queue_idx = 0) const noexcept;
     	inline void free() const noexcept;
-		
+
 	public:
 		template<bind_point_t BindPoint, typename T, auto BufferConfigs, auto AssetHeapConfigs>
 		void bind_pipeline(pipeline<BindPoint, T, BufferConfigs, AssetHeapConfigs> const& p) const noexcept;
@@ -68,7 +68,7 @@ namespace acma::vk {
 		void bind_asset_heap(
 			render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount> const& render_proc,
 			pipeline_layout<BindPoint, T, BufferConfigs, AssetHeapConfigs> const& layout
-		) const noexcept requires has_asset_heap<T>;
+		) const noexcept requires has_asset_heaps<T>;
 	public:
 		template<typename T, auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount>
 		void bind_index_buffer(
@@ -91,7 +91,7 @@ namespace acma::vk {
 		void bind_asset_heap(
 			render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount> const&,
 			pipeline_layout<BindPoint, T, BufferConfigs, AssetHeapConfigs> const&
-		) const noexcept requires (!has_asset_heap<T>) {}
+		) const noexcept requires (!has_asset_heaps<T>) {}
 
 	public:
         inline void begin_draw(std::span<const VkRenderingAttachmentInfo> color_attachments, VkRenderingAttachmentInfo const& depth_attachment, rect<std::uint32_t> render_area_bounds, rect<float> viewport_bounds, rect<std::uint32_t> scissor_bounds) const noexcept;
@@ -112,7 +112,7 @@ namespace acma::vk {
 		template<typename T, auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount>
         void draw(
 			render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount> const& render_proc,
-			sl::array<decltype(T::draw_infos)::size(), sl::uoffset_t> draw_command_buffer_offsets, 
+			sl::array<decltype(T::draw_infos)::size(), sl::uoffset_t> draw_command_buffer_offsets,
 			sl::array<decltype(T::draw_infos)::size(), sl::uoffset_t> draw_count_buffer_offsets
 		) const noexcept;
 
@@ -121,7 +121,7 @@ namespace acma::vk {
 			render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount> const& render_proc,
 			sl::array<decltype(T::dispatch_infos)::size(), sl::uoffset_t> buffer_offsets
 		) const noexcept;
-        
+
     public:
         inline void copy(vk::buffer_allocation_unique_ptr& dst, vk::buffer_allocation_unique_ptr const& src, std::span<const VkBufferCopy> copy_regions) const noexcept;
         inline void copy(vk::buffer_allocation_unique_ptr& dst, vk::buffer_allocation_unique_ptr const& src, std::size_t size, sl::uoffset_t dst_offset = 0, sl::uoffset_t src_offset = 0) const noexcept;
@@ -136,7 +136,7 @@ namespace acma::vk {
 
     public:
         inline void pipeline_barrier(std::span<const VkMemoryBarrier2> global_barriers, std::span<const VkBufferMemoryBarrier2> buffer_barriers, std::span<const VkImageMemoryBarrier2> image_barriers) const noexcept;
-    
+
 	private:
         constexpr static frozen::unordered_map<VkImageLayout, std::pair<VkPipelineStageFlagBits2, VkAccessFlagBits2>, 4> image_barrier_map {
             {VK_IMAGE_LAYOUT_UNDEFINED,                {VK_PIPELINE_STAGE_2_NONE,                VK_ACCESS_2_NONE}},

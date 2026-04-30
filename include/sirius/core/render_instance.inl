@@ -37,7 +37,7 @@ namespace acma::impl {
 	result<render_instance<sl::tuple<TimelineEventTs...>, BufferConfigs, AssetHeapConfigs>>
 		make<render_instance<sl::tuple<TimelineEventTs...>, BufferConfigs, AssetHeapConfigs>>::
 	operator()(
-		vk::physical_device& device, 
+		vk::physical_device& device,
 		bool prefer_synchronous_rendering,
 		sl::in_place_adl_tag_type<render_instance<sl::tuple<TimelineEventTs...>, BufferConfigs, AssetHeapConfigs>>
 	) const noexcept {
@@ -55,7 +55,7 @@ namespace acma::impl {
 	result<render_instance<sl::tuple<TimelineEventTs...>, BufferConfigs, AssetHeapConfigs>>
 		make<render_instance<sl::tuple<TimelineEventTs...>, BufferConfigs, AssetHeapConfigs>>::
 	operator()(
-		vk::physical_device& device, 
+		vk::physical_device& device,
 		bool prefer_synchronous_rendering,
 		acma::sz2u32 window_size,
 		std::string_view window_title,
@@ -169,7 +169,7 @@ namespace acma {
 			));
 		}
 
-		
+
 		//Initialize buffers
 		constexpr auto init_single_buffer = []<sl::index_t I>(
 			render_instance& app_inst,
@@ -210,8 +210,8 @@ namespace acma {
 			for(sl::index_t j = 0; j < dedicated_cmd_buff_count; ++j) {
 				RESULT_TRY_MOVE(this->_command_buffers[i][j], acma::make<vk::command_buffer>(
 					this->_vulkan_functions_ptr,
-					this->_physical_device_ptr, 
-					this->_logical_device_ptr, 
+					this->_physical_device_ptr,
+					this->_logical_device_ptr,
 					this->_command_pool_ptrs[command_family::transfer]
 				));
 			}
@@ -219,12 +219,12 @@ namespace acma {
 				if(command_traits_type::group_families[j] == command_family::none) continue;
 				RESULT_TRY_MOVE(this->_command_buffers[i][j + dedicated_cmd_buff_count], acma::make<vk::command_buffer>(
 					this->_vulkan_functions_ptr,
-					this->_physical_device_ptr, 
-					this->_logical_device_ptr, 
+					this->_physical_device_ptr,
+					this->_logical_device_ptr,
 					this->_command_pool_ptrs[command_traits_type::group_families[j]]
 				));
 			}
-			
+
 			//Create command buffer semaphores
 			for(sl::index_t j = 0; j < command_group_count; ++j) {
 				RESULT_TRY_MOVE(this->_command_buffer_semaphores[i][j], acma::make<vk::semaphore>(this->_vulkan_functions_ptr, this->_logical_device_ptr, VK_SEMAPHORE_TYPE_TIMELINE));
@@ -241,11 +241,11 @@ namespace acma {
 			//Create image acquire semaphore
 			RESULT_TRY_MOVE(this->_acquisition_semaphores[i], acma::make<vk::semaphore>(this->_vulkan_functions_ptr, this->_logical_device_ptr));
 		}
-			
+
 		return {};
 	}
 
-	
+
 	template<typename... TimelineEventTs, auto BufferConfigs, auto AssetHeapConfigs> requires impl::is_buffer_config_table_v<decltype(BufferConfigs)>
 	result<void>     render_instance<sl::tuple<TimelineEventTs...>, BufferConfigs, AssetHeapConfigs>::
 	initialize_auxiliary() noexcept {
@@ -281,13 +281,13 @@ namespace acma {
 	poll_events() noexcept {
 		static_assert(impl::window_capability, "Cannot poll window events with windowing capabilities disabled");
 		if(!has_window) return;
-		
+
         glfwPollEvents();
 
 		if(!this->window_handle) [[unlikely]] return;
         if(!glfwWindowShouldClose(this->window_handle.get()))
             return;
-		
+
         close();
     }
 
@@ -322,12 +322,12 @@ namespace acma {
         //wait for rendering to finish last frame
 		const sl::index_t frame_idx = this->frame_index();
 		const sl::array<command_traits_type::group_count, VkSemaphore> wait_semaphores = sl::universal::make_deduced<sl::generic::array>(
-			this->_command_buffer_semaphores[frame_idx], 
+			this->_command_buffer_semaphores[frame_idx],
 			sl::functor::forward_construct<VkSemaphore>{},
 			filter_dedicated_command_groups_sequence{}
 		);
 		const sl::array<command_traits_type::group_count, sl::uint64_t> wait_semaphores_values = sl::universal::make_deduced<sl::generic::array>(
-			this->_command_buffer_semaphore_values[frame_idx], 
+			this->_command_buffer_semaphore_values[frame_idx],
 			sl::functor::forward_construct<sl::uint64_t>{},
 			filter_dedicated_command_groups_sequence{}
 		);
@@ -344,10 +344,10 @@ namespace acma {
 		timeline::state timeline_state{
 			.image_index = 0
 		};
-		
+
 		D2D_INVOKE_ALL(this->timeline_callbacks(), on_frame_begin, *this, *this, timeline_state);
 
-		
+
 		constexpr auto exec = []<sl::index_t I>(render_instance& app_inst, timeline_state_type& state, sl::index_constant_type<I>) noexcept -> result<void> {
 			return app_inst.template execute_command<I>(state);
 		};
@@ -372,7 +372,7 @@ namespace acma {
 			*this,
 			*this,
 			state,
-			sl::universal::get<I>(auxiliary), 
+			sl::universal::get<I>(auxiliary),
 			sl::index_constant<command_traits_type::group_indices[I] + timeline::impl::dedicated_command_group::num_dedicated_command_groups>
 		);
 	}

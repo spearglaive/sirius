@@ -20,7 +20,11 @@ namespace acma::test {
 			{::buffer_id::draw_constants},
 		}};
 	public:
-		constexpr static asset_heap_key_t asset_heap = ::asset_heap_id::graphics;
+
+		constexpr static sl::array<2, asset_heap_key_t> asset_heaps{{
+			::asset_heap_id::samplers,
+			::asset_heap_id::textures
+		}};
 		constexpr static sl::array<0, buffer_key_t> uniform_buffers{{}};
 	public:
 		constexpr static sl::array<1, draw_info> draw_infos{{

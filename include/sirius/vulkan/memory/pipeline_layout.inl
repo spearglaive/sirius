@@ -60,15 +60,26 @@ namespace acma::impl {
 		));
 
 
-		constexpr bool has_asset_heap = requires{ T::asset_heap; };
-		constexpr sl::size_t descriptor_set_count = has_asset_heap ? asset_usage_policy::num_usage_policies : 0;
+		constexpr sl::size_t descriptor_set_count = T::asset_heaps.size();
 		sl::array<1 + descriptor_set_count, VkDescriptorSetLayout> set_layout_handles{};
 		set_layout_handles[0] = ret.uniform_set_layout;
-		if constexpr(has_asset_heap)
-			for(asset_usage_policy_t j = 0; j < descriptor_set_count; ++j) 
-				set_layout_handles[1 + j] = sl::universal::get<T::asset_heap>(proc)._descriptor_set_layouts[j];
-		
-		
+
+		constexpr auto get_set_layout = []<sl::index_t I>(
+			RenderProcessT const& render_proc,
+			decltype(set_layout_handles)& out,
+			sl::index_constant_type<I>
+		) noexcept {
+			out[I + 1] = sl::universal::get<T::asset_heaps[I]>(render_proc).set_layout();
+		};
+
+		sl::invoke(
+			sl::functor::invoke_each<get_set_layout>{},
+			sl::index_sequence_of_length<descriptor_set_count>,
+			proc,
+			set_layout_handles
+		);
+
+
 		const VkPipelineLayoutCreateInfo pipeline_layout_create_info{
             .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
             .setLayoutCount = set_layout_handles.size(),
