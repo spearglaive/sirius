@@ -46,7 +46,8 @@ namespace acma {
 		using window_type = window;
 		using render_process_type = render_process<
 			BufferConfigs, AssetHeapConfigs,
-			command_traits_type::group_count + timeline::impl::dedicated_command_group::num_dedicated_command_groups
+			command_traits_type::group_count + timeline::impl::dedicated_command_group::num_dedicated_command_groups,
+			UserByteCount
 		>;
 
 	public:
