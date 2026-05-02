@@ -1,4 +1,4 @@
-#pragma once 
+#pragma once
 #include <streamline/numeric/int.hpp>
 
 #include "sirius/core/window.hpp"
@@ -21,8 +21,8 @@ namespace acma {
 namespace acma::timeline {
 	template<buffer_key_t DstBufferKey, buffer_key_t SrcBufferKey>
 	struct command<move_buffer_data<DstBufferKey, SrcBufferKey>> {
-		template<typename RenderProcessT, sl::index_t CommandGroupIdx>
-		constexpr result<void> operator()(RenderProcessT& proc, window& _1, timeline::state& _2, sl::empty_t _3, sl::index_constant_type<CommandGroupIdx> _4) const noexcept {
+		template<typename RenderProcessT, sl::index_t CommandGroupIdx, sl::size_t UserByteCount>
+		constexpr result<void> operator()(RenderProcessT& proc, window& _1, timeline::state<UserByteCount>& _2, sl::empty_t _3, sl::index_constant_type<CommandGroupIdx> _4) const noexcept {
 			RESULT_VERIFY(sl::invoke(command<copy_buffer_data<DstBufferKey, SrcBufferKey>>{}, proc, _1, _2, _3, _4));
 			auto& src_buff = sl::universal::get<SrcBufferKey>(proc);
 			src_buff.clear();

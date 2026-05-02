@@ -1,4 +1,4 @@
-#pragma once 
+#pragma once
 #include <streamline/numeric/int.hpp>
 
 #include "sirius/core/window.hpp"
@@ -20,8 +20,8 @@ namespace acma {
 namespace acma::timeline {
 	template<buffer_key_t BufferKey, sl::uint32_t Value, sl::uoffset_t Offset, sl::size_t CountBytes>
 	struct command<fill<BufferKey, Value, Offset, CountBytes>> {
-		template<typename RenderProcessT, sl::index_t CommandGroupIdx>
-		constexpr result<void> operator()(RenderProcessT& proc, window&, timeline::state&, sl::empty_t, sl::index_constant_type<CommandGroupIdx>) const noexcept {
+		template<typename RenderProcessT, sl::index_t CommandGroupIdx, sl::size_t UserByteCount>
+		constexpr result<void> operator()(RenderProcessT& proc, window&, timeline::state<UserByteCount>&, sl::empty_t, sl::index_constant_type<CommandGroupIdx>) const noexcept {
 			vk::command_buffer const& cmd_buff = proc.command_buffers()[proc.frame_index()][CommandGroupIdx];
 			cmd_buff.fill(proc[buffer_key_constant<BufferKey>], Value, Offset, CountBytes);
         	return {};

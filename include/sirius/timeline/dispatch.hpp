@@ -21,9 +21,9 @@ namespace acma {
 namespace acma::timeline {
 	template<typename T>
 	struct setup<dispatch<T>> {
-		template<auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount>
+		template<auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount, sl::size_t UserByteCount>
 		result<vk::pipeline<vk::bind_point::compute, T, BufferConfigs, AssetHeapConfigs>> operator()(
-			render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount> const& proc,
+			render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount, UserByteCount> const& proc,
 			window&
 		) const noexcept {
 			return make<vk::pipeline<vk::bind_point::compute, T, BufferConfigs, AssetHeapConfigs>>(
@@ -38,11 +38,11 @@ namespace acma::timeline {
 namespace acma::timeline {
 	template<typename T>
 	struct command<dispatch<T>> {
-		template<auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount, sl::index_t CommandGroupIdx>
+		template<auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount, sl::index_t CommandGroupIdx, sl::size_t UserByteCount>
 		constexpr result<void> operator()(
-			render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount> const& proc,
+			render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount, UserByteCount> const& proc,
 			window&,
-			timeline::state&,
+			timeline::state<UserByteCount>&,
 			vk::pipeline<vk::bind_point::compute, T, BufferConfigs, AssetHeapConfigs>& pipeline,
 			sl::index_constant_type<CommandGroupIdx>
 		) const noexcept {
@@ -54,7 +54,7 @@ namespace acma::timeline {
 			compute_buffer.bind_uniform_buffers(proc, pipeline.layout());
 			compute_buffer.bind_asset_heap(proc, pipeline.layout());
 
-			compute_buffer.template dispatch<T>(proc); 
+			compute_buffer.template dispatch<T>(proc);
 			return {};
 		};
 	};

@@ -21,16 +21,16 @@ namespace acma {
 namespace acma::timeline {
 	template<typename T>
 	struct setup<draw<T>> {
-		template<auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount>
+		template<auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount, sl::size_t UserByteCount>
 		result<vk::pipeline<vk::bind_point::graphics, T, BufferConfigs, AssetHeapConfigs>> operator()(
-			render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount> const& proc,
+			render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount, UserByteCount> const& proc,
 			window& win
 		) const noexcept {
 			return make<vk::pipeline<vk::bind_point::graphics, T, BufferConfigs, AssetHeapConfigs>>(
 				proc.vulkan_functions_ptr(),
 				proc.logical_device_ptr(),
 				proc,
-				std::span<const VkFormat, 1>{&win.swap_chain_ptr()->format().pixel_format.id, 1}, 
+				std::span<const VkFormat, 1>{&win.swap_chain_ptr()->format().pixel_format.id, 1},
 				win.depth_image_ptr()->format_id()
 			);
 		};
@@ -40,12 +40,12 @@ namespace acma::timeline {
 namespace acma::timeline {
 	template<typename T>
 	struct command<draw<T>> {
-		template<auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount, sl::index_t CommandGroupIdx>
+		template<auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount, sl::index_t CommandGroupIdx, sl::size_t UserByteCount>
 		constexpr result<void> operator()(
-			render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount> const& proc, 
-			window&, 
-			timeline::state&, 
-			vk::pipeline<vk::bind_point::graphics, T, BufferConfigs, AssetHeapConfigs>& pipeline, 
+			render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount, UserByteCount> const& proc,
+			window&,
+			timeline::state<UserByteCount>&,
+			vk::pipeline<vk::bind_point::graphics, T, BufferConfigs, AssetHeapConfigs>& pipeline,
 			sl::index_constant_type<CommandGroupIdx>
 		) const noexcept {
 			vk::command_buffer const& graphics_buffer = proc.command_buffers()[proc.frame_index()][CommandGroupIdx];
@@ -57,7 +57,7 @@ namespace acma::timeline {
 			graphics_buffer.bind_uniform_buffers(proc, pipeline.layout());
 			graphics_buffer.bind_asset_heap(proc, pipeline.layout());
 
-			graphics_buffer.template draw<T>(proc); 
+			graphics_buffer.template draw<T>(proc);
 
 			return {};
 		};

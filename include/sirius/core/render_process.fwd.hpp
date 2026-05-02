@@ -3,6 +3,6 @@
 
 
 namespace acma {
-	template<auto, auto, sl::size_t>
+	template<auto, auto, sl::size_t, sl::size_t>
 	class render_process;
 }

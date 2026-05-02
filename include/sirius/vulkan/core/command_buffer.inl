@@ -129,9 +129,9 @@ namespace acma::vk {
 
 
 namespace acma::vk {
-	template<typename T, auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount>
+	template<typename T, auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount, sl::size_t UserByteCount>
 	void command_buffer::bind_index_buffer(
-		render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount> const& render_proc
+		render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount, UserByteCount> const& render_proc
 	) const noexcept requires has_index_info<T> {
 		static_assert(T::pipeline_bind_point == bind_point::graphics);
 
@@ -152,13 +152,13 @@ namespace acma::vk {
 	}
 
 
-	template<bind_point_t BindPoint, typename T, auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount>
+	template<bind_point_t BindPoint, typename T, auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount, sl::size_t UserByteCount>
 	void command_buffer::bind_push_constants(
-		render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount> const& render_proc,
+		render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount, UserByteCount> const& render_proc,
 		pipeline_layout<BindPoint, T, BufferConfigs, AssetHeapConfigs> const& layout
 	) const noexcept requires has_push_constants<T> {
 		constexpr auto bind_push_constant = []<sl::index_t I>(
-			render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount> const& proc,
+			render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount, UserByteCount> const& proc,
 			pipeline_layout<BindPoint, T, BufferConfigs, AssetHeapConfigs> const& p_layout,
 			command_buffer const& cmd_buff,
 			sl::index_constant_type<I>
@@ -187,16 +187,16 @@ namespace acma::vk {
 	}
 
 
-	template<bind_point_t BindPoint, typename T, auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount>
+	template<bind_point_t BindPoint, typename T, auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount, sl::size_t UserByteCount>
 	void command_buffer::bind_uniform_buffers(
-		render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount> const& render_proc,
+		render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount, UserByteCount> const& render_proc,
 		pipeline_layout<BindPoint, T, BufferConfigs, AssetHeapConfigs> const& layout
 	) const noexcept requires has_uniform_buffers<T> {
 		const auto buffer_infos = sl::make<sl::array<T::uniform_infos.size(), VkDescriptorBufferInfo>>(
 			render_proc,
 			sl::in_place_repeat_tag<T::uniform_infos.size()>,
 			[]<sl::index_t I>(
-				render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount> const& proc,
+				render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount, UserByteCount> const& proc,
 				sl::index_constant_type<I>
 			) noexcept {
 				constexpr buffer_info info = T::uniform_infos[I];
@@ -234,16 +234,16 @@ namespace acma::vk {
 		);
 	}
 
-	template<bind_point_t BindPoint, typename T, auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount>
+	template<bind_point_t BindPoint, typename T, auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount, sl::size_t UserByteCount>
 	void command_buffer::bind_asset_heap(
-		render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount> const& render_proc,
+		render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount, UserByteCount> const& render_proc,
 		pipeline_layout<BindPoint, T, BufferConfigs, AssetHeapConfigs> const& layout
 	) const noexcept requires has_asset_heaps<T> {
 		const auto descriptor_set_handles = sl::make<sl::array<T::asset_heaps.size(), VkDescriptorSet>>(
 			render_proc,
 			sl::in_place_repeat_tag<T::asset_heaps.size()>,
 			[]<sl::index_t I>(
-				render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount> const& proc,
+				render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount, UserByteCount> const& proc,
 				sl::index_constant_type<I>
 			) noexcept {
 				auto const& asset_heap = sl::universal::get<T::asset_heaps[I]>(proc);
@@ -272,13 +272,13 @@ namespace acma::vk {
 
 
 namespace acma::vk {
-	template<typename T, auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount>
+	template<typename T, auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount, sl::size_t UserByteCount>
 	void command_buffer::draw(
-		render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount> const& render_proc
+		render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount, UserByteCount> const& render_proc
 	) const noexcept {
 		constexpr auto draw_command = []<sl::index_t I>(
 			VkCommandBuffer cmd_buff,
-			render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount> const& proc,
+			render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount, UserByteCount> const& proc,
 			sl::index_constant_type<I>
 		) noexcept -> void {
 			constexpr draw_info info = T::draw_infos[I];
@@ -301,13 +301,13 @@ namespace acma::vk {
 		return sl::functor::invoke_each<draw_command>{}(sl::index_sequence_of_length<decltype(T::draw_infos)::size()>, this->smart_handle.get(), render_proc);
 	}
 
-	template<typename T, auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount>
+	template<typename T, auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount, sl::size_t UserByteCount>
 	void command_buffer::dispatch(
-		render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount> const& render_proc
+		render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount, UserByteCount> const& render_proc
 	) const noexcept {
 		constexpr auto dispatch_command = []<sl::index_t I>(
 			VkCommandBuffer cmd_buff,
-			render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount> const& proc,
+			render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount, UserByteCount> const& proc,
 			sl::index_constant_type<I>
 		) noexcept -> void {
 			constexpr dispatch_info info = T::dispatch_infos[I];

@@ -1,4 +1,4 @@
-#pragma once 
+#pragma once
 #include <streamline/numeric/int.hpp>
 
 #include "sirius/core/window.hpp"
@@ -20,8 +20,8 @@ namespace acma {
 namespace acma::timeline {
 	template<>
 	struct command<acquire_image> {
-		template<typename RenderProcessT>
-		constexpr result<void> operator()(RenderProcessT& proc, window& win, timeline::state& timeline_state, sl::empty_t, auto) const noexcept {
+		template<typename RenderProcessT, sl::size_t UserByteCount>
+		constexpr result<void> operator()(RenderProcessT& proc, window& win, timeline::state<UserByteCount>& timeline_state, sl::empty_t, auto) const noexcept {
 			RESULT_TRY_COPY_UNSCOPED(bool swap_chain_updated, win.verify_swap_chain(
         	    sl::invoke(proc.vulkan_functions_ptr()->vkAcquireNextImageKHR,
 					*proc.logical_device_ptr(),

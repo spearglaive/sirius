@@ -1,4 +1,4 @@
-#pragma once 
+#pragma once
 #include "sirius/timeline/submit.hpp"
 
 #include "sirius/vulkan/core/vulkan.hpp"
@@ -13,10 +13,10 @@ namespace acma::timeline::impl {
 		constexpr static sl::size_t wait_count = 0;
 		constexpr static sl::size_t signal_count = 0;
 
-		constexpr static std::array<vk::semaphore_submit_info, wait_count> 
+		constexpr static std::array<vk::semaphore_submit_info, wait_count>
 		wait(auto const&, auto&) noexcept { return {}; }
 
-		constexpr static std::array<vk::semaphore_submit_info, signal_count> 
+		constexpr static std::array<vk::semaphore_submit_info, signal_count>
 		signal(auto const&, auto&) noexcept { return {}; }
 	};
 }
@@ -27,13 +27,13 @@ namespace acma::timeline::impl {
 		constexpr static sl::size_t signal_count = 1;
 
 		constexpr static std::array<vk::semaphore_submit_info, wait_count>
-		wait(auto const& proc, auto&) noexcept { 
-			return {{{proc.acquisition_semaphores()[proc.frame_index()], render_stage::color_attachment_output}}}; 
+		wait(auto const& proc, auto&) noexcept {
+			return {{{proc.acquisition_semaphores()[proc.frame_index()], render_stage::color_attachment_output}}};
 		}
 
 		constexpr static std::array<vk::semaphore_submit_info, signal_count>
-		signal(auto const& proc, auto& timeline_state) noexcept { 
-			return {{{proc.graphics_semaphores()[timeline_state.image_index], render_stage::color_attachment_output}}}; 
+		signal(auto const& proc, auto& timeline_state) noexcept {
+			return {{{proc.graphics_semaphores()[timeline_state.image_index], render_stage::color_attachment_output}}};
 		}
 	};
 
@@ -42,13 +42,13 @@ namespace acma::timeline::impl {
 		constexpr static sl::size_t signal_count = 1;
 
 		constexpr static std::array<vk::semaphore_submit_info, wait_count>
-		wait(auto const& proc, auto& timeline_state) noexcept { 
-			return {{{proc.graphics_semaphores()[timeline_state.image_index], render_stage::group::all}}}; 
+		wait(auto const& proc, auto& timeline_state) noexcept {
+			return {{{proc.graphics_semaphores()[timeline_state.image_index], render_stage::group::all}}};
 		}
 
 		constexpr static std::array<vk::semaphore_submit_info, signal_count>
-		signal(auto const& proc, auto& timeline_state) noexcept { 
-			return {{{proc.pre_present_semaphores()[timeline_state.image_index], render_stage::group::all}}}; 
+		signal(auto const& proc, auto& timeline_state) noexcept {
+			return {{{proc.pre_present_semaphores()[timeline_state.image_index], render_stage::group::all}}};
 		}
 	};
 }
@@ -57,11 +57,11 @@ namespace acma::timeline::impl {
 
 namespace acma::timeline {
 	template<command_family_t CommandFamily, render_stage_flags_t CompleteStages, render_stage_flags_t WaitStages>
-	template<typename RenderProcessT, sl::index_t CommandGroupIdx>
+	template<typename RenderProcessT, sl::index_t CommandGroupIdx, sl::size_t UserByteCount>
 	result<void> command<::acma::impl::submit_base<CommandFamily, signal_completion_at<CompleteStages>, wait_for<WaitStages>>>::operator()(
-		RenderProcessT& proc, 
-		window&, 
-		timeline::state& timeline_state, 
+		RenderProcessT& proc,
+		window&,
+		timeline::state<UserByteCount>& timeline_state,
 		sl::empty_t,
 		sl::index_constant_type<CommandGroupIdx>
 	) const noexcept {
@@ -76,7 +76,7 @@ namespace acma::timeline {
 		for(command_family_t cf = 0; cf < command_family::num_families; ++cf)
 			if(::acma::impl::has_command_family(cf, WaitStages))
 				wait_semaphore_infos[wait_seamphore_count++] = {proc.command_family_semaphores()[frame_idx][cf], acma::render_stage::group::all/*::acma::impl::filter_by_command_family(cf, WaitStages)*/, proc.command_family_semaphore_values()[frame_idx][cf]};
-		
+
 		for(sl::index_t i = 0; i < extra_wait_semaphore_count; ++i)
 			wait_semaphore_infos[wait_seamphore_count++] = impl::extra_semaphores<CommandFamily>::wait(proc, timeline_state)[i];
 
@@ -88,12 +88,12 @@ namespace acma::timeline {
 		sl::size_t signal_semaphore_count = 2;
 		signal_semaphore_infos[0] = {proc.command_family_semaphores()[frame_idx][CommandFamily], CompleteStages, ++proc.command_family_semaphore_values()[frame_idx][CommandFamily]};
 		signal_semaphore_infos[1] = {proc.command_buffer_semaphores()[frame_idx][CommandGroupIdx], CompleteStages, ++proc.command_buffer_semaphore_values()[frame_idx][CommandGroupIdx]};
-		
+
 		for(sl::index_t i = 0; i < extra_signal_semaphore_count; ++i)
 			signal_semaphore_infos[signal_semaphore_count++] = impl::extra_semaphores<CommandFamily>::signal(proc, timeline_state)[i];
 
 
-		
+
 		vk::command_buffer const& cmd_buff = proc.command_buffers()[frame_idx][CommandGroupIdx];
 		RESULT_VERIFY(cmd_buff.end());
 		return cmd_buff.submit(
@@ -109,11 +109,11 @@ namespace acma::timeline {
 
 namespace acma::timeline {
 	template<render_stage_flags_t CompleteStages, render_stage_flags_t WaitStages>
-	template<typename RenderProcessT, sl::index_t CommandGroupIdx>
+	template<typename RenderProcessT, sl::index_t CommandGroupIdx, sl::size_t UserByteCount>
 	result<void> command<submit<command_family::present, signal_completion_at<CompleteStages>, wait_for<WaitStages>>>::operator()(
-		RenderProcessT& proc, 
+		RenderProcessT& proc,
 		window& win,
-		timeline::state& timeline_state,
+		timeline::state<UserByteCount>& timeline_state,
 		sl::empty_t,
 		sl::index_constant_type<CommandGroupIdx>
 	) const noexcept {
@@ -133,7 +133,7 @@ namespace acma::timeline {
 
 			cmd_buff.pipeline_barrier({}, {}, {&pre_present_barrier, 1});
 
-			
+
 			//Call base submit function
 			RESULT_VERIFY((command<::acma::impl::submit_base<command_family::present, signal_completion_at<CompleteStages>, wait_for<WaitStages>>>::
 			operator()(proc, win, timeline_state, sl::empty_t{}, sl::index_constant<CommandGroupIdx>)));
@@ -166,15 +166,15 @@ namespace acma::timeline {
 		VkPresentInfoKHR present_info{
 			.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
 			.waitSemaphoreCount = 1,
-			.pWaitSemaphores = proc.has_dedicated_present_queue() ? 
-				&proc.pre_present_semaphores()[timeline_state.image_index] : 
+			.pWaitSemaphores = proc.has_dedicated_present_queue() ?
+				&proc.pre_present_semaphores()[timeline_state.image_index] :
 				&proc.graphics_semaphores()[timeline_state.image_index],
 			.swapchainCount = 1,
 			.pSwapchains = &win.swap_chain_ptr()->smart_handle.get(),
 			.pImageIndices = &timeline_state.image_index,
 		};
 		RESULT_TRY_COPY_UNSCOPED(bool swap_chain_updated, win.verify_swap_chain(
-			sl::invoke(proc.vulkan_functions_ptr()->vkQueuePresentKHR, 
+			sl::invoke(proc.vulkan_functions_ptr()->vkQueuePresentKHR,
 				proc.logical_device_ptr()->queues[command_family::present][timeline_state.queue_indices[command_family::present]++],
 				&present_info
 			),

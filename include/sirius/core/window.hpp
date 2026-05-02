@@ -70,11 +70,6 @@ namespace acma {
         static void mouse_button_input(GLFWwindow* window_ptr, int button, int action, int mods) noexcept;
         static void mouse_scroll(GLFWwindow* window_ptr, double x, double y) noexcept; //can't be a modifier (no release either)
 
-	private:
-    	template<typename TimelineT, auto BufferConfigs, auto AssetHeapConfigs>
-		requires impl::is_buffer_config_table_v<decltype(BufferConfigs)>
-		friend class render_instance;
-
 	protected:
         sl::unique_ptr<input::info> input_info_ptr;
         sl::unique_ptr<GLFWwindow, sl::functor::generic_stateless<glfwDestroyWindow>> window_handle;

@@ -29,18 +29,18 @@
 
 
 namespace acma {
-	template<auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount>
+	template<auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount, sl::size_t UserByteCount = 0>
 	class render_process :
 		public impl::render_process_core,
 		public vk::impl::buffer_group<
 			sl::index_sequence_of_length_type<BufferConfigs.size()>,
 			BufferConfigs,
-			render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount>
+			render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount, UserByteCount>
 		>,
 		public vk::impl::asset_heap_group<
 			sl::index_sequence_of_length_type<AssetHeapConfigs.size()>,
 			AssetHeapConfigs,
-			render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount>
+			render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount, UserByteCount>
 		>
 	{
 
@@ -67,7 +67,7 @@ namespace acma {
 		template<asset_heap_key_t K>
 		using asset_heap_type = vk::asset_heap<K, asset_heap_configs, render_process>;
 	public:
-		using callback_function_type = result<void>(render_process&, window&, timeline::state&) noexcept;
+		using callback_function_type = result<void>(render_process&, window&, timeline::state<UserByteCount>&) noexcept;
 
 
 	public:

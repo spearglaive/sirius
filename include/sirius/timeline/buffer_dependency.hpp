@@ -29,15 +29,15 @@ namespace acma::timeline {
 		buffer_key_t... BufferKeys
 	>
 	struct command<buffer_dependency<ExecutionCommandFamily, SourceStages, SourceMemoryOp, DestinationStages, DestinationMemoryOp, buffer_key_sequence_type<BufferKeys...>>> {
-		template<typename RenderProcessT, sl::index_t CommandGroupIdx>
-		constexpr result<void> operator()(RenderProcessT const& proc, window&, timeline::state&, sl::empty_t, sl::index_constant_type<CommandGroupIdx>) const noexcept {
+		template<typename RenderProcessT, sl::index_t CommandGroupIdx, sl::size_t UserByteCount>
+		constexpr result<void> operator()(RenderProcessT const& proc, window&, timeline::state<UserByteCount>&, sl::empty_t, sl::index_constant_type<CommandGroupIdx>) const noexcept {
 			constexpr std::optional<command_family_t> src_command_family = ::acma::impl::to_command_family(SourceStages);
 			constexpr std::optional<command_family_t> dst_command_family = ::acma::impl::to_command_family(DestinationStages);
 			constexpr bool is_inter_command = src_command_family.has_value() && dst_command_family.has_value() && *src_command_family != *dst_command_family;
 			const bool different_queues = is_inter_command && proc.physical_device_ptr()->queue_family_infos[*src_command_family].index != proc.physical_device_ptr()->queue_family_infos[*dst_command_family].index;
 
 			vk::command_buffer const& cmd_buff = proc.command_buffers()[proc.frame_index()][CommandGroupIdx];
-			
+
 			//If it's an inter-command dependency and the queues are the same, do nothing (submit<> will handle the syncronization)
 			if constexpr(is_inter_command)
 				if(!different_queues)
@@ -58,7 +58,7 @@ namespace acma::timeline {
 					.size = proc[buffer_key_constant_type<BufferKeys>{}].size_bytes()
 				}...
 			}};
-			
+
 			cmd_buff.pipeline_barrier({}, barriers, {});
 
 			return {};

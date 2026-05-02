@@ -1,4 +1,4 @@
-#pragma once 
+#pragma once
 #include <streamline/numeric/int.hpp>
 
 #include "sirius/arith/size.hpp"
@@ -20,10 +20,10 @@ namespace acma {
 namespace acma::timeline {
 	template<>
 	struct command<begin_draw_phase> {
-		template<typename RenderProcessT, sl::index_t CommandGroupIdx>
-		constexpr result<void> operator()(RenderProcessT const& proc, window& win, timeline::state& timeline_state, sl::empty_t, sl::index_constant_type<CommandGroupIdx>) const noexcept {
+		template<typename RenderProcessT, sl::index_t CommandGroupIdx, sl::size_t UserByteCount>
+		constexpr result<void> operator()(RenderProcessT const& proc, window& win, timeline::state<UserByteCount>& timeline_state, sl::empty_t, sl::index_constant_type<CommandGroupIdx>) const noexcept {
 			vk::command_buffer const& graphics_buffer = proc.command_buffers()[proc.frame_index()][CommandGroupIdx];
-			
+
 			std::array<VkImageMemoryBarrier2, 2> pre_render_transitions{{
 				VkImageMemoryBarrier2{
 				    .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
@@ -49,7 +49,7 @@ namespace acma::timeline {
 				}
 			}};
 			graphics_buffer.pipeline_barrier({}, {}, pre_render_transitions);
-			
+
 			VkRenderingAttachmentInfo color_attachment{
 			    .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
 			    .imageView = win.swap_chain_ptr()->image_views()[timeline_state.image_index],

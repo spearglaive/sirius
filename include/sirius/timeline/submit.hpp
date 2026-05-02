@@ -1,4 +1,4 @@
-#pragma once 
+#pragma once
 #include <streamline/numeric/int.hpp>
 
 #include "sirius/core/window.hpp"
@@ -37,8 +37,8 @@ namespace acma {
 namespace acma::timeline {
 	template<command_family_t CommandFamily, render_stage_flags_t CompleteStages, render_stage_flags_t WaitStages>
 	struct command<::acma::impl::submit_base<CommandFamily, signal_completion_at<CompleteStages>, wait_for<WaitStages>>> {
-		template<typename RenderProcessT, sl::index_t CommandGroupIdx>
-		result<void> operator()(RenderProcessT& proc, window&, timeline::state&, sl::empty_t, sl::index_constant_type<CommandGroupIdx>) const noexcept;
+		template<typename RenderProcessT, sl::index_t CommandGroupIdx, sl::size_t UserByteCount>
+		result<void> operator()(RenderProcessT& proc, window&, timeline::state<UserByteCount>&, sl::empty_t, sl::index_constant_type<CommandGroupIdx>) const noexcept;
 	};
 }
 
@@ -51,10 +51,10 @@ namespace acma::timeline {
 
 	template<render_stage_flags_t CompleteStages, render_stage_flags_t WaitStages>
 	struct command<submit<command_family::present, signal_completion_at<CompleteStages>, wait_for<WaitStages>>> :
-		command<::acma::impl::submit_base<command_family::present, signal_completion_at<CompleteStages>, wait_for<WaitStages>>> 
+		command<::acma::impl::submit_base<command_family::present, signal_completion_at<CompleteStages>, wait_for<WaitStages>>>
 	{
-		template<typename RenderProcessT, sl::index_t CommandGroupIdx>
-		result<void> operator()(RenderProcessT& proc, window&, timeline::state& timeline_state, sl::empty_t, sl::index_constant_type<CommandGroupIdx>) const noexcept;
+		template<typename RenderProcessT, sl::index_t CommandGroupIdx, sl::size_t UserByteCount>
+		result<void> operator()(RenderProcessT& proc, window&, timeline::state<UserByteCount>& timeline_state, sl::empty_t, sl::index_constant_type<CommandGroupIdx>) const noexcept;
 	};
 }
 
