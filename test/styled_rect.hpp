@@ -15,13 +15,13 @@ namespace acma::test {
         constexpr static auto frag_shader_data = std::to_array(acma::shaders::rect::frag);
 
 	public:
-		constexpr static index_buffer_info index_info{::buffer_id::rectangle_indices};
-		constexpr static sl::array<1, push_constant_buffer_info> push_constant_infos{{
+		constexpr static index_buffer_info index_info{{::buffer_id::rectangle_indices}};
+		constexpr static sl::array<1, buffer_info> push_constant_infos{{
 			{::buffer_id::draw_constants},
 		}};
 	public:
 		constexpr static sl::array<1, draw_info> draw_infos{{
-			{::buffer_id::draw_commands, ::buffer_id::counts}
+			{{::buffer_id::draw_commands}, {::buffer_id::counts}}
 		}};
 	};
 }

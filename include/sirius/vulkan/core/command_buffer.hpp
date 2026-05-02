@@ -1,4 +1,6 @@
 #pragma once
+#include "sirius/core/dispatchable.hpp"
+#include "sirius/core/drawable.hpp"
 #include "sirius/vulkan/core/command_buffer.fwd.hpp"
 
 #include <cstddef>
@@ -31,7 +33,7 @@ namespace acma::vk {
 		template<typename T> constexpr static bool has_index_info = requires{ T::index_info; };
 		template<typename T> constexpr static bool has_asset_heaps = T::asset_heaps.size() > 0;
 		template<typename T> constexpr static bool has_push_constants = T::push_constant_infos.size() > 0;
-		template<typename T> constexpr static bool has_uniform_buffers = T::uniform_buffers.size() > 0;
+		template<typename T> constexpr static bool has_uniform_buffers = T::uniform_infos.size() > 0;
 
 
 	public:
@@ -108,19 +110,6 @@ namespace acma::vk {
 			render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount> const& render_proc
 		) const noexcept;
 
-    public:
-		template<typename T, auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount>
-        void draw(
-			render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount> const& render_proc,
-			sl::array<decltype(T::draw_infos)::size(), sl::uoffset_t> draw_command_buffer_offsets,
-			sl::array<decltype(T::draw_infos)::size(), sl::uoffset_t> draw_count_buffer_offsets
-		) const noexcept;
-
-		template<typename T, auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount>
-        void dispatch(
-			render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount> const& render_proc,
-			sl::array<decltype(T::dispatch_infos)::size(), sl::uoffset_t> buffer_offsets
-		) const noexcept;
 
     public:
         inline void copy(vk::buffer_allocation_unique_ptr& dst, vk::buffer_allocation_unique_ptr const& src, std::span<const VkBufferCopy> copy_regions) const noexcept;

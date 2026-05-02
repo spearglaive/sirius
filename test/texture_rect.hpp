@@ -15,8 +15,8 @@ namespace acma::test {
         constexpr static auto frag_shader_data = std::to_array(acma::shaders::texture_rect::frag);
 
 	public:
-		constexpr static index_buffer_info index_info{::buffer_id::rectangle_indices};
-		constexpr static sl::array<1, push_constant_buffer_info> push_constant_infos{{
+		constexpr static index_buffer_info index_info{{::buffer_id::rectangle_indices}};
+		constexpr static sl::array<1, buffer_info> push_constant_infos{{
 			{::buffer_id::draw_constants},
 		}};
 	public:
@@ -25,10 +25,10 @@ namespace acma::test {
 			::asset_heap_id::samplers,
 			::asset_heap_id::textures
 		}};
-		constexpr static sl::array<0, buffer_key_t> uniform_buffers{{}};
+		constexpr static sl::array<0, buffer_info> uniform_infos{{}};
 	public:
 		constexpr static sl::array<1, draw_info> draw_infos{{
-			{::buffer_id::single_instance_draw_command, ::buffer_id::counts}
+			{{::buffer_id::single_instance_draw_command}, {::buffer_id::counts}}
 		}};
 	};
 }

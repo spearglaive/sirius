@@ -1,11 +1,10 @@
 #pragma once
+#include "sirius/core/buffer_info.hpp"
 #include "sirius/vulkan/memory/pipeline_layout.hpp"
 
 #include <streamline/functional/functor/forward_construct.hpp>
 #include <streamline/functional/functor/invoke_each.hpp>
 #include <streamline/metaprogramming/integer_sequence.hpp>
-
-#include "sirius/core/push_constant_buffer_info.hpp"
 
 
 namespace acma::impl {
@@ -26,21 +25,22 @@ namespace acma::impl {
 
 		constexpr static auto push_constant_ranges = sl::make<sl::array<T::push_constant_infos.size(), VkPushConstantRange>>(
 			T::push_constant_infos,
-			[](push_constant_buffer_info info, auto) noexcept -> VkPushConstantRange {
+			[](buffer_info info, auto) noexcept -> VkPushConstantRange {
 				const buffer_config cfg = BufferConfigs[info.buffer_key];
-				return {cfg.stages, static_cast<sl::uint32_t>(info.offset), static_cast<std::uint32_t>(cfg.initial_capacity_bytes)};
+				const sl::size_t data_size = (info.size == VK_WHOLE_SIZE ? cfg.initial_capacity_bytes : info.size);
+				return {cfg.stages, 0, static_cast<std::uint32_t>(data_size)};
 			}
 		);
 
 
-		constexpr static auto uniform_bindings = sl::make<sl::array<T::uniform_buffers.size(), VkDescriptorSetLayoutBinding>>(
-			T::uniform_buffers,
-			[]<sl::index_t I>(buffer_key_t key, sl::index_constant_type<I>) noexcept {
+		constexpr static auto uniform_bindings = sl::make<sl::array<T::uniform_infos.size(), VkDescriptorSetLayoutBinding>>(
+			T::uniform_infos,
+			[]<sl::index_t I>(buffer_info info, sl::index_constant_type<I>) noexcept {
 				return VkDescriptorSetLayoutBinding{
 					.binding = I,
 					.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 					.descriptorCount = 1,
-					.stageFlags = BufferConfigs[key].stages,
+					.stageFlags = BufferConfigs[info.buffer_key].stages,
 					.pImmutableSamplers = nullptr,
 				};
 			}

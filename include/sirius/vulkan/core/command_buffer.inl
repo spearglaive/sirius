@@ -163,16 +163,17 @@ namespace acma::vk {
 			command_buffer const& cmd_buff,
 			sl::index_constant_type<I>
 		) noexcept {
-			constexpr push_constant_buffer_info info = T::push_constant_infos[I];
+			constexpr buffer_info info = T::push_constant_infos[I];
 			constexpr buffer_config config = BufferConfigs[info.buffer_key];
+			constexpr sl::size_t data_size = (info.size == VK_WHOLE_SIZE ? config.initial_capacity_bytes : info.size);
 			sl::invoke(
 				cmd_buff.vulkan_fns_ptr->vkCmdPushConstants,
 				cmd_buff,
 				p_layout,
 				config.stages,
-				info.offset,
-				config.initial_capacity_bytes,
-				sl::universal::get<info.buffer_key>(proc).data()
+				0,
+				data_size,
+				sl::universal::get<info.buffer_key>(proc).data() + info.offset
 			);
 		};
 
@@ -191,23 +192,25 @@ namespace acma::vk {
 		render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount> const& render_proc,
 		pipeline_layout<BindPoint, T, BufferConfigs, AssetHeapConfigs> const& layout
 	) const noexcept requires has_uniform_buffers<T> {
-		const auto buffer_infos = sl::make<sl::array<T::uniform_buffers.size(), VkDescriptorBufferInfo>>(
+		const auto buffer_infos = sl::make<sl::array<T::uniform_infos.size(), VkDescriptorBufferInfo>>(
 			render_proc,
-			sl::in_place_repeat_tag<T::uniform_buffers.size()>,
+			sl::in_place_repeat_tag<T::uniform_infos.size()>,
 			[]<sl::index_t I>(
 				render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount> const& proc,
 				sl::index_constant_type<I>
 			) noexcept {
-				auto const& buff = sl::universal::get<T::uniform_buffers[I]>(proc);
+				constexpr buffer_info info = T::uniform_infos[I];
+				auto const& buff = sl::universal::get<info.buffer_key>(proc);
+				const sl::size_t data_size = info.size; //sl::algo::min(buff.size_bytes(), info.size);
 				return VkDescriptorBufferInfo{
 					.buffer = buff.handle(),
-					.offset = 0,
-					.range = buff.size_bytes(),
+					.offset = info.offset,
+					.range = data_size,
 				};
 			}
 		);
 
-		const auto writes = sl::make<sl::array<T::uniform_buffers.size(), VkWriteDescriptorSet>>(
+		const auto writes = sl::make<sl::array<T::uniform_infos.size(), VkWriteDescriptorSet>>(
 			buffer_infos,
 			[]<sl::index_t I>(VkDescriptorBufferInfo const& info, sl::index_constant_type<I>) noexcept {
 				return VkWriteDescriptorSet{
@@ -273,65 +276,16 @@ namespace acma::vk {
 	void command_buffer::draw(
 		render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount> const& render_proc
 	) const noexcept {
-		constexpr static auto draw_cmd_buff_offsets = sl::make<sl::array<decltype(T::draw_infos)::size(), sl::uoffset_t>>(
-			T::draw_infos,
-			[]<sl::index_t I>(draw_info info, sl::index_constant_type<I>) noexcept {
-				return info.draw_command_offset;
-			}
-		);
-
-		constexpr static auto draw_cnt_buff_offsets = sl::make<sl::array<decltype(T::draw_infos)::size(), sl::uoffset_t>>(
-			T::draw_infos,
-			[]<sl::index_t I>(draw_info info, sl::index_constant_type<I>) noexcept {
-				return info.draw_count_offset;
-			}
-		);
-
-		return draw<T>(
-			render_proc,
-			draw_cmd_buff_offsets,
-			draw_cnt_buff_offsets
-		);
-	}
-
-
-	template<typename T, auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount>
-	void command_buffer::dispatch(
-		render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount> const& render_proc
-	) const noexcept {
-		constexpr static auto offsets = sl::make<sl::array<decltype(T::dispatch_infos)::size(), sl::uoffset_t>>(
-			T::dispatch_infos,
-			[]<sl::index_t I>(dispatch_info info, sl::index_constant_type<I>) noexcept {
-				return info.offset;
-			}
-		);
-
-		return dispatch<T>(
-			render_proc,
-			offsets
-		);
-	}
-}
-
-namespace acma::vk {
-	template<typename T, auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount>
-	void command_buffer::draw(
-		render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount> const& render_proc,
-		sl::array<decltype(T::draw_infos)::size(), sl::uoffset_t> draw_command_buffer_offsets,
-		sl::array<decltype(T::draw_infos)::size(), sl::uoffset_t> draw_count_buffer_offsets
-	) const noexcept {
 		constexpr auto draw_command = []<sl::index_t I>(
 			VkCommandBuffer cmd_buff,
 			render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount> const& proc,
-			sl::array<decltype(T::draw_infos)::size(), sl::uoffset_t> draw_cmd_buff_offsets,
-			sl::array<decltype(T::draw_infos)::size(), sl::uoffset_t> draw_cnt_buff_offsets,
 			sl::index_constant_type<I>
 		) noexcept -> void {
-			const sl::uoffset_t draw_cmd_offset = draw_cmd_buff_offsets[I];
-			const sl::uoffset_t draw_cnt_offset = draw_cnt_buff_offsets[I];
 			constexpr draw_info info = T::draw_infos[I];
-			auto const& draw_cmd_buff = sl::universal::get<info.draw_command_buffer_key>(proc);
-			auto const& draw_cnt_buff = sl::universal::get<info.draw_count_buffer_key>(proc);
+			auto const& draw_cmd_buff = sl::universal::get<info.draw_command_info.buffer_key>(proc);
+			auto const& draw_cnt_buff = sl::universal::get<info.draw_count_info.buffer_key>(proc);
+			constexpr sl::uoffset_t draw_cmd_offset = info.draw_command_info.offset;
+			constexpr sl::uoffset_t draw_cnt_offset = info.draw_count_info.offset;
 
 			if constexpr (has_index_info<T>) {
 				constexpr static sl::size_t stride = sizeof(indexed_draw_command_t);
@@ -344,25 +298,23 @@ namespace acma::vk {
 			}
 		};
 
-		return sl::functor::invoke_each<draw_command>{}(sl::index_sequence_of_length<decltype(T::draw_infos)::size()>, this->smart_handle.get(), render_proc, draw_command_buffer_offsets, draw_count_buffer_offsets);
+		return sl::functor::invoke_each<draw_command>{}(sl::index_sequence_of_length<decltype(T::draw_infos)::size()>, this->smart_handle.get(), render_proc);
 	}
 
 	template<typename T, auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount>
 	void command_buffer::dispatch(
-		render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount> const& render_proc,
-		sl::array<decltype(T::dispatch_infos)::size(), sl::uoffset_t> buffer_offsets
+		render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount> const& render_proc
 	) const noexcept {
 		constexpr auto dispatch_command = []<sl::index_t I>(
 			VkCommandBuffer cmd_buff,
 			render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount> const& proc,
-			sl::array<decltype(T::dispatch_infos)::size(), sl::uoffset_t> buff_offsets,
 			sl::index_constant_type<I>
 		) noexcept -> void {
 			constexpr dispatch_info info = T::dispatch_infos[I];
-			sl::invoke(proc.vulkan_functions_ptr()->vkCmdDispatchIndirect, cmd_buff, static_cast<VkBuffer>(sl::universal::get<info.buffer_key>(proc)), buff_offsets[I]);
+			sl::invoke(proc.vulkan_functions_ptr()->vkCmdDispatchIndirect, cmd_buff, static_cast<VkBuffer>(sl::universal::get<info.buffer_key>(proc)), info.offset);
 		};
 
-		return sl::functor::invoke_each<dispatch_command>{}(sl::index_sequence_of_length<decltype(T::dispatch_infos)::size()>, this->smart_handle.get(), render_proc, buffer_offsets);
+		return sl::functor::invoke_each<dispatch_command>{}(sl::index_sequence_of_length<decltype(T::dispatch_infos)::size()>, this->smart_handle.get(), render_proc);
 	}
 }
 

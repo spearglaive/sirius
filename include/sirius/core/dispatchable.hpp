@@ -5,16 +5,13 @@
 #include <streamline/numeric/int.hpp>
 
 #include "sirius/core/asset_heap_key_t.hpp"
+#include "sirius/core/buffer_info.hpp"
 #include "sirius/core/buffer_key_t.hpp"
-#include "sirius/core/push_constant_buffer_info.hpp"
 #include "sirius/vulkan/memory/bind_point.hpp"
 
 
 namespace acma {
-	struct dispatch_info {
-		buffer_key_t buffer_key;
-		sl::uoffset_t offset = 0;
-	};
+	using dispatch_info = basic_buffer_info;
 }
 
 namespace acma {
@@ -23,10 +20,10 @@ namespace acma {
 	public:
 		consteval static sl::uint32_t max_draw_count() noexcept { return static_cast<sl::uint32_t>(-1); }
 	public:
-		constexpr static sl::array<0, push_constant_buffer_info> push_constant_infos{};
+		constexpr static sl::array<0, buffer_info> push_constant_infos{};
 	public:
 		constexpr static sl::array<0, asset_heap_key_t> asset_heaps{};
-		constexpr static sl::array<0, buffer_key_t> uniform_buffers{};
+		constexpr static sl::array<0, buffer_info> uniform_buffer_infos{};
 	public:
 		constexpr static sl::array<0, dispatch_info> dispatch_infos{};
 	};
