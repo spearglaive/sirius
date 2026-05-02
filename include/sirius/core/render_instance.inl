@@ -340,6 +340,10 @@ namespace acma {
 		};
 		__D2D_VULKAN_VERIFY(sl::invoke(this->vulkan_functions_ptr()->vkWaitSemaphores, *this->logical_device_ptr(), &wait_info, std::numeric_limits<std::uint64_t>::max()));
 
+
+		this->old_allocations()[frame_idx].clear();
+
+
 		timeline::state<UserByteCount> timeline_state{};
 
 		D2D_INVOKE_ALL(this->timeline_callbacks(), on_frame_begin, *this, *this, timeline_state);

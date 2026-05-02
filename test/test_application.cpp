@@ -125,6 +125,18 @@ int main(){
 		}
 		return {};
 	});
+	//Set callback to fill (almost) all one bits
+	inst.timeline_callbacks()[acma::timeline::callback_event::on_frame_begin].push_back([](typename render_instance::render_process_type& proc, acma::window&, auto&) noexcept -> acma::result<void> {
+		constexpr static sl::byte fill_value = static_cast<sl::byte>(~0 << 1);
+		constexpr static sl::array<32, sl::byte> fill_data = sl::universal::make_deduced<sl::generic::array>(fill_value, sl::in_place_repeat_tag<32>);
+		std::memcpy(
+			sl::universal::get<::buffer_id::all_ones_cpu_side>(proc).data(),
+			fill_data.data(),
+			fill_data.size_bytes()
+		);
+		return {};
+	});
+
 	inst.timeline_callbacks()[acma::timeline::callback_event::on_swap_chain_updated].push_back(
 		&acma::timeline::predefined_callbacks::update_swap_extent<render_instance, buffer_id::draw_constants>
 	);

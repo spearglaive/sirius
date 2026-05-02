@@ -49,6 +49,6 @@ constexpr acma::buffer_config_table<buffer_id::num_buffer_ids> buffer_configs{{{
 	{buffer_id::compute_constants, {acma::memory_policy::push_constant, acma::coupling_policy::decoupled, acma::buffer_usage_policy::push_constant, acma::shader_stage::compute, sizeof(compute_constants)}},
 
 	{buffer_id::all_ones_cpu_side, {acma::memory_policy::cpu_local_cpu_writable, acma::coupling_policy::decoupled, acma::buffer_usage_policy::generic, 0, 32}},
-	{buffer_id::all_ones_gpu_side, {acma::memory_policy::gpu_local, acma::coupling_policy::decoupled, acma::buffer_usage_policy::generic, 0}},
-	
+	{buffer_id::all_ones_gpu_side, {acma::memory_policy::gpu_local, acma::coupling_policy::coupled, acma::buffer_usage_policy::generic, 0}},
+
 }}};

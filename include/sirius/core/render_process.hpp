@@ -118,6 +118,8 @@ namespace acma {
 
 		constexpr auto&& timeline_callbacks(this auto&& self) noexcept {return sl::forward_like<decltype(self)>(self._timeline_callbacks); }
 
+		constexpr auto&& old_allocations(this auto&& self) noexcept { return sl::forward_like<decltype(self)>(self._old_allocations); }
+
 	public:
 		constexpr sl::size_t  frame_count() const noexcept { return _frame_count; }
 		constexpr sl::index_t frame_index() const noexcept { return frame_count() % frames_in_flight; }
@@ -200,6 +202,8 @@ namespace acma {
 		sl::array<frames_in_flight, vk::semaphore> _acquisition_semaphores;
 		std::vector<vk::semaphore> _graphics_semaphores;
 		std::vector<vk::semaphore> _pre_present_semaphores;
+
+		sl::array<frames_in_flight, std::vector<vk::buffer_allocation_unique_ptr>> _old_allocations;
 
 		sl::size_t _frame_count;
 	};
