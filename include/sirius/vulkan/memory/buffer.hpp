@@ -32,8 +32,8 @@ namespace acma::vk::impl {
 	template<buffer_key_t K, auto BufferConfigs, typename RenderProcessT>
 	struct buffer_properties {
 		constexpr static buffer_config config = BufferConfigs[K];
-		constexpr static sl::size_t allocation_count = allocation_counts[config.coupling];
-		constexpr static bool requires_clear_every_frame = impl::requires_clear<config.coupling, config.memory>;
+		constexpr static sl::size_t allocation_count = allocation_counts[config.access];
+		constexpr static bool requires_clear_every_frame = impl::requires_clear<config.access, config.memory>;
 
 	protected:
 		constexpr sl::index_t allocation_index() const noexcept;
@@ -90,7 +90,7 @@ namespace acma::vk::impl {
         VkBufferUsageFlags flags;
 		VkDescriptorType descriptor_type;
 	protected:
-		[[no_unique_address]] impl::clear_frame<config.coupling, config.memory> last_clear_frame;
+		[[no_unique_address]] impl::clear_frame<config.access, config.memory> last_clear_frame;
 	};
 
 

@@ -17,7 +17,7 @@ enum : acma::asset_heap_key_t {
 }
 
 constexpr acma::asset_heap_config_table<asset_heap_id::num_asset_heap_ids> asset_heap_configs{{{
-	{asset_heap_id::textures, acma::asset_heap_config{acma::memory_policy::gpu_local, acma::coupling_policy::coupled, acma::asset_usage_policy::sampled_image, acma::shader_stage::all_graphics}},
+	{asset_heap_id::textures, acma::asset_heap_config{acma::memory_policy::gpu_local, acma::access_policy::gpu_only, acma::asset_usage_policy::sampled_image, acma::shader_stage::all_graphics}},
 
-	{asset_heap_id::samplers, acma::asset_heap_config{acma::memory_policy::gpu_local, acma::coupling_policy::coupled, acma::asset_usage_policy::sampler, acma::shader_stage::fragment}},
+	{asset_heap_id::samplers, acma::asset_heap_config{acma::memory_policy::gpu_local, acma::access_policy::gpu_only, acma::asset_usage_policy::sampler, acma::shader_stage::fragment}},
 }}};

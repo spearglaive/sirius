@@ -23,9 +23,9 @@ namespace acma::vk::impl {
 	class asset_heap_base {
 	public:
 		constexpr static asset_heap_config config = AssetHeapConfigs[K];
-		constexpr static sl::size_t allocation_count = impl::allocation_counts[config.coupling];
+		constexpr static sl::size_t allocation_count = impl::allocation_counts[config.access];
 		constexpr static VkDescriptorType descriptor_type = vk::descriptor_types[config.usage];
-		constexpr static bool requires_clear_every_frame = impl::requires_clear<config.coupling, config.image_memory>;
+		constexpr static bool requires_clear_every_frame = impl::requires_clear<config.access, config.image_memory>;
 
 	public:
 		constexpr result<void> initialize() noexcept;
@@ -52,7 +52,7 @@ namespace acma::vk::impl {
 		sl::array<allocation_count, sl::uint32_t> _descriptor_capacities;
 		sl::array<allocation_count, descriptor_set> _descriptor_sets;
 	protected:
-		[[no_unique_address]] impl::clear_frame<config.coupling, config.image_memory> last_clear_frame;
+		[[no_unique_address]] impl::clear_frame<config.access, config.image_memory> last_clear_frame;
 	};
 }
 

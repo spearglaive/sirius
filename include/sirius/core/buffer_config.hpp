@@ -3,7 +3,7 @@
 
 #include "sirius/vulkan/core/vulkan.hpp"
 
-#include "sirius/core/coupling_policy.hpp"
+#include "sirius/core/access_policy.hpp"
 #include "sirius/core/memory_policy.hpp"
 #include "sirius/core//shader_stage.hpp"
 
@@ -26,7 +26,7 @@ namespace acma {
 	enum : buffer_usage_policy_flags_t {
 		none,
 		generic = none,
-		
+
 		uniform = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 		index   = VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
 		vertex  = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
@@ -59,7 +59,7 @@ namespace acma {
 namespace acma {
 	struct buffer_config {
 		memory_policy_t memory;
-		coupling_policy_t coupling;
+		access_policy_t access;
 		buffer_usage_policy_flags_t usage;
 		shader_stage_flags_t stages;
 		std::size_t initial_capacity_bytes = 0;

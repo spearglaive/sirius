@@ -35,13 +35,13 @@ namespace acma::timeline::impl {
 
 		constexpr buffer_config config = sl::universal::get<Key>(proc).config;
 
-		if constexpr(config.coupling != coupling_policy::coupled && !PreserveOldAllocation && !CopyData){
+		if constexpr(config.access != access_policy::gpu_only && !PreserveOldAllocation && !CopyData){
 			RESULT_TRY_MOVE(dst_buff.allocation_ptr(), acma::gpu_allocate_like(proc, dst_buff.allocation_ptr(), new_size));
 		} else {
 			//If the buffer is gpu exclusive, it may still be in use by the gpu if the gpu is still on the previous frame
 			//Thus, we cannot destroy the buffer until the beginning of the next frame, even if we don't care about preserving it
 			//(If we do care about preserving it or need to copy the old data, we have to wait until the next frame with the same frame index anyway)
-			constexpr bool can_destroy_old_alloc_next_frame = (config.coupling == coupling_policy::coupled && !PreserveOldAllocation && !CopyData);
+			constexpr bool can_destroy_old_alloc_next_frame = (config.access == access_policy::gpu_only && !PreserveOldAllocation && !CopyData);
 			const sl::index_t frame_index = can_destroy_old_alloc_next_frame ? proc.next_frame_index() : proc.frame_index();
 
 			std::vector<acma::vk::buffer_allocation_unique_ptr>& old_allocs = proc.old_allocations()[frame_index];
