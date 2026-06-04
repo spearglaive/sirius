@@ -10,39 +10,40 @@ set(CMAKE_VERBOSE_MAKEFILE ON CACHE BOOL "ON")
 
 
 set(CPP_FILES
-    core/initialize.cpp
+	core/initialize.cpp
+	core/thread_pool.cpp
 	core/window.cpp
 
-    vulkan/core/command_pool.cpp
-    vulkan/core/decoder.cpp
-    vulkan/core/function_table.cpp
-    vulkan/core/instance.cpp
-    vulkan/core/vulkan.cpp
+	vulkan/core/command_pool.cpp
+	vulkan/core/decoder.cpp
+	vulkan/core/function_table.cpp
+	vulkan/core/instance.cpp
+	vulkan/core/vulkan.cpp
 
-    vulkan/device/logical_device.cpp
-    vulkan/device/physical_device.cpp
+	vulkan/device/logical_device.cpp
+	vulkan/device/physical_device.cpp
 
-    vulkan/display/depth_image.cpp
-    vulkan/display/image_sampler.cpp
-    vulkan/display/image_view.cpp
-    vulkan/display/surface.cpp
-    vulkan/display/swap_chain.cpp
-    
-    vulkan/memory/allocator.cpp
-    vulkan/memory/descriptor_pool.cpp
-    vulkan/memory/descriptor_set_layout.cpp
-    vulkan/memory/descriptor_set.cpp
-    vulkan/memory/image.cpp
+	vulkan/display/depth_image.cpp
+	vulkan/display/image_sampler.cpp
+	vulkan/display/image_view.cpp
+	vulkan/display/surface.cpp
+	vulkan/display/swap_chain.cpp
 
-    vulkan/sync/semaphore.cpp
+	vulkan/memory/allocator.cpp
+	vulkan/memory/descriptor_pool.cpp
+	vulkan/memory/descriptor_set_layout.cpp
+	vulkan/memory/descriptor_set.cpp
+	vulkan/memory/image.cpp
+
+	vulkan/sync/semaphore.cpp
 )
 list(TRANSFORM CPP_FILES PREPEND src/${PROJECT_NAME}/)
 
 set(SHADER_INPUT_FILES
-    rect.vert
-    rect.frag
-    texture_rect.vert
-    texture_rect.frag
+	rect.vert
+	rect.frag
+	texture_rect.vert
+	texture_rect.frag
 	generate_rects.comp
 )
 list(TRANSFORM SHADER_INPUT_FILES PREPEND shaders/)
@@ -78,34 +79,31 @@ add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_shaders)
 ## pkgconfig
 configure_file(
 	"pkgconfig/sirius.pc.in"
-    "pkgconfig/sirius.pc"
+	"pkgconfig/sirius.pc"
 @ONLY)
 
 
 ## compiler args
-#list(APPEND CLANG_ARGS "-Wall" "-Wextra" "-fvisibility=hidden" "-fvisibility-inlines-hidden" "-fsemantic-interposition" "-fno-exceptions" "-fno-rtti" "-fopenmp")
-list(APPEND CLANG_ARGS "-Wall" "-Wextra" "-fvisibility=hidden" "-fsemantic-interposition" "-fno-exceptions" "-fno-rtti" "-fopenmp")
+list(APPEND CLANG_ARGS
+	"-Wall" "-Wextra" "-Wno-missing-field-initializers"
+	"-fvisibility=hidden" "-fvisibility-inlines-hidden"
+	"-fno-exceptions" "-fno-rtti"
+	"-fopenmp"
+)
 
 target_compile_definitions(${PROJECT_NAME} PUBLIC ${PROJECT_NAME_UPPER}_EXPORT)
+
+target_link_options(${PROJECT_NAME} PUBLIC "-fopenmp")
 
 target_compile_options(${PROJECT_NAME} PUBLIC ${CLANG_ARGS})
 target_compile_options(${PROJECT_NAME} PUBLIC "$<$<CONFIG:DEBUG>:-O0>")
 target_compile_options(${PROJECT_NAME} PUBLIC "$<$<CONFIG:DEBUG>:-g>")
 target_compile_options(${PROJECT_NAME} PUBLIC "$<$<CONFIG:DEBUG>:-ftemplate-backtrace-limit=0>")
-target_link_options(${PROJECT_NAME} PUBLIC "-fopenmp")
+target_compile_options(${PROJECT_NAME} PUBLIC "$<$<CONFIG:DEBUG>:-fsemantic-interposition>")
 target_compile_options(${PROJECT_NAME} PUBLIC "$<$<CONFIG:RELEASE>:-Werror>")
 target_compile_options(${PROJECT_NAME} PUBLIC "$<$<CONFIG:RELEASE>:-O3>")
 target_compile_options(${PROJECT_NAME} PUBLIC "$<$<CONFIG:RELEASE>:-ffast-math>")
-#target_compile_options(${PROJECT_NAME} PUBLIC "$<$<CONFIG:RELEASE>:-march=native>")
-if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang") # clang only
-    #target_compile_options(${PROJECT_NAME} PUBLIC "-Wc++20-compat-pedantic")
-    # Don't show warnings for C++20 designated field initializers.
-    target_compile_options(${PROJECT_NAME} PUBLIC "-Wno-missing-designated-field-initializers")
-else() # gcc only
-    #target_compile_options(${PROJECT_NAME} PUBLIC "-Wc++20-compat")
-    # gcc has no "missing-designated-field-initializers" (https://gcc.gnu.org/bugzilla/show_bug.cgi?id=96868)
-    target_compile_options(${PROJECT_NAME} PUBLIC "-Wno-missing-field-initializers")
-endif()
+target_compile_options(${PROJECT_NAME} PUBLIC "$<$<CONFIG:RELEASE>:-fno-semantic-interposition>")
 
 target_link_libraries(${PROJECT_NAME} PUBLIC ${PUBLIC_DEPENDENCIES} PRIVATE ${PRIVATE_DEPENDENCIES} ${MANUAL_PRIVATE_DEPENDENCIES})
 
@@ -138,47 +136,47 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/shaders)
 
 foreach(shader ${SHADER_INPUT_FILES})
-    set(shader_in ${PROJECT_SOURCE_DIR}/${shader})
-    set(spv_out ${shader}.spv)
-    set(dep_file ${shader}.d)
+	set(shader_in ${PROJECT_SOURCE_DIR}/${shader})
+	set(spv_out ${shader}.spv)
+	set(dep_file ${shader}.d)
 
-    get_filename_component(SHADER_NAME ${shader} NAME_WE)
-    list(APPEND SHADER_INPUT_FILES_${SHADER_NAME} ${PROJECT_BINARY_DIR}/${shader})
-    
-    add_custom_command(
-        OUTPUT ${spv_out}
-        MAIN_DEPENDENCY ${shader_in}
-        DEPFILE ${dep_file}
-        COMMENT "Compiling SPIRV shader file ${PROJECT_BINARY_DIR}/${spv_out}"
-        COMMAND
-            glslc ${shader_in}
-            -MD -MF ${dep_file}
-            -o ${spv_out}
-    )
+	get_filename_component(SHADER_NAME ${shader} NAME_WE)
+	list(APPEND SHADER_INPUT_FILES_${SHADER_NAME} ${PROJECT_BINARY_DIR}/${shader})
+
+	add_custom_command(
+		OUTPUT ${spv_out}
+		MAIN_DEPENDENCY ${shader_in}
+		DEPFILE ${dep_file}
+		COMMENT "Compiling SPIRV shader file ${PROJECT_BINARY_DIR}/${spv_out}"
+		COMMAND
+			glslc ${shader_in}
+			-MD -MF ${dep_file}
+			-o ${spv_out}
+	)
 endforeach()
 
 foreach(OUTPUT_HPP ${SHADER_OUTPUT_FILES})
-    get_filename_component(SHADER_NAME ${OUTPUT_HPP} NAME_WE)
-    string(REPLACE ";" "$<SEMICOLON>" COMPILED_SHADER_INPUTS "${SHADER_INPUT_FILES_${SHADER_NAME}}")
-    list(TRANSFORM SHADER_INPUT_FILES_${SHADER_NAME} APPEND .spv OUTPUT_VARIABLE COMPILED_SHADER_FILES)
-    string(REPLACE ";" "$<SEMICOLON>" COMPILED_SHADER_FILES "${COMPILED_SHADER_FILES}")
+	get_filename_component(SHADER_NAME ${OUTPUT_HPP} NAME_WE)
+	string(REPLACE ";" "$<SEMICOLON>" COMPILED_SHADER_INPUTS "${SHADER_INPUT_FILES_${SHADER_NAME}}")
+	list(TRANSFORM SHADER_INPUT_FILES_${SHADER_NAME} APPEND .spv OUTPUT_VARIABLE COMPILED_SHADER_FILES)
+	string(REPLACE ";" "$<SEMICOLON>" COMPILED_SHADER_FILES "${COMPILED_SHADER_FILES}")
 
-    add_custom_command(
-        OUTPUT ${OUTPUT_HPP}
-        DEPENDS ${COMPILED_SHADER_FILES}
-        COMMENT "Generating shader header ${OUTPUT_HPP}"
-        COMMAND ${CMAKE_COMMAND} -E echo "//Auto-generated by cmake" > ${OUTPUT_HPP}
-        COMMAND ${CMAKE_COMMAND} -E echo "\\#pragma once" >> ${OUTPUT_HPP}
-        COMMAND ${CMAKE_COMMAND} -E echo "namespace acma::shaders {" >> ${OUTPUT_HPP}
-        COMMAND ${CMAKE_COMMAND} -E echo "struct ${SHADER_NAME} {" >> ${OUTPUT_HPP}
-        COMMAND 
-            ${CMAKE_COMMAND}
-            -S ${PROJECT_SOURCE_DIR} -B ${PROJECT_BINARY_DIR}
-            -DINPUT_SPVS="${COMPILED_SHADER_INPUTS}" -DOUTPUT_HPP="${OUTPUT_HPP}"
-            -P ${PROJECT_SOURCE_DIR}/shaders/compile.cmake
-        COMMAND ${CMAKE_COMMAND} -E echo "}\;" >> ${OUTPUT_HPP}
-        COMMAND ${CMAKE_COMMAND} -E echo "}" >> ${OUTPUT_HPP}
-    )
+	add_custom_command(
+		OUTPUT ${OUTPUT_HPP}
+		DEPENDS ${COMPILED_SHADER_FILES}
+		COMMENT "Generating shader header ${OUTPUT_HPP}"
+		COMMAND ${CMAKE_COMMAND} -E echo "//Auto-generated by cmake" > ${OUTPUT_HPP}
+		COMMAND ${CMAKE_COMMAND} -E echo "\\#pragma once" >> ${OUTPUT_HPP}
+		COMMAND ${CMAKE_COMMAND} -E echo "namespace acma::shaders {" >> ${OUTPUT_HPP}
+		COMMAND ${CMAKE_COMMAND} -E echo "struct ${SHADER_NAME} {" >> ${OUTPUT_HPP}
+		COMMAND
+			${CMAKE_COMMAND}
+			-S ${PROJECT_SOURCE_DIR} -B ${PROJECT_BINARY_DIR}
+			-DINPUT_SPVS="${COMPILED_SHADER_INPUTS}" -DOUTPUT_HPP="${OUTPUT_HPP}"
+			-P ${PROJECT_SOURCE_DIR}/shaders/compile.cmake
+		COMMAND ${CMAKE_COMMAND} -E echo "}\;" >> ${OUTPUT_HPP}
+		COMMAND ${CMAKE_COMMAND} -E echo "}" >> ${OUTPUT_HPP}
+	)
 endforeach()
 
 
