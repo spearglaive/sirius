@@ -43,18 +43,18 @@ namespace acma {
 	public:
 		using command_traits_type = timeline::command_traits<TimelineEventTs...>;
 		using timeline_state_type = timeline::state<UserByteCount>;
-		using window_type = window;
-		using render_process_type = render_process<
-			BufferConfigs, AssetHeapConfigs,
-			command_traits_type::group_count + timeline::impl::dedicated_command_group::num_dedicated_command_groups,
-			UserByteCount
-		>;
 
 	public:
 		constexpr static sl::size_t command_group_count = command_traits_type::group_count + timeline::impl::dedicated_command_group::num_dedicated_command_groups;
 		constexpr static sl::size_t frames_in_flight = D2D_FRAMES_IN_FLIGHT;
 		constexpr static sl::size_t N = BufferConfigs.size();
 		constexpr static sl::size_t M = AssetHeapConfigs.size();
+
+	public:
+		using render_process_type = render_process<BufferConfigs, AssetHeapConfigs, command_group_count, UserByteCount>;
+		using render_process_core_type = render_process_core<command_group_count>;
+		using window_type = window;
+
 
 	private:
 		template<bool Windowing>
@@ -88,12 +88,12 @@ namespace acma {
 	public:
 		constexpr auto&& external_timeline_state(this auto&& self) noexcept { return sl::forward_like<decltype(self)>(self._external_timeline_state); }
 
-	private:
+	protected:
         std::unique_ptr<std::atomic<bool>> should_be_open;
 		bool has_window;
-	private:
+	protected:
 		timeline_state_type _external_timeline_state;
-	private:
+	protected:
 		sl::tuple<typename sl::invoke_return_type_t<timeline::setup<TimelineEventTs>, render_process_type&, window_type&>::value_type...> auxiliary;
 
 	};
@@ -102,20 +102,23 @@ namespace acma {
 
 namespace acma::impl {
     template<typename... TimelineEventTs, auto BufferConfigs, auto AssetHeapConfigs, sl::size_t UserByteCount> requires impl::is_buffer_config_table_v<decltype(BufferConfigs)>
-    struct make<render_instance<sl::tuple<TimelineEventTs...>, BufferConfigs, AssetHeapConfigs, UserByteCount>> {
-		SIRIUS_API result<render_instance<sl::tuple<TimelineEventTs...>, BufferConfigs, AssetHeapConfigs, UserByteCount>> operator()(
+    struct make<sl::unique_ptr<render_instance<sl::tuple<TimelineEventTs...>, BufferConfigs, AssetHeapConfigs, UserByteCount>>> {
+    private:
+    	using value_type = render_instance<sl::tuple<TimelineEventTs...>, BufferConfigs, AssetHeapConfigs, UserByteCount>;
+    public:
+		SIRIUS_API result<sl::unique_ptr<value_type>> operator()(
 			vk::physical_device& device,
 			bool prefer_synchronous_rendering,
-			sl::in_place_adl_tag_type<render_instance<sl::tuple<TimelineEventTs...>, BufferConfigs, AssetHeapConfigs, UserByteCount>> = sl::in_place_adl_tag<render_instance<sl::tuple<TimelineEventTs...>, BufferConfigs, AssetHeapConfigs, UserByteCount>>
+			sl::in_place_adl_tag_type<sl::unique_ptr<value_type>> = sl::in_place_adl_tag<sl::unique_ptr<value_type>>
 		) const noexcept;
 
 
-		SIRIUS_API result<render_instance<sl::tuple<TimelineEventTs...>, BufferConfigs, AssetHeapConfigs, UserByteCount>> operator()(
+		SIRIUS_API result<sl::unique_ptr<value_type>> operator()(
 			vk::physical_device& device,
 			bool prefer_synchronous_rendering,
 			acma::sz2u32 window_size,
 			std::string_view window_title = {},
-			sl::in_place_adl_tag_type<render_instance<sl::tuple<TimelineEventTs...>, BufferConfigs, AssetHeapConfigs, UserByteCount>> = sl::in_place_adl_tag<render_instance<sl::tuple<TimelineEventTs...>, BufferConfigs, AssetHeapConfigs, UserByteCount>>
+			sl::in_place_adl_tag_type<sl::unique_ptr<value_type>> = sl::in_place_adl_tag<sl::unique_ptr<value_type>>
 		) const noexcept;
 	};
 }

@@ -73,7 +73,7 @@ namespace acma {
 	protected:
         sl::unique_ptr<input::info> input_info_ptr;
         sl::unique_ptr<GLFWwindow, sl::functor::generic_stateless<glfwDestroyWindow>> window_handle;
-    private:
+    protected:
 		vk::surface _surface;
 		vk::swap_chain _swap_chain;
 		vk::depth_image _depth_image;

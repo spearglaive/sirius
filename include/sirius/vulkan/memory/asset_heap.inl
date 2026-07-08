@@ -151,10 +151,10 @@ namespace acma::vk::impl {
 
 namespace acma::vk {
 	template<asset_heap_key_t K, auto AssetHeapConfigs, typename RenderProcessT>
-	template<buffer_key_t BufferKey, auto BufferConfigs>
-	constexpr result<void>   asset_heap<K, AssetHeapConfigs, RenderProcessT>::
- 	emplace_back(buffer<BufferKey, BufferConfigs, RenderProcessT> const& texture_data_buffer) noexcept {
-  		static_assert((buffer<BufferKey, BufferConfigs, RenderProcessT>::config.usage & buffer_usage_policy::texture_data) == buffer_usage_policy::texture_data);
+	template<sl::traits::specialization_of<vk::generic::resizable_gpu_buffer> BufferT>
+	constexpr result<void>	asset_heap<K, AssetHeapConfigs, RenderProcessT>::
+	emplace_back(BufferT const& texture_data_buffer) noexcept {
+  		static_assert((BufferT::config.usage & buffer_usage_policy::texture_data) == buffer_usage_policy::texture_data);
 
 		RenderProcessT const& proc = static_cast<RenderProcessT const&>(*this);
 		if(!this->last_clear_frame.matches(proc.frame_count()))
@@ -169,7 +169,7 @@ namespace acma::vk {
 
 		RESULT_VERIFY(make_images(texture_data_buffer.texture_data_infos));
 
-		RESULT_VERIFY(gpu_copy({this->data() + old_image_count, new_descriptor_count}, texture_data_buffer));
+		RESULT_VERIFY(gpu_copy(proc, {this->data() + old_image_count, new_descriptor_count}, texture_data_buffer));
 
 		for(sl::index_t i = 0; i < new_descriptor_count; ++i) {
 			const asset_usage_policy_t texture_usage = texture_data_buffer.texture_data_infos[i].usage == texture_usage::sampled ?

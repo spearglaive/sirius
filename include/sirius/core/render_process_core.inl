@@ -1,11 +1,11 @@
 #pragma once
-#include "sirius/core/render_process.hpp"
+#include "sirius/core/render_process_core.hpp"
 
 
 namespace acma {
-	template<auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount, sl::size_t UserByteCount>
+	template<sl::size_t CommandGroupCount>
 	template<buffer_config DstConfig, buffer_config SrcConfig>
-	constexpr result<void>    render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount, UserByteCount>::
+	constexpr result<void>    render_process_core<CommandGroupCount>::
 	buffer_copy(
 		vk::buffer_allocation_unique_ptr& dst,
 		sl::constant_type<buffer_config, DstConfig>,
@@ -80,9 +80,9 @@ namespace acma {
 	}
 
 
-	template<auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount, sl::size_t UserByteCount>
+	template<sl::size_t CommandGroupCount>
 	template<buffer_config DstConfig, buffer_config SrcConfig>
-	constexpr result<void>    render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount, UserByteCount>::
+	constexpr result<void>    render_process_core<CommandGroupCount>::
 	buffer_copy(
 		vk::buffer_allocation_unique_ptr& dst,
 		sl::constant_type<buffer_config, DstConfig>,
@@ -112,8 +112,8 @@ namespace acma {
 
 
 namespace acma{
-	template<auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount, sl::size_t UserByteCount>
-	constexpr result<sl::uint64_t>    render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount, UserByteCount>::
+	template<sl::size_t CommandGroupCount>
+	constexpr result<sl::uint64_t>    render_process_core<CommandGroupCount>::
 	begin_dedicated_copy(sl::index_t command_group_idx, sl::uint64_t timeout) const& noexcept {
 		const sl::index_t frame_idx = frame_index();
 		vk::command_buffer const& transfer_command_buffer = command_buffers()[frame_idx][command_group_idx];
@@ -132,8 +132,8 @@ namespace acma{
 		return semaphore_post_value;
 	}
 
-	template<auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount, sl::size_t UserByteCount>
-	constexpr result<void>    render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount, UserByteCount>::
+	template<sl::size_t CommandGroupCount>
+	constexpr result<void>    render_process_core<CommandGroupCount>::
 	end_dedicated_copy(sl::uint64_t wait_value, sl::index_t command_group_idx, sl::uint64_t timeout) const& noexcept {
 		const sl::index_t frame_idx = frame_index();
 

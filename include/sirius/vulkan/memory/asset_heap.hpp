@@ -7,11 +7,11 @@
 #include "sirius/core/asset_heap_config.hpp"
 #include "sirius/vulkan/device/logical_device.hpp"
 #include "sirius/vulkan/display/image_sampler.hpp"
-#include "sirius/vulkan/memory/buffer.hpp"
 #include "sirius/vulkan/memory/clear_frame.hpp"
 #include "sirius/vulkan/memory/descriptor_set_layout.hpp"
 #include "sirius/vulkan/memory/descriptor_pool.hpp"
 #include "sirius/vulkan/memory/descriptor_set.hpp"
+#include "sirius/vulkan/memory/resizable_gpu_buffer.hpp"
 #include "sirius/vulkan/memory/image.hpp"
 #include "sirius/vulkan/memory/allocation_counts.hpp"
 #include "sirius/vulkan/memory/texture_data_info.hpp"
@@ -71,8 +71,8 @@ namespace acma::vk {
 
 
 	public:
-	 	template<buffer_key_t BufferKey, auto BufferConfigs>
-		constexpr result<void> emplace_back(buffer<BufferKey, BufferConfigs, RenderProcessT> const& texture_data_buffer) noexcept;
+		template<sl::traits::specialization_of<vk::generic::resizable_gpu_buffer> BufferT>
+		constexpr result<void> emplace_back(BufferT const& texture_data_buffer) noexcept;
 
 	public:
 		constexpr image const* data() const& noexcept { return _images[this->allocation_index()].data(); }

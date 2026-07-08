@@ -26,6 +26,7 @@ enum : acma::buffer_key_t {
 	all_ones_cpu_side,
 	all_ones_gpu_side,
 
+	duplicate_test,
 
 	num_buffer_ids
 };
@@ -51,4 +52,5 @@ constexpr acma::buffer_config_table<buffer_id::num_buffer_ids> buffer_configs{{{
 	{buffer_id::all_ones_cpu_side, {acma::memory_policy::cpu_local_cpu_writable, acma::access_policy::gpu_and_cpu, acma::buffer_usage_policy::generic, 0, 32}},
 	{buffer_id::all_ones_gpu_side, {acma::memory_policy::gpu_local, acma::access_policy::gpu_only, acma::buffer_usage_policy::generic, 0}},
 
+	{buffer_id::duplicate_test, {acma::memory_policy::gpu_local, acma::access_policy::gpu_only, acma::buffer_usage_policy::generic, 0}},
 }}};

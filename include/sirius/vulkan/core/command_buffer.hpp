@@ -1,6 +1,4 @@
 #pragma once
-#include "sirius/core/dispatchable.hpp"
-#include "sirius/core/drawable.hpp"
 #include "sirius/vulkan/core/command_buffer.fwd.hpp"
 
 #include <cstddef>
@@ -11,10 +9,12 @@
 #include <frozen/unordered_map.h>
 
 #include "sirius/vulkan/core/vulkan.hpp"
+#include "sirius/core/dispatchable.hpp"
+#include "sirius/core/drawable.hpp"
 #include "sirius/core/buffer_config_table.hpp"
 #include "sirius/core/render_process.fwd.hpp"
 #include "sirius/vulkan/memory/bind_point.hpp"
-#include "sirius/vulkan/memory/buffer.hpp"
+#include "sirius/vulkan/memory/resizable_gpu_buffer.hpp"
 #include "sirius/vulkan/memory/asset_heap.hpp"
 #include "sirius/vulkan/memory/image.hpp"
 #include "sirius/vulkan/device/logical_device.hpp"
@@ -115,13 +115,13 @@ namespace acma::vk {
         inline void copy(vk::buffer_allocation_unique_ptr& dst, vk::buffer_allocation_unique_ptr const& src, std::span<const VkBufferCopy> copy_regions) const noexcept;
         inline void copy(vk::buffer_allocation_unique_ptr& dst, vk::buffer_allocation_unique_ptr const& src, std::size_t size, sl::uoffset_t dst_offset = 0, sl::uoffset_t src_offset = 0) const noexcept;
 
-		template<buffer_key_t DstK, buffer_key_t SrcK, auto BufferConfigs, typename RenderProcessT>
-        void copy(buffer<DstK, BufferConfigs, RenderProcessT>& dst, buffer<SrcK, BufferConfigs, RenderProcessT> const& src, std::span<const VkBufferCopy> copy_regions) const noexcept;
-		template<buffer_key_t DstK, buffer_key_t SrcK, auto BufferConfigs, typename RenderProcessT>
-        void copy(buffer<DstK, BufferConfigs, RenderProcessT>& dst, buffer<SrcK, BufferConfigs, RenderProcessT> const& src, std::size_t size, sl::uoffset_t dst_offset = 0, sl::uoffset_t src_offset = 0) const noexcept;
+		template<sl::traits::specialization_of<vk::generic::resizable_gpu_buffer> DstBufferT, sl::traits::specialization_of<vk::generic::resizable_gpu_buffer> SrcBufferT>
+        void copy(DstBufferT& dst, SrcBufferT const& src, std::span<const VkBufferCopy> copy_regions) const noexcept;
+		template<sl::traits::specialization_of<vk::generic::resizable_gpu_buffer> DstBufferT, sl::traits::specialization_of<vk::generic::resizable_gpu_buffer> SrcBufferT>
+        void copy(DstBufferT& dst, SrcBufferT const& src, std::size_t size, sl::uoffset_t dst_offset = 0, sl::uoffset_t src_offset = 0) const noexcept;
 
-		template<buffer_key_t K, auto BufferConfigs, typename RenderProcessT>
-        void fill(buffer<K, BufferConfigs, RenderProcessT>& dst, sl::uint32_t value = 0, sl::uoffset_t dst_offset = 0, sl::size_t fill_count_bytes = VK_WHOLE_SIZE) const noexcept;
+		template<sl::traits::specialization_of<vk::generic::resizable_gpu_buffer> DstBufferT>
+        void fill(DstBufferT& dst, sl::uint32_t value = 0, sl::uoffset_t dst_offset = 0, sl::size_t fill_count_bytes = VK_WHOLE_SIZE) const noexcept;
 
     public:
         inline void pipeline_barrier(std::span<const VkMemoryBarrier2> global_barriers, std::span<const VkBufferMemoryBarrier2> buffer_barriers, std::span<const VkImageMemoryBarrier2> image_barriers) const noexcept;

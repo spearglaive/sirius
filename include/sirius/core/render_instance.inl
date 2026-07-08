@@ -2,6 +2,7 @@
 #include "sirius/core/render_instance.hpp"
 
 #include <cstring>
+#include <cstdlib>
 #include <memory>
 #include <string_view>
 #include <utility>
@@ -34,62 +35,67 @@
 
 namespace acma::impl {
     template<typename... TimelineEventTs, auto BufferConfigs, auto AssetHeapConfigs, sl::size_t UserByteCount> requires impl::is_buffer_config_table_v<decltype(BufferConfigs)>
-	result<render_instance<sl::tuple<TimelineEventTs...>, BufferConfigs, AssetHeapConfigs, UserByteCount>>
-		make<render_instance<sl::tuple<TimelineEventTs...>, BufferConfigs, AssetHeapConfigs, UserByteCount>>::
+	result<sl::unique_ptr<render_instance<sl::tuple<TimelineEventTs...>, BufferConfigs, AssetHeapConfigs, UserByteCount>>>
+	make<sl::unique_ptr<render_instance<sl::tuple<TimelineEventTs...>, BufferConfigs, AssetHeapConfigs, UserByteCount>>>::
 	operator()(
 		vk::physical_device& device,
 		bool prefer_synchronous_rendering,
-		sl::in_place_adl_tag_type<render_instance<sl::tuple<TimelineEventTs...>, BufferConfigs, AssetHeapConfigs, UserByteCount>>
+		sl::in_place_adl_tag_type<sl::unique_ptr<render_instance<sl::tuple<TimelineEventTs...>, BufferConfigs, AssetHeapConfigs, UserByteCount>>>
 	) const noexcept {
-		render_instance<sl::tuple<TimelineEventTs...>, BufferConfigs, AssetHeapConfigs, UserByteCount> ret{};
-		ret.has_window = false;
-		RESULT_VERIFY(ret.initialize(sl::false_constant, device, prefer_synchronous_rendering));
+  		sl::unique_ptr<value_type> ret(new value_type);
+		ret->has_window = false;
+		RESULT_VERIFY(ret->initialize(sl::false_constant, device, prefer_synchronous_rendering));
 
-		RESULT_VERIFY(ret.initialize_auxiliary());
-		return ret;
+		RESULT_VERIFY(ret->initialize_auxiliary());
+		return sl::move(ret);
 	}
 }
 
 namespace acma::impl {
     template<typename... TimelineEventTs, auto BufferConfigs, auto AssetHeapConfigs, sl::size_t UserByteCount> requires impl::is_buffer_config_table_v<decltype(BufferConfigs)>
-	result<render_instance<sl::tuple<TimelineEventTs...>, BufferConfigs, AssetHeapConfigs, UserByteCount>>
-		make<render_instance<sl::tuple<TimelineEventTs...>, BufferConfigs, AssetHeapConfigs, UserByteCount>>::
+	result<sl::unique_ptr<render_instance<sl::tuple<TimelineEventTs...>, BufferConfigs, AssetHeapConfigs, UserByteCount>>>
+	make<sl::unique_ptr<render_instance<sl::tuple<TimelineEventTs...>, BufferConfigs, AssetHeapConfigs, UserByteCount>>>::
 	operator()(
 		vk::physical_device& device,
 		bool prefer_synchronous_rendering,
 		acma::sz2u32 window_size,
 		std::string_view window_title,
-		sl::in_place_adl_tag_type<render_instance<sl::tuple<TimelineEventTs...>, BufferConfigs, AssetHeapConfigs, UserByteCount>>
+		sl::in_place_adl_tag_type<sl::unique_ptr<render_instance<sl::tuple<TimelineEventTs...>, BufferConfigs, AssetHeapConfigs, UserByteCount>>>
 	) const noexcept {
 		static_assert(impl::window_capability, "Cannot make a render_instance with a window when window capabilites are disabled.");
 
-		render_instance<sl::tuple<TimelineEventTs...>, BufferConfigs, AssetHeapConfigs, UserByteCount> ret{};
-		ret.has_window = true;
-		RESULT_VERIFY(ret.initialize(sl::true_constant, device, prefer_synchronous_rendering));
+	    sl::unique_ptr<value_type> ret(new value_type);
+		ret->has_window = true;
+		RESULT_VERIFY(ret->initialize(sl::true_constant, device, prefer_synchronous_rendering));
 
 		//Create window
-		RESULT_TRY_MOVE(static_cast<window&>(ret), acma::make<window>(
+		RESULT_TRY_MOVE(static_cast<window&>(*ret), acma::make<window>(
 			window_size,
 			window_title.empty() ? impl::name() : window_title
 		));
-		RESULT_VERIFY(static_cast<window&>(ret).initialize(ret._vulkan_functions_ptr, ret._logical_device_ptr, ret._physical_device_ptr, ret._allocator_ptr));
+		RESULT_VERIFY(static_cast<window&>(*ret).initialize(
+			ret->vulkan_functions_ptr(),
+			ret->logical_device_ptr(),
+			ret->physical_device_ptr(),
+			ret->allocator_ptr()
+		));
 
 		//Create swap chain sempahores
-		ret._graphics_semaphores.reserve(ret._swap_chain.image_count());
-		ret._pre_present_semaphores.reserve(ret._swap_chain.image_count());
-		for(std::size_t i = 0; i < ret._swap_chain.image_count(); ++i) {
-			RESULT_VERIFY_UNSCOPED(acma::make<vk::semaphore>(ret._vulkan_functions_ptr, ret._logical_device_ptr), graphics_semaphore);
-			ret._graphics_semaphores.push_back(*std::move(graphics_semaphore));
+		ret->_graphics_semaphores.reserve(ret->_swap_chain.image_count());
+		ret->_pre_present_semaphores.reserve(ret->_swap_chain.image_count());
+		for(std::size_t i = 0; i < ret->_swap_chain.image_count(); ++i) {
+			RESULT_VERIFY_UNSCOPED(acma::make<vk::semaphore>(ret->vulkan_functions_ptr(), ret->logical_device_ptr()), graphics_semaphore);
+			ret->_graphics_semaphores.push_back(*std::move(graphics_semaphore));
 
-			RESULT_VERIFY_UNSCOPED(acma::make<vk::semaphore>(ret._vulkan_functions_ptr, ret._logical_device_ptr), pre_present_semaphore);
-			ret._pre_present_semaphores.push_back(*std::move(pre_present_semaphore));
+			RESULT_VERIFY_UNSCOPED(acma::make<vk::semaphore>(ret->vulkan_functions_ptr(), ret->logical_device_ptr()), pre_present_semaphore);
+			ret->_pre_present_semaphores.push_back(*std::move(pre_present_semaphore));
 		}
 
 
-		D2D_INVOKE_ALL(ret.timeline_callbacks(), on_swap_chain_updated, ret, ret, ret.external_timeline_state());
+		D2D_INVOKE_ALL(ret->timeline_callbacks(), on_swap_chain_updated, *ret, *ret, ret->external_timeline_state());
 
-		RESULT_VERIFY(ret.initialize_auxiliary());
-		return ret;
+		RESULT_VERIFY(ret->initialize_auxiliary());
+		return sl::move(ret);
 	}
 
 }
@@ -115,17 +121,15 @@ namespace acma {
 		{
 		//Create logical device
 		VkDevice logical_device_handle = VK_NULL_HANDLE;
-		RESULT_TRY_COPY(logical_device_handle, make_device_handle(this->_physical_device_ptr, Windowing));
+		RESULT_TRY_COPY(logical_device_handle, make_device_handle(this->physical_device_ptr(), Windowing));
 
 		//Initialize function pointers
-		this->_vulkan_functions_ptr = sl::unique_ptr<vk::function_table>{new vk::function_table};
-		make_function_table(*this->_vulkan_functions_ptr, logical_device_handle);
+		make_function_table(this->_vulkan_functions, logical_device_handle);
 
 		//Initialize logical device
-		this->_logical_device_ptr = sl::unique_ptr<vk::logical_device>{new vk::logical_device};
-        RESULT_TRY_MOVE(*this->_logical_device_ptr, acma::make<vk::logical_device>(
-			this->_vulkan_functions_ptr,
-			this->_physical_device_ptr,
+        RESULT_TRY_MOVE(this->_logical_device, acma::make<vk::logical_device>(
+			this->vulkan_functions_ptr(),
+			this->physical_device_ptr(),
 			Windowing,
 			sl::move(logical_device_handle)
 		));
@@ -139,8 +143,8 @@ namespace acma {
 				VMA_ALLOCATOR_CREATE_KHR_BIND_MEMORY2_BIT |
 				VMA_ALLOCATOR_CREATE_KHR_MAINTENANCE4_BIT |
 				VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT,
-			.physicalDevice = *this->_physical_device_ptr,
-			.device = *this->_logical_device_ptr,
+			.physicalDevice = *this->physical_device_ptr(),
+			.device = *this->logical_device_ptr(),
 			.instance = vk::impl::vulkan_instance(),
 			.vulkanApiVersion = VK_API_VERSION_1_3,
 		};
@@ -149,8 +153,7 @@ namespace acma {
 		__D2D_VULKAN_VERIFY(vmaImportVulkanFunctionsFromVolk(&allocator_create_info, &vma_vk_funcs));
 		allocator_create_info.pVulkanFunctions = &vma_vk_funcs;
 
-		this->_allocator_ptr = sl::unique_ptr<vk::allocator>{new vk::allocator{}};
-		__D2D_VULKAN_VERIFY(vmaCreateAllocator(&allocator_create_info, &this->_allocator_ptr->smart_handle.get()));
+		__D2D_VULKAN_VERIFY(vmaCreateAllocator(&allocator_create_info, &this->_allocator.smart_handle.get()));
 		}
 
 
@@ -158,11 +161,10 @@ namespace acma {
 
 		//Create command pools
 		for(command_family_t i = 0; i < command_familes_to_init; ++i) {
-			this->_command_pool_ptrs[i] = sl::unique_ptr<vk::command_pool>{new vk::command_pool};
-			RESULT_TRY_MOVE(*this->_command_pool_ptrs[i], acma::make<vk::command_pool>(
-				this->_vulkan_functions_ptr,
-				this->_physical_device_ptr,
-				this->_logical_device_ptr,
+			RESULT_TRY_MOVE(this->_command_pools[i], acma::make<vk::command_pool>(
+				this->vulkan_functions_ptr(),
+				this->physical_device_ptr(),
+				this->logical_device_ptr(),
 				i
 			));
 		}
@@ -170,18 +172,16 @@ namespace acma {
 
 		//Initialize buffers
 		constexpr auto init_single_buffer = []<sl::index_t I>(
-			render_instance& app_inst,
+			typename render_instance::buffer_tuple_type& buffer_tuple,
+			render_instance* render_inst_ptr,
 			sl::index_constant_type<I>
 		) noexcept -> result<void> {
-			using buffer_type = vk::buffer<
-				sl::universal::get<sl::first_constant>(*std::next(BufferConfigs.begin(), I)),
-				BufferConfigs,
-				render_process_type
-			>;
-			return static_cast<buffer_type&>(app_inst).initialize();
+			using buffer_type = typename sl::tuple_traits<typename render_instance::buffer_tuple_type>::template type_of_element<I>;
+			buffer_tuple[sl::index_constant<I>] = buffer_type{*render_inst_ptr};
+			return buffer_tuple[sl::index_constant<I>].initialize();
 		};
 		RESULT_VERIFY((sl::functor::invoke_each_result<result<void>, init_single_buffer>{}(
-			sl::index_sequence_of_length<BufferConfigs.size()>, *this
+			sl::index_sequence_of_length<BufferConfigs.size()>, this->_gpu_buffers, this
 		)));
 
 
@@ -207,37 +207,37 @@ namespace acma {
 			//Create command buffers
 			for(sl::index_t j = 0; j < dedicated_cmd_buff_count; ++j) {
 				RESULT_TRY_MOVE(this->_command_buffers[i][j], acma::make<vk::command_buffer>(
-					this->_vulkan_functions_ptr,
-					this->_physical_device_ptr,
-					this->_logical_device_ptr,
-					this->_command_pool_ptrs[command_family::transfer]
+					this->vulkan_functions_ptr(),
+					this->physical_device_ptr(),
+					this->logical_device_ptr(),
+					{std::addressof(this->command_pools()[command_family::transfer])}
 				));
 			}
 			for(sl::index_t j = 0; j < command_traits_type::group_count; ++j) {
 				if(command_traits_type::group_families[j] == command_family::none) continue;
 				RESULT_TRY_MOVE(this->_command_buffers[i][j + dedicated_cmd_buff_count], acma::make<vk::command_buffer>(
-					this->_vulkan_functions_ptr,
-					this->_physical_device_ptr,
-					this->_logical_device_ptr,
-					this->_command_pool_ptrs[command_traits_type::group_families[j]]
+					this->vulkan_functions_ptr(),
+					this->physical_device_ptr(),
+					this->logical_device_ptr(),
+					{std::addressof(this->command_pools()[command_traits_type::group_families[j]])}
 				));
 			}
 
 			//Create command buffer semaphores
 			for(sl::index_t j = 0; j < command_group_count; ++j) {
-				RESULT_TRY_MOVE(this->_command_buffer_semaphores[i][j], acma::make<vk::semaphore>(this->_vulkan_functions_ptr, this->_logical_device_ptr, VK_SEMAPHORE_TYPE_TIMELINE));
+				RESULT_TRY_MOVE(this->_command_buffer_semaphores[i][j], acma::make<vk::semaphore>(this->vulkan_functions_ptr(), this->logical_device_ptr(), VK_SEMAPHORE_TYPE_TIMELINE));
 				this->_command_buffer_semaphore_values[i][j] = 0;
 			}
 
 
 			//Create generic semaphores
 			for(sl::index_t j = 0; j < command_familes_to_init; ++j) {
-				RESULT_TRY_MOVE(this->_generic_timeline_sempahores[i][j], acma::make<vk::semaphore>(this->_vulkan_functions_ptr, this->_logical_device_ptr, VK_SEMAPHORE_TYPE_TIMELINE));
+				RESULT_TRY_MOVE(this->_command_family_semaphores[i][j], acma::make<vk::semaphore>(this->vulkan_functions_ptr(), this->logical_device_ptr(), VK_SEMAPHORE_TYPE_TIMELINE));
 				this->_command_family_semaphore_values[i][j] = 0;
 			}
 
 			//Create image acquire semaphore
-			RESULT_TRY_MOVE(this->_acquisition_semaphores[i], acma::make<vk::semaphore>(this->_vulkan_functions_ptr, this->_logical_device_ptr));
+			RESULT_TRY_MOVE(this->_acquisition_semaphores[i], acma::make<vk::semaphore>(this->vulkan_functions_ptr(), this->logical_device_ptr()));
 		}
 
 		return {};
@@ -305,7 +305,7 @@ namespace acma {
     template<typename... TimelineEventTs, auto BufferConfigs, auto AssetHeapConfigs, sl::size_t UserByteCount> requires impl::is_buffer_config_table_v<decltype(BufferConfigs)>
     result<void>      render_instance<sl::tuple<TimelineEventTs...>, BufferConfigs, AssetHeapConfigs, UserByteCount>::
 	join() const noexcept {
-        __D2D_VULKAN_VERIFY(sl::invoke(this->_vulkan_functions_ptr->vkDeviceWaitIdle, *this->_logical_device_ptr));
+        __D2D_VULKAN_VERIFY(sl::invoke(this->vulkan_functions_ptr()->vkDeviceWaitIdle, *this->logical_device_ptr()));
         return {};
     }
 }
@@ -321,12 +321,12 @@ namespace acma {
         //wait for rendering to finish last frame
 		const sl::index_t frame_idx = this->frame_index();
 		const sl::array<command_traits_type::group_count, VkSemaphore> wait_semaphores = sl::universal::make_deduced<sl::generic::array>(
-			this->_command_buffer_semaphores[frame_idx],
+			this->command_buffer_semaphores()[frame_idx],
 			sl::functor::forward_construct<VkSemaphore>{},
 			filter_dedicated_command_groups_sequence{}
 		);
 		const sl::array<command_traits_type::group_count, sl::uint64_t> wait_semaphores_values = sl::universal::make_deduced<sl::generic::array>(
-			this->_command_buffer_semaphore_values[frame_idx],
+			this->command_buffer_semaphore_values()[frame_idx],
 			sl::functor::forward_construct<sl::uint64_t>{},
 			filter_dedicated_command_groups_sequence{}
 		);

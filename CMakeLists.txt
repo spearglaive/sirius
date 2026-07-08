@@ -89,6 +89,7 @@ list(APPEND CLANG_ARGS
 	"-fvisibility=hidden" "-fvisibility-inlines-hidden"
 	"-fno-exceptions" "-fno-rtti"
 	"-fopenmp"
+	"-fdiagnostics-color=always"
 )
 
 target_compile_definitions(${PROJECT_NAME} PUBLIC ${PROJECT_NAME_UPPER}_EXPORT)
@@ -185,10 +186,11 @@ add_subdirectory(test)
 
 ### install ###
 ##TODO: install debug and release
-install(FILES "$<TARGET_FILE:${PROJECT_NAME}>" TYPE LIB CONFIGURATIONS Release)
+install(FILES "$<TARGET_FILE:${PROJECT_NAME}>" TYPE LIB CONFIGURATIONS Release None)
 install(FILES "$<TARGET_FILE:${PROJECT_NAME}>" DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/debug/usr/lib" CONFIGURATIONS Debug RENAME "$<TARGET_FILE_NAME:${PROJECT_NAME}>.debug")
 #install(TARGETS ${PROJECT_NAME} CONFIGURATIONS RELEASE)
 #install(TARGETS ${PROJECT_NAME} CONFIGURATIONS Debug DESTINTATION "debug/usr/lib")
 install(DIRECTORY include/ DESTINATION include)
-install(DIRECTORY src/ DESTINATION src)
+install(DIRECTORY src/ DESTINATION src CONFIGURATIONS Release None)
+install(DIRECTORY src/ DESTINATION src/debug CONFIGURATIONS Debug)
 install(DIRECTORY ${PROJECT_BINARY_DIR}/pkgconfig/ DESTINATION lib/pkgconfig)

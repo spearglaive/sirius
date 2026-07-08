@@ -14,7 +14,7 @@
 #include "sirius/vulkan/display/image_view.hpp"
 #include "sirius/vulkan/memory/image_allocation.hpp"
 #include "sirius/vulkan/memory/asset_heap.fwd.hpp"
-#include "sirius/vulkan/memory/buffer.fwd.hpp"
+#include "sirius/vulkan/memory/resizable_gpu_buffer.fwd.hpp"
 #include "sirius/core/memory_management.fwd.hpp"
 #include "sirius/vulkan/memory/allocator.hpp"
 
@@ -55,21 +55,23 @@ namespace acma::vk {
 		template<asset_heap_key_t K, auto AssetHeapConfigs, typename RenderProcessT>
 		friend class asset_heap;
 
-		template<buffer_key_t SrcK, auto BufferConfigs, typename RenderProcessT>
+		template<sl::size_t CommandGroupCount>
 		friend constexpr result<void> acma::gpu_copy(
-			std::span<vk::image> dst,
-			vk::buffer<SrcK, BufferConfigs, RenderProcessT> const& src,
-			sl::uint64_t timeout
-		) noexcept;
-
-		template<buffer_key_t DstK, buffer_key_t SrcK, auto BufferConfigs, typename RenderProcessT>
-		friend constexpr result<void> acma::gpu_copy(
-			RenderProcessT& proc,
+			render_process_core<CommandGroupCount> const& process_core,
 			vk::image& dst,
 			vk::image const& src,
 			extent3 size,
 			offset3 dst_offset,
 			offset3 src_offset,
+			sl::uint64_t timeout
+		) noexcept;
+
+
+		template<sl::size_t CommandGroupCount, sl::traits::specialization_of<vk::generic::resizable_gpu_buffer> SrcBufferT>
+		friend constexpr result<void> acma::gpu_copy(
+			render_process_core<CommandGroupCount> const& process_core,
+			std::span<vk::image> dst,
+			SrcBufferT const& src,
 			sl::uint64_t timeout
 		) noexcept;
     };

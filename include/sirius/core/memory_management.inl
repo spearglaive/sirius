@@ -4,16 +4,16 @@
 #include <algorithm>
 
 #include "sirius/timeline/dedicated_command_group.hpp"
+#include "sirius/vulkan/memory/resizable_gpu_buffer.hpp"
 #include "sirius/vulkan/memory/asset_heap.hpp"
-#include "sirius/vulkan/memory/buffer.hpp"
 #include "sirius/vulkan/memory/image.hpp"
 #include "sirius/vulkan/memory/texture_data_info.hpp"
 
 
 namespace acma {
-	template<buffer_config DstConfig, buffer_config SrcConfig, typename RenderProcessT>
+	template<sl::size_t CommandGroupCount, buffer_config DstConfig, buffer_config SrcConfig>
 	constexpr result<void> gpu_copy(
-		RenderProcessT& process,
+		render_process_core<CommandGroupCount>& process_core,
 		vk::buffer_allocation_unique_ptr& dst,
 		sl::constant_type<buffer_config, DstConfig>,
 		vk::buffer_allocation_unique_ptr const& src,
@@ -22,32 +22,38 @@ namespace acma {
 		sl::uoffset_t dst_offset,
 		sl::uoffset_t src_offset
 	) noexcept {
-		return process.buffer_copy(dst, sl::constant<buffer_config, DstConfig>, src, sl::constant<buffer_config, SrcConfig>, size, dst_offset, src_offset);
+		return process_core.buffer_copy(
+			dst, sl::constant<buffer_config, DstConfig>,
+			src, sl::constant<buffer_config, SrcConfig>,
+			size,
+			dst_offset, src_offset
+		);
 	}
 
-	template<buffer_key_t DstK, buffer_key_t SrcK, auto BufferConfigs, typename RenderProcessT>
+
+	template<sl::size_t CommandGroupCount, sl::traits::specialization_of<vk::generic::resizable_gpu_buffer> DstBufferT, sl::traits::specialization_of<vk::generic::resizable_gpu_buffer> SrcBufferT>
 	constexpr result<void> gpu_copy(
-		vk::buffer<DstK, BufferConfigs, RenderProcessT>& dst,
-		vk::buffer<SrcK, BufferConfigs, RenderProcessT> const& src,
+		render_process_core<CommandGroupCount>& process_core,
+		DstBufferT& dst,
+		SrcBufferT const& src,
 		sl::size_t size,
 		sl::uoffset_t dst_offset,
 		sl::uoffset_t src_offset
 	) noexcept {
 		return gpu_copy(
-			static_cast<RenderProcessT&>(dst),
-			dst.allocation_ptr(),
-			sl::constant<buffer_config, BufferConfigs[DstK]>,
-			src.allocation_ptr(),
-			sl::constant<buffer_config, BufferConfigs[SrcK]>,
-			size, dst_offset, src_offset
+			process_core,
+			dst.allocation_ptr(), sl::constant<buffer_config, DstBufferT::config>,
+			src.allocation_ptr(), sl::constant<buffer_config, SrcBufferT::config>,
+			size,
+			dst_offset, src_offset
 		);
 	}
 }
 
 namespace acma{
-	template<buffer_key_t DstK, buffer_key_t SrcK, auto BufferConfigs, typename RenderProcessT>
+	template<sl::size_t CommandGroupCount>
 	constexpr result<void> gpu_copy(
-		RenderProcessT& proc,
+		render_process_core<CommandGroupCount> const& proc_core,
 		vk::image& dst,
 		vk::image const& src,
 		extent3 size,
@@ -55,10 +61,10 @@ namespace acma{
 		offset3 src_offset,
 		sl::uint64_t timeout
 	) noexcept {
-		const sl::index_t frame_idx = proc.frame_index();
-		auto const& transfer_command_buffer = proc.command_buffers()[frame_idx][timeline::impl::dedicated_command_group::out_of_timeline_copy];
+		const sl::index_t frame_idx = proc_core.frame_index();
+		auto const& transfer_command_buffer = proc_core.command_buffers()[frame_idx][timeline::impl::dedicated_command_group::out_of_timeline_copy];
 
-		RESULT_TRY_COPY_UNSCOPED(const sl::uint64_t post_copy_wait_value, proc.begin_dedicated_copy(timeline::impl::dedicated_command_group::out_of_timeline_copy, timeout), pcwv_result);
+		RESULT_TRY_COPY_UNSCOPED(const sl::uint64_t post_copy_wait_value, proc_core.begin_dedicated_copy(timeline::impl::dedicated_command_group::out_of_timeline_copy, timeout), pcwv_result);
 
 
 		if(size.width() == 0 || size.height() == 0 || size.depth() == 0) return {};
@@ -124,7 +130,7 @@ namespace acma{
 			};
 		}
 
-		sl::invoke(proc.vulkan_functions_ptr()->vkCmdCopyImage,
+		sl::invoke(proc_core.vulkan_functions_ptr()->vkCmdCopyImage,
 			transfer_command_buffer,
 			src, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
 			dst, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
@@ -132,7 +138,7 @@ namespace acma{
 		);
 
 		if(original_layout == VK_IMAGE_LAYOUT_UNDEFINED)
-			dst.current_layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL; \
+			dst.current_layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 		else {
 			sl::array<1, VkImageMemoryBarrier2> post_copy_barriers{{
 				VkImageMemoryBarrier2{
@@ -158,28 +164,27 @@ namespace acma{
 			dst.current_layout = original_layout;
 		}
 
-		return proc.end_dedicated_copy(post_copy_wait_value, timeline::impl::dedicated_command_group::out_of_timeline_copy, timeout);
+		return proc_core.end_dedicated_copy(post_copy_wait_value, timeline::impl::dedicated_command_group::out_of_timeline_copy, timeout);
 	}
 }
 
 namespace acma{
-	template<buffer_key_t SrcK, auto BufferConfigs, typename RenderProcessT>
+	template<sl::size_t CommandGroupCount, sl::traits::specialization_of<vk::generic::resizable_gpu_buffer> SrcBufferT>
 	constexpr result<void> gpu_copy(
+		render_process_core<CommandGroupCount> const& process_core,
 		std::span<vk::image> dst,
-		vk::buffer<SrcK, BufferConfigs, RenderProcessT> const& src,
+		SrcBufferT const& src,
 		sl::uint64_t timeout
 	) noexcept {
 		static_assert(
-			(vk::buffer<SrcK, BufferConfigs, RenderProcessT>::config.usage & buffer_usage_policy::texture_data) == buffer_usage_policy::texture_data,
+			(SrcBufferT::config.usage & buffer_usage_policy::texture_data) == buffer_usage_policy::texture_data,
 			"Source buffer in buffer -> asset heap copy must have `buffer_usage_policy::texture_data` as its usage policy"
 		);
 
-		RenderProcessT const& proc = static_cast<RenderProcessT const&>(src);
+		const sl::index_t frame_idx = process_core.frame_index();
+		auto const& transfer_command_buffer = process_core.command_buffers()[frame_idx][timeline::impl::dedicated_command_group::out_of_timeline_copy];
 
-		const sl::index_t frame_idx = proc.frame_index();
-		auto const& transfer_command_buffer = proc.command_buffers()[frame_idx][timeline::impl::dedicated_command_group::out_of_timeline_copy];
-
-		RESULT_TRY_COPY_UNSCOPED(const sl::uint64_t post_copy_wait_value, proc.begin_dedicated_copy(timeline::impl::dedicated_command_group::out_of_timeline_copy, timeout), pcwv_result);
+		RESULT_TRY_COPY_UNSCOPED(const sl::uint64_t post_copy_wait_value, process_core.begin_dedicated_copy(timeline::impl::dedicated_command_group::out_of_timeline_copy, timeout), pcwv_result);
 
 		std::vector<vk::texture_data_info> const& texture_data_infos = src.texture_data_infos;
 		for(sl::index_t i = 0; i < sl::algo::min(texture_data_infos.size(), dst.size()); ++i) {
@@ -237,7 +242,7 @@ namespace acma{
 				};
 			}
 
-			sl::invoke(proc.vulkan_functions_ptr()->vkCmdCopyBufferToImage,
+			sl::invoke(process_core.vulkan_functions_ptr()->vkCmdCopyBufferToImage,
 				transfer_command_buffer,
 				static_cast<VkBuffer>(src),
 				*dst_image.handle_ref(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
@@ -268,7 +273,7 @@ namespace acma{
 			dst_image.current_layout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL;
 		}
 
-		return proc.end_dedicated_copy(post_copy_wait_value, timeline::impl::dedicated_command_group::out_of_timeline_copy, timeout);
+		return process_core.end_dedicated_copy(post_copy_wait_value, timeline::impl::dedicated_command_group::out_of_timeline_copy, timeout);
 
 		//TODO: warn if dst.size() != src.texture_data_infos.size()
 	}
@@ -278,9 +283,9 @@ namespace acma{
 
 
 namespace acma {
-	template<buffer_config Config, typename RenderProcessT>
+	template<buffer_config Config, sl::size_t CommandGroupCount>
 	constexpr result<vk::buffer_allocation_unique_ptr> gpu_allocate(
-		RenderProcessT const& process,
+		render_process_core<CommandGroupCount> const& process_core,
 		sl::constant_type<buffer_config, Config>
 	) noexcept {
 		constexpr buffer_usage_policy_flags_t usage = Config.usage;
@@ -300,7 +305,7 @@ namespace acma {
     			    .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
 				},
 			}, {}},
-			vk::impl::buffer_allocation_deleter{process.allocator_ptr()}
+			vk::impl::buffer_allocation_deleter{process_core.allocator_ptr()}
 		};
 
 		buff_alloc_ptr->creation_info.usage |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
@@ -329,7 +334,7 @@ namespace acma {
 
 
 		__D2D_VULKAN_VERIFY(vmaCreateBuffer(
-			*process.allocator_ptr(),
+			*process_core.allocator_ptr(),
 			&buff_alloc_ptr->creation_info,
 			&buff_alloc_ptr->allocation_creation_info,
 			&buff_alloc_ptr->handle,
@@ -341,27 +346,27 @@ namespace acma {
 			.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO_KHR,
 			.buffer = buff_alloc_ptr->handle
 		};
-		buff_alloc_ptr->device_address = sl::invoke(process.vulkan_functions_ptr()->vkGetBufferDeviceAddress, *process.logical_device_ptr(), &device_address_info);
+		buff_alloc_ptr->device_address = sl::invoke(process_core.vulkan_functions_ptr()->vkGetBufferDeviceAddress, *process_core.logical_device_ptr(), &device_address_info);
 
 		return buff_alloc_ptr;
 	}
 
 
-	template<typename RenderProcessT>
+	template<sl::size_t CommandGroupCount>
 	constexpr result<vk::buffer_allocation_unique_ptr> gpu_allocate_like(
-		RenderProcessT const& process,
+		render_process_core<CommandGroupCount> const& process_core,
 		vk::buffer_allocation_unique_ptr const& old_allocation,
 		sl::size_t new_size_bytes
 	) noexcept {
 		vk::buffer_allocation_unique_ptr buff_alloc_ptr(
 			new vk::buffer_allocation{*old_allocation},
-			vk::impl::buffer_allocation_deleter{process.allocator_ptr()}
+			vk::impl::buffer_allocation_deleter{process_core.allocator_ptr()}
 		);
 
 		buff_alloc_ptr->creation_info.size = new_size_bytes;
 
 		__D2D_VULKAN_VERIFY(vmaCreateBuffer(
-			*process.allocator_ptr(),
+			*process_core.allocator_ptr(),
 			&buff_alloc_ptr->creation_info,
 			&buff_alloc_ptr->allocation_creation_info,
 			&buff_alloc_ptr->handle,
@@ -373,7 +378,7 @@ namespace acma {
 			.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO_KHR,
 			.buffer = buff_alloc_ptr->handle
 		};
-		buff_alloc_ptr->device_address = sl::invoke(process.vulkan_functions_ptr()->vkGetBufferDeviceAddress, *process.logical_device_ptr(), &device_address_info);
+		buff_alloc_ptr->device_address = sl::invoke(process_core.vulkan_functions_ptr()->vkGetBufferDeviceAddress, *process_core.logical_device_ptr(), &device_address_info);
 
         return buff_alloc_ptr;
 	}

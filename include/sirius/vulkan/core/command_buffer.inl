@@ -346,20 +346,20 @@ namespace acma::vk {
 }
 
 namespace acma::vk {
-	template<buffer_key_t DstK, buffer_key_t SrcK, auto BufferConfigs, typename RenderProcessT>
+	template<sl::traits::specialization_of<vk::generic::resizable_gpu_buffer> DstBufferT, sl::traits::specialization_of<vk::generic::resizable_gpu_buffer> SrcBufferT>
 	void command_buffer::copy(
-		buffer<DstK, BufferConfigs, RenderProcessT>& dst,
-		buffer<SrcK, BufferConfigs, RenderProcessT> const& src,
+		DstBufferT& dst,
+		SrcBufferT const& src,
 		std::span<const VkBufferCopy> copy_regions
 	) const noexcept {
 		return copy(dst.allocation_ptr(), src.allocation_ptr(), copy_regions);
 	}
 
 
-	template<buffer_key_t DstK, buffer_key_t SrcK, auto BufferConfigs, typename RenderProcessT>
+	template<sl::traits::specialization_of<vk::generic::resizable_gpu_buffer> DstBufferT, sl::traits::specialization_of<vk::generic::resizable_gpu_buffer> SrcBufferT>
 	void command_buffer::copy(
-		buffer<DstK, BufferConfigs, RenderProcessT>& dst,
-		buffer<SrcK, BufferConfigs, RenderProcessT> const& src,
+		DstBufferT& dst,
+		SrcBufferT const& src,
 		std::size_t size,
 		sl::uoffset_t dst_offset,
 		sl::uoffset_t src_offset
@@ -374,9 +374,9 @@ namespace acma::vk {
 }
 
 namespace acma::vk {
-	template<buffer_key_t K, auto BufferConfigs, typename RenderProcessT>
+	template<sl::traits::specialization_of<vk::generic::resizable_gpu_buffer> DstBufferT>
 	void command_buffer::fill(
-		buffer<K, BufferConfigs, RenderProcessT>& dst,
+		DstBufferT& dst,
 		sl::uint32_t value,
 		sl::uoffset_t dst_offset,
 		sl::size_t fill_count_bytes
