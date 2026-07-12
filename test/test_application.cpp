@@ -337,6 +337,7 @@ int main(){
 	const acma::vk::image_view font_view = images.back();
 	constexpr static sl::size_t slice_count = 2;
 	const sl::size_t view_length = font_view.layer_count() / slice_count;
+	RESULT_OUTPUT(sl::universal::get<descriptor_array_id::textures>(*inst).reserve(1 + slice_count));
 	for(sl::size_t i = 0; i < slice_count; ++i)
 		RESULT_OUTPUT(sl::universal::get<descriptor_array_id::textures>(*inst).emplace_back(font_view.sublayers(font_view.first_layer() + (view_length * i), view_length)));
 

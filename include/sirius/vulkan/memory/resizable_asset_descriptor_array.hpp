@@ -34,6 +34,10 @@ namespace acma::vk::impl {
 		constexpr result<void> initialize() noexcept;
 
 	public:
+		constexpr result<void> reserve(sl::uint32_t descriptor_count) noexcept;
+
+
+	public:
 		constexpr render_process_core<CommandGroupCount> const& render_proc_core() const noexcept { return *proc_ptr; }
 		constexpr render_process_core<CommandGroupCount>      & render_proc_core()       noexcept { return *proc_ptr; }
 	public:
@@ -73,6 +77,11 @@ namespace acma::vk {
 
 	public:
 		constexpr result<void> emplace_back(image_view view) noexcept;
+	public:
+		constexpr result<void> reserve(sl::uint32_t descriptor_count) noexcept {
+			std::vector<vk::image_view_handle>::reserve(descriptor_count);
+			return base_type::reserve(descriptor_count);
+		}
 	};
 }
 
@@ -91,6 +100,11 @@ namespace acma::vk {
 	public:
 		//TODO: create a sampler_info struct
 		constexpr result<void> emplace_back(VkSamplerCreateInfo info) noexcept;
+	public:
+		constexpr result<void> reserve(sl::uint32_t descriptor_count) noexcept {
+			std::vector<vk::image_sampler>::reserve(descriptor_count);
+			return base_type::reserve(descriptor_count);
+		}
 	};
 }
 

@@ -49,28 +49,19 @@ namespace acma::vk::impl {
 	}
 }
 
+
 namespace acma::vk::impl {
 	template<descriptor_array_config Config, sl::size_t CommandGroupCount>
-	template<typename DescriptorT>
 	constexpr result<void>
 		resizable_asset_descriptor_array_base<Config, CommandGroupCount>::
-	update_descriptors(
-		std::vector<DescriptorT> const& descriptor_assets
-	) noexcept {
-		const sl::uint32_t new_descriptor_count = static_cast<sl::uint32_t>(descriptor_assets.size());
-
-		//Some graphics drivers are bugged and tweak out when you pass 0 as the descriptor count
-		if(new_descriptor_count == 0) return {};
-
-		if(new_descriptor_count <= _descriptor_capacity)
-			goto write_descriptors;
-
+	reserve(sl::uint32_t descriptor_count) noexcept {
+		if(descriptor_count <= _descriptor_capacity) return {};
 
 		//Make pool
 		{
 		const VkDescriptorPoolSize pool_size{
 			.type = descriptor_type,
-			.descriptorCount = new_descriptor_count
+			.descriptorCount = descriptor_count
 		};
 
 		const VkDescriptorPoolCreateInfo pool_create_info{
@@ -96,7 +87,7 @@ namespace acma::vk::impl {
 			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO,
 			.pNext = nullptr,
 			.descriptorSetCount = 1,
-			.pDescriptorCounts = &new_descriptor_count
+			.pDescriptorCounts = &descriptor_count
 		};
 		const VkDescriptorSetAllocateInfo set_alloc_info{
 			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
@@ -115,10 +106,26 @@ namespace acma::vk::impl {
 
 
 		//Finalize
-		_descriptor_capacity = new_descriptor_count;
+		_descriptor_capacity = descriptor_count;
+		return {};
+	}
+}
 
+namespace acma::vk::impl {
+	template<descriptor_array_config Config, sl::size_t CommandGroupCount>
+	template<typename DescriptorT>
+	constexpr result<void>
+		resizable_asset_descriptor_array_base<Config, CommandGroupCount>::
+	update_descriptors(
+		std::vector<DescriptorT> const& descriptor_assets
+	) noexcept {
+		const sl::uint32_t new_descriptor_count = static_cast<sl::uint32_t>(descriptor_assets.size());
 
-	write_descriptors:
+		//Some graphics drivers are bugged and tweak out when you pass 0 as the descriptor count
+		if(new_descriptor_count == 0) return {};
+
+		RESULT_VERIFY(reserve(new_descriptor_count));
+
 		//Generate descriptors
 		const std::unique_ptr<VkDescriptorImageInfo[]> descriptor_infos = std::make_unique_for_overwrite<VkDescriptorImageInfo[]>(new_descriptor_count);
 		for(sl::index_t i = 0; i < new_descriptor_count; ++i) {
