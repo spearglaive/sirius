@@ -1,8 +1,6 @@
 #pragma once
 #include <streamline/containers/array.hpp>
 
-#include "sirius/core/access_policy.hpp"
-#include "sirius/core/memory_policy.hpp"
 #include "sirius/core/shader_stage.hpp"
 
 
@@ -40,9 +38,7 @@ namespace acma::vk {
 
 
 namespace acma {
-	struct asset_heap_config {
-		memory_policy_t image_memory;
-		access_policy_t access;
+	struct descriptor_array_config {
 		asset_usage_policy_t usage;
 		shader_stage_flags_t stages;
 	};

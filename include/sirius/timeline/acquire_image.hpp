@@ -5,7 +5,7 @@
 #include "sirius/timeline/command.fwd.hpp"
 #include "sirius/timeline/state.hpp"
 #include "sirius/core/buffer_config_table.hpp"
-#include "sirius/core/asset_heap_config_table.hpp"
+#include "sirius/core/descriptor_array_config_table.hpp"
 #include "sirius/core/invoke_all.def.hpp"
 #include "sirius/timeline/event.hpp"
 #include "sirius/timeline/callback_event.hpp"
@@ -39,6 +39,7 @@ namespace acma::timeline {
         	), sc);
 			if(swap_chain_updated)
 				D2D_INVOKE_ALL(proc.timeline_callbacks(), on_swap_chain_updated, proc, win, timeline_state);
+			win.swap_chain_ptr()->image_layouts()[timeline_state.image_index] = VK_IMAGE_LAYOUT_UNDEFINED;
 			return {};
 		};
 	};

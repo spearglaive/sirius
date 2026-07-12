@@ -30,7 +30,9 @@ namespace acma::impl {
             .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
             .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
         };
-        RESULT_TRY_MOVE(static_cast<vk::image&>(ret), ::acma::make<vk::image>(vulkan_fns_ptr, logi_device_ptr, allocator, image_create_info, true, VK_IMAGE_ASPECT_DEPTH_BIT));
+        RESULT_TRY_MOVE(static_cast<vk::image&>(ret), ::acma::make<vk::image>(allocator, image_create_info, VK_IMAGE_ASPECT_DEPTH_BIT, true));
+
+		RESULT_TRY_MOVE(ret.associated_view_handle, ::acma::make<vk::image_view_handle>(vulkan_fns_ptr, logi_device_ptr, static_cast<vk::image_view>(ret)));
 		return ret;
 	};
 }

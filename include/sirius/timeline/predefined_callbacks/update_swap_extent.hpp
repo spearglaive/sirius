@@ -5,15 +5,15 @@
 #include "sirius/arith/size.hpp"
 #include "sirius/core/error.hpp"
 #include "sirius/core/buffer_config_table.hpp"
-#include "sirius/core/asset_heap_config_table.hpp"
+#include "sirius/core/descriptor_array_config_table.hpp"
 
 
 namespace acma::timeline::predefined_callbacks {
 	template<typename InstanceT, buffer_key_t SwapExtentBufferKey, sl::uoffset_t BufferOffsetBytes = 0>
 	result<void> update_swap_extent(typename InstanceT::render_process_type& proc, typename InstanceT::window_type& win, auto&) noexcept {
 		std::memcpy(
-			sl::universal::get<SwapExtentBufferKey>(proc).data() + BufferOffsetBytes, 
-			&win.swap_chain_ptr()->extent(), 
+			sl::universal::get<SwapExtentBufferKey>(proc).data() + BufferOffsetBytes,
+			&win.swap_chain_ptr()->extent(),
 			sizeof(extent2)
 		);
 		return {};

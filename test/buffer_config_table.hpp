@@ -18,7 +18,7 @@ enum : acma::buffer_key_t {
 	positions,
 
 	staging,
-	texture_staging,
+	//texture_staging,
 	compute_buffer_addresses,
 	draw_constants,
 	compute_constants,
@@ -44,7 +44,7 @@ constexpr acma::buffer_config_table<buffer_id::num_buffer_ids> buffer_configs{{{
 	{buffer_id::positions, {acma::memory_policy::gpu_local, acma::access_policy::gpu_only, acma::buffer_usage_policy::generic, 0, sizeof(acma::pt2u32) * 3}},
 
 	{buffer_id::staging, {acma::memory_policy::cpu_local_cpu_writable, acma::access_policy::gpu_and_cpu, acma::buffer_usage_policy::generic, 0, sizeof(std::uint16_t)}},
-	{buffer_id::texture_staging, {acma::memory_policy::cpu_local_cpu_writable, acma::access_policy::gpu_and_cpu, acma::buffer_usage_policy::texture_data, 0}},
+	//{buffer_id::texture_staging, {acma::memory_policy::cpu_local_cpu_writable, acma::access_policy::gpu_and_cpu, acma::buffer_usage_policy::texture_data, 0}},
 	{buffer_id::compute_buffer_addresses, {acma::memory_policy::shared, acma::access_policy::gpu_and_cpu, acma::buffer_usage_policy::generic, 0, 3 * sizeof(acma::gpu_address_t)}}, //uniform
 	{buffer_id::draw_constants, {acma::memory_policy::push_constant, acma::access_policy::gpu_and_cpu, acma::buffer_usage_policy::push_constant, acma::shader_stage::all_graphics, sizeof(draw_constants)}},
 	{buffer_id::compute_constants, {acma::memory_policy::push_constant, acma::access_policy::gpu_and_cpu, acma::buffer_usage_policy::push_constant, acma::shader_stage::compute, sizeof(compute_constants)}},

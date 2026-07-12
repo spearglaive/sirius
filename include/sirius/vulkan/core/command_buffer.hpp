@@ -15,7 +15,7 @@
 #include "sirius/core/render_process.fwd.hpp"
 #include "sirius/vulkan/memory/bind_point.hpp"
 #include "sirius/vulkan/memory/resizable_gpu_buffer.hpp"
-#include "sirius/vulkan/memory/asset_heap.hpp"
+#include "sirius/vulkan/memory/resizable_asset_descriptor_array.hpp"
 #include "sirius/vulkan/memory/image.hpp"
 #include "sirius/vulkan/device/logical_device.hpp"
 #include "sirius/vulkan/core/command_pool.hpp"
@@ -31,7 +31,7 @@ namespace acma::vk {
 
 	private:
 		template<typename T> constexpr static bool has_index_info = requires{ T::index_info; };
-		template<typename T> constexpr static bool has_asset_heaps = T::asset_heaps.size() > 0;
+		template<typename T> constexpr static bool has_descriptor_arrays = T::descriptor_arrays.size() > 0;
 		template<typename T> constexpr static bool has_push_constants = T::push_constant_infos.size() > 0;
 		template<typename T> constexpr static bool has_uniform_buffers = T::uniform_infos.size() > 0;
 
@@ -46,68 +46,68 @@ namespace acma::vk {
     	inline void free() const noexcept;
 
 	public:
-		template<bind_point_t BindPoint, typename T, auto BufferConfigs, auto AssetHeapConfigs>
-		void bind_pipeline(pipeline<BindPoint, T, BufferConfigs, AssetHeapConfigs> const& p) const noexcept;
+		template<bind_point_t BindPoint, typename T, auto BufferConfigs, auto DescriptorArrayConfigs>
+		void bind_pipeline(pipeline<BindPoint, T, BufferConfigs, DescriptorArrayConfigs> const& p) const noexcept;
 	public:
-		template<typename T, auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount, sl::size_t UserByteCount>
+		template<typename T, auto BufferConfigs, auto DescriptorArrayConfigs, sl::size_t CommandGroupCount, sl::size_t UserByteCount>
 		void bind_index_buffer(
-			render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount, UserByteCount> const& render_proc
+			render_process<BufferConfigs, DescriptorArrayConfigs, CommandGroupCount, UserByteCount> const& render_proc
 		) const noexcept requires has_index_info<T>;
 
-		template<bind_point_t BindPoint, typename T, auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount, sl::size_t UserByteCount>
+		template<bind_point_t BindPoint, typename T, auto BufferConfigs, auto DescriptorArrayConfigs, sl::size_t CommandGroupCount, sl::size_t UserByteCount>
 		void bind_push_constants(
-			render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount, UserByteCount> const& render_proc,
-			pipeline_layout<BindPoint, T, BufferConfigs, AssetHeapConfigs> const& layout
+			render_process<BufferConfigs, DescriptorArrayConfigs, CommandGroupCount, UserByteCount> const& render_proc,
+			pipeline_layout<BindPoint, T, BufferConfigs, DescriptorArrayConfigs> const& layout
 		) const noexcept requires has_push_constants<T>;
 
-		template<bind_point_t BindPoint, typename T, auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount, sl::size_t UserByteCount>
+		template<bind_point_t BindPoint, typename T, auto BufferConfigs, auto DescriptorArrayConfigs, sl::size_t CommandGroupCount, sl::size_t UserByteCount>
 		void bind_uniform_buffers(
-			render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount, UserByteCount> const& render_proc,
-			pipeline_layout<BindPoint, T, BufferConfigs, AssetHeapConfigs> const& layout
+			render_process<BufferConfigs, DescriptorArrayConfigs, CommandGroupCount, UserByteCount> const& render_proc,
+			pipeline_layout<BindPoint, T, BufferConfigs, DescriptorArrayConfigs> const& layout
 		) const noexcept requires has_uniform_buffers<T>;
 
-		template<bind_point_t BindPoint, typename T, auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount, sl::size_t UserByteCount>
-		void bind_asset_heap(
-			render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount, UserByteCount> const& render_proc,
-			pipeline_layout<BindPoint, T, BufferConfigs, AssetHeapConfigs> const& layout
-		) const noexcept requires has_asset_heaps<T>;
+		template<bind_point_t BindPoint, typename T, auto BufferConfigs, auto DescriptorArrayConfigs, sl::size_t CommandGroupCount, sl::size_t UserByteCount>
+		void bind_descriptor_array(
+			render_process<BufferConfigs, DescriptorArrayConfigs, CommandGroupCount, UserByteCount> const& render_proc,
+			pipeline_layout<BindPoint, T, BufferConfigs, DescriptorArrayConfigs> const& layout
+		) const noexcept requires has_descriptor_arrays<T>;
 	public:
-		template<typename T, auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount, sl::size_t UserByteCount>
+		template<typename T, auto BufferConfigs, auto DescriptorArrayConfigs, sl::size_t CommandGroupCount, sl::size_t UserByteCount>
 		void bind_index_buffer(
-			render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount, UserByteCount> const&
+			render_process<BufferConfigs, DescriptorArrayConfigs, CommandGroupCount, UserByteCount> const&
 		) const noexcept requires (!has_index_info<T>) {}
 
-		template<bind_point_t BindPoint, typename T, auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount, sl::size_t UserByteCount>
+		template<bind_point_t BindPoint, typename T, auto BufferConfigs, auto DescriptorArrayConfigs, sl::size_t CommandGroupCount, sl::size_t UserByteCount>
 		void bind_push_constants(
-			render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount, UserByteCount> const&,
-			pipeline_layout<BindPoint, T, BufferConfigs, AssetHeapConfigs> const&
+			render_process<BufferConfigs, DescriptorArrayConfigs, CommandGroupCount, UserByteCount> const&,
+			pipeline_layout<BindPoint, T, BufferConfigs, DescriptorArrayConfigs> const&
 		) const noexcept requires (!has_push_constants<T>) {}
 
-		template<bind_point_t BindPoint, typename T, auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount, sl::size_t UserByteCount>
+		template<bind_point_t BindPoint, typename T, auto BufferConfigs, auto DescriptorArrayConfigs, sl::size_t CommandGroupCount, sl::size_t UserByteCount>
 		void bind_uniform_buffers(
-			render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount, UserByteCount> const&,
-			pipeline_layout<BindPoint, T, BufferConfigs, AssetHeapConfigs> const&
+			render_process<BufferConfigs, DescriptorArrayConfigs, CommandGroupCount, UserByteCount> const&,
+			pipeline_layout<BindPoint, T, BufferConfigs, DescriptorArrayConfigs> const&
 		) const noexcept requires (!has_uniform_buffers<T>) {}
 
-		template<bind_point_t BindPoint, typename T, auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount, sl::size_t UserByteCount>
-		void bind_asset_heap(
-			render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount, UserByteCount> const&,
-			pipeline_layout<BindPoint, T, BufferConfigs, AssetHeapConfigs> const&
-		) const noexcept requires (!has_asset_heaps<T>) {}
+		template<bind_point_t BindPoint, typename T, auto BufferConfigs, auto DescriptorArrayConfigs, sl::size_t CommandGroupCount, sl::size_t UserByteCount>
+		void bind_descriptor_array(
+			render_process<BufferConfigs, DescriptorArrayConfigs, CommandGroupCount, UserByteCount> const&,
+			pipeline_layout<BindPoint, T, BufferConfigs, DescriptorArrayConfigs> const&
+		) const noexcept requires (!has_descriptor_arrays<T>) {}
 
 	public:
         inline void begin_draw(std::span<const VkRenderingAttachmentInfo> color_attachments, VkRenderingAttachmentInfo const& depth_attachment, rect<std::uint32_t> render_area_bounds, rect<float> viewport_bounds, rect<std::uint32_t> scissor_bounds) const noexcept;
         inline void end_draw() const noexcept;
 
     public:
-		template<typename T, auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount, sl::size_t UserByteCount>
+		template<typename T, auto BufferConfigs, auto DescriptorArrayConfigs, sl::size_t CommandGroupCount, sl::size_t UserByteCount>
         void draw(
-			render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount, UserByteCount> const& render_proc
+			render_process<BufferConfigs, DescriptorArrayConfigs, CommandGroupCount, UserByteCount> const& render_proc
 		) const noexcept;
 
-		template<typename T, auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount, sl::size_t UserByteCount>
+		template<typename T, auto BufferConfigs, auto DescriptorArrayConfigs, sl::size_t CommandGroupCount, sl::size_t UserByteCount>
         void dispatch(
-			render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount, UserByteCount> const& render_proc
+			render_process<BufferConfigs, DescriptorArrayConfigs, CommandGroupCount, UserByteCount> const& render_proc
 		) const noexcept;
 
 

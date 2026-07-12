@@ -5,7 +5,6 @@
 
 #include "sirius/timeline/dedicated_command_group.hpp"
 #include "sirius/vulkan/memory/resizable_gpu_buffer.hpp"
-#include "sirius/vulkan/memory/asset_heap.hpp"
 #include "sirius/vulkan/memory/image.hpp"
 #include "sirius/vulkan/memory/texture_data_info.hpp"
 
@@ -54,115 +53,124 @@ namespace acma{
 	template<sl::size_t CommandGroupCount>
 	constexpr result<void> gpu_copy(
 		render_process_core<CommandGroupCount> const& proc_core,
-		vk::image& dst,
-		vk::image const& src,
+		sl::reference_ptr<vk::image> dst,
+		sl::reference_ptr<const vk::image> src,
+		sl::size_t count,
 		extent3 size,
 		offset3 dst_offset,
 		offset3 src_offset,
 		sl::uint64_t timeout
 	) noexcept {
+		if(size.width() == 0 || size.height() == 0 || size.depth() == 0) return {};
+
 		const sl::index_t frame_idx = proc_core.frame_index();
 		auto const& transfer_command_buffer = proc_core.command_buffers()[frame_idx][timeline::impl::dedicated_command_group::out_of_timeline_copy];
 
 		RESULT_TRY_COPY_UNSCOPED(const sl::uint64_t post_copy_wait_value, proc_core.begin_dedicated_copy(timeline::impl::dedicated_command_group::out_of_timeline_copy, timeout), pcwv_result);
 
 
-		if(size.width() == 0 || size.height() == 0 || size.depth() == 0) return {};
 
-		const VkImageLayout original_layout = src.layout();
+		for(sl::index_t i = 0; i < count; ++i) {
+			vk::image      & dst_image = dst[i];
+			vk::image const& src_image = src[i];
 
-		sl::array<2, VkImageMemoryBarrier2> pre_copy_barriers {{
-			VkImageMemoryBarrier2{
-			    .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-				.srcStageMask = VK_PIPELINE_STAGE_2_NONE,
-				.srcAccessMask = VK_ACCESS_2_NONE,
-				.dstStageMask = VK_PIPELINE_STAGE_2_COPY_BIT,
-				.dstAccessMask = VK_ACCESS_2_TRANSFER_READ_BIT,
-			    .oldLayout = original_layout,
-			    .newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-			    .image = *src.handle_ref(),
-			    .subresourceRange = {
-			        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-			        .baseMipLevel = 0,
-			        .levelCount = src.mip_level_count(),
-			        .baseArrayLayer = 0,
-			        .layerCount = src.layer_count(),
-			    },
-			},
-			VkImageMemoryBarrier2{
-			    .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-				.srcStageMask = VK_PIPELINE_STAGE_2_NONE,
-				.srcAccessMask = VK_ACCESS_2_NONE,
-				.dstStageMask = VK_PIPELINE_STAGE_2_COPY_BIT,
-				.dstAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
-			    .oldLayout = dst.layout(),
-			    .newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			    .image = *dst.handle_ref(),
-			    .subresourceRange = {
-			        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-			        .baseMipLevel = 0,
-			        .levelCount = dst.mip_level_count(),
-			        .baseArrayLayer = 0,
-			        .layerCount = dst.layer_count(),
-			    },
-			},
-		}};
-		transfer_command_buffer.pipeline_barrier({}, {}, pre_copy_barriers);
+			const VkImageLayout original_layout = src_image.layout();
 
-		std::unique_ptr<VkImageCopy[]> copy_regions = std::make_unique_for_overwrite<VkImageCopy[]>(src.mip_level_count());
-		for(sl::uint32_t i = 0; i < src.mip_level_count(); ++i) {
-			new (&copy_regions[i]) VkImageCopy{
-				VkImageSubresourceLayers{
-				    .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-				    .mipLevel = i,
-				    .baseArrayLayer = 0,
-				    .layerCount = src.layer_count(),
-				},
-				std::bit_cast<VkOffset3D>(src_offset),
-				VkImageSubresourceLayers{
-				    .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-				    .mipLevel = i,
-				    .baseArrayLayer = 0,
-				    .layerCount = dst.layer_count(),
-				},
-				std::bit_cast<VkOffset3D>(dst_offset),
-				std::bit_cast<VkExtent3D>(size)
-			};
-		}
-
-		sl::invoke(proc_core.vulkan_functions_ptr()->vkCmdCopyImage,
-			transfer_command_buffer,
-			src, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-			dst, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			src.mip_level_count(), copy_regions.get()
-		);
-
-		if(original_layout == VK_IMAGE_LAYOUT_UNDEFINED)
-			dst.current_layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-		else {
-			sl::array<1, VkImageMemoryBarrier2> post_copy_barriers{{
+			sl::array<2, VkImageMemoryBarrier2> pre_copy_barriers {{
 				VkImageMemoryBarrier2{
 				    .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-					.srcStageMask = VK_PIPELINE_STAGE_2_COPY_BIT,
-					.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
-					.dstStageMask = VK_PIPELINE_STAGE_2_NONE,
-					.dstAccessMask = VK_ACCESS_2_NONE,
-				    .oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-				    .newLayout = original_layout,
-				    .image = *dst.handle_ref(),
+					.srcStageMask = VK_PIPELINE_STAGE_2_NONE,
+					.srcAccessMask = VK_ACCESS_2_NONE,
+					.dstStageMask = VK_PIPELINE_STAGE_2_COPY_BIT,
+					.dstAccessMask = VK_ACCESS_2_TRANSFER_READ_BIT,
+				    .oldLayout = original_layout,
+				    .newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+				    .image = *src_image.handle_ref(),
 				    .subresourceRange = {
-				        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+				        .aspectMask = src_image.aspects(),
 				        .baseMipLevel = 0,
-				        .levelCount = dst.mip_level_count(),
+				        .levelCount = src_image.mip_level_count(),
 				        .baseArrayLayer = 0,
-				        .layerCount = dst.layer_count(),
+				        .layerCount = src_image.layer_count(),
+				    },
+				},
+				VkImageMemoryBarrier2{
+				    .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+					.srcStageMask = VK_PIPELINE_STAGE_2_NONE,
+					.srcAccessMask = VK_ACCESS_2_NONE,
+					.dstStageMask = VK_PIPELINE_STAGE_2_COPY_BIT,
+					.dstAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
+				    .oldLayout = dst_image.layout(),
+				    .newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+				    .image = *dst_image.handle_ref(),
+				    .subresourceRange = {
+				        .aspectMask = dst_image.aspects(),
+				        .baseMipLevel = 0,
+				        .levelCount = dst_image.mip_level_count(),
+				        .baseArrayLayer = 0,
+				        .layerCount = dst_image.layer_count(),
 				    },
 				},
 			}};
-			transfer_command_buffer.pipeline_barrier({}, {}, post_copy_barriers);
+			transfer_command_buffer.pipeline_barrier({}, {}, pre_copy_barriers);
 
-			dst.current_layout = original_layout;
+			const sl::uint32_t copy_region_count = std::min(std::min(dst_image.mip_level_count(), src_image.mip_level_count()), static_cast<sl::uint32_t>(max_mip_levels));
+			const std::unique_ptr<VkImageCopy[]> copy_regions = std::make_unique_for_overwrite<VkImageCopy[]>(copy_region_count);
+			for(sl::uint32_t i = 0; i < copy_region_count; ++i) {
+				new (&copy_regions[i]) VkImageCopy{
+					VkImageSubresourceLayers{
+					    .aspectMask = src_image.aspects(),
+					    .mipLevel = i,
+					    .baseArrayLayer = 0,
+					    .layerCount = src_image.layer_count(),
+					},
+					std::bit_cast<VkOffset3D>(src_offset),
+					VkImageSubresourceLayers{
+					    .aspectMask = dst_image.aspects(),
+					    .mipLevel = i,
+					    .baseArrayLayer = 0,
+					    .layerCount = dst_image.layer_count(),
+					},
+					std::bit_cast<VkOffset3D>(dst_offset),
+					std::bit_cast<VkExtent3D>(size)
+				};
+			}
+
+			sl::invoke(proc_core.vulkan_functions_ptr()->vkCmdCopyImage,
+				transfer_command_buffer,
+				src_image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+				dst_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+				copy_region_count, copy_regions.get()
+			);
+
+			if(original_layout == VK_IMAGE_LAYOUT_UNDEFINED)
+				*dst_image.layout_ptr() = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+			else {
+				sl::array<1, VkImageMemoryBarrier2> post_copy_barriers{{
+					VkImageMemoryBarrier2{
+					    .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+						.srcStageMask = VK_PIPELINE_STAGE_2_COPY_BIT,
+						.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT,
+						.dstStageMask = VK_PIPELINE_STAGE_2_NONE,
+						.dstAccessMask = VK_ACCESS_2_NONE,
+					    .oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+					    .newLayout = original_layout,
+					    .image = *dst_image.handle_ref(),
+					    .subresourceRange = {
+					        .aspectMask = dst_image.aspects(),
+					        .baseMipLevel = 0,
+					        .levelCount = dst_image.mip_level_count(),
+					        .baseArrayLayer = 0,
+					        .layerCount = dst_image.layer_count(),
+					    },
+					},
+				}};
+				transfer_command_buffer.pipeline_barrier({}, {}, post_copy_barriers);
+
+				*dst_image.layout_ptr() = original_layout;
+			}
 		}
+
 
 		return proc_core.end_dedicated_copy(post_copy_wait_value, timeline::impl::dedicated_command_group::out_of_timeline_copy, timeout);
 	}
@@ -172,25 +180,23 @@ namespace acma{
 	template<sl::size_t CommandGroupCount, sl::traits::specialization_of<vk::generic::resizable_gpu_buffer> SrcBufferT>
 	constexpr result<void> gpu_copy(
 		render_process_core<CommandGroupCount> const& process_core,
-		std::span<vk::image> dst,
-		SrcBufferT const& src,
+		sl::reference_ptr<vk::image> dst,
+		sl::reference_ptr<const SrcBufferT> src,
+		sl::reference_ptr<const texture_info> src_info,
+		sl::size_t count,
 		sl::uint64_t timeout
 	) noexcept {
-		static_assert(
-			(SrcBufferT::config.usage & buffer_usage_policy::texture_data) == buffer_usage_policy::texture_data,
-			"Source buffer in buffer -> asset heap copy must have `buffer_usage_policy::texture_data` as its usage policy"
-		);
-
 		const sl::index_t frame_idx = process_core.frame_index();
 		auto const& transfer_command_buffer = process_core.command_buffers()[frame_idx][timeline::impl::dedicated_command_group::out_of_timeline_copy];
 
 		RESULT_TRY_COPY_UNSCOPED(const sl::uint64_t post_copy_wait_value, process_core.begin_dedicated_copy(timeline::impl::dedicated_command_group::out_of_timeline_copy, timeout), pcwv_result);
 
-		std::vector<vk::texture_data_info> const& texture_data_infos = src.texture_data_infos;
-		for(sl::index_t i = 0; i < sl::algo::min(texture_data_infos.size(), dst.size()); ++i) {
-			if(texture_data_infos[i].size == 0) continue;
-
+		for(sl::index_t i = 0; i < count; ++i) {
 			vk::image& dst_image = dst[i];
+			SrcBufferT const& src_buffer = src[i];
+			const texture_info src_texture_info = src_info[i];
+
+			if(src_buffer.size_bytes() == 0) continue;
 
 			//VkBufferMemoryBarrier2 pre_copy_buffer_barrier{
 			//    .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
@@ -212,7 +218,7 @@ namespace acma{
 			    .newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			    .image = *dst_image.handle_ref(),
 			    .subresourceRange = {
-			        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+			        .aspectMask = dst_image.aspects(),
 			        .baseMipLevel = 0,
 			        .levelCount = dst_image.mip_level_count(),
 			        .baseArrayLayer = 0,
@@ -225,7 +231,7 @@ namespace acma{
 			const std::unique_ptr<VkBufferImageCopy[]> copy_regions = std::make_unique_for_overwrite<VkBufferImageCopy[]>(copy_region_count);
 			for(sl::uint32_t j = 0; j < copy_region_count; ++j) {
 				new (&copy_regions[j]) VkBufferImageCopy{
-					texture_data_infos[i].offset + texture_data_infos[i].mip_offsets[j],
+					src_texture_info.mip_offsets[j],
 					0, 0,
 					VkImageSubresourceLayers{
 					    .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
@@ -235,8 +241,8 @@ namespace acma{
 					},
 					VkOffset3D{},
 					VkExtent3D{
-						.width = texture_data_infos[i].extent.width() >> j,
-						.height = texture_data_infos[i].extent.height() >> j,
+						.width = src_texture_info.extent.width() >> j,
+						.height = src_texture_info.extent.height() >> j,
 						.depth = 1
 					}
 				};
@@ -244,7 +250,7 @@ namespace acma{
 
 			sl::invoke(process_core.vulkan_functions_ptr()->vkCmdCopyBufferToImage,
 				transfer_command_buffer,
-				static_cast<VkBuffer>(src),
+				static_cast<VkBuffer>(src_buffer),
 				*dst_image.handle_ref(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 				copy_region_count, copy_regions.get()
 			);
@@ -260,7 +266,7 @@ namespace acma{
 				    .newLayout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL,
 				    .image = *dst_image.handle_ref(),
 				    .subresourceRange = {
-				        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+				        .aspectMask = dst_image.aspects(),
 				        .baseMipLevel = 0,
 				        .levelCount = dst_image.mip_level_count(),
 				        .baseArrayLayer = 0,
@@ -270,12 +276,10 @@ namespace acma{
 			}};
 			transfer_command_buffer.pipeline_barrier({}, {}, post_copy_barriers);
 
-			dst_image.current_layout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL;
+			*dst_image.layout_ptr() = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL;
 		}
 
 		return process_core.end_dedicated_copy(post_copy_wait_value, timeline::impl::dedicated_command_group::out_of_timeline_copy, timeout);
-
-		//TODO: warn if dst.size() != src.texture_data_infos.size()
 	}
 }
 
@@ -313,7 +317,7 @@ namespace acma {
 
 		if (usage & all_indirect_flags)
 			buff_alloc_ptr->creation_info.usage |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
-		// if (usage & buffer_usage_policy::asset_heap_table)
+		// if (usage & buffer_usage_policy::descriptor_array_table)
 			// ret.flags |= VK_BUFFER_USAGE_DESCRIPTOR_HEAP_BIT_EXT;
 
 

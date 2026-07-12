@@ -19,6 +19,8 @@ namespace acma {
 namespace acma {
 	namespace shader_stage {
 	enum : shader_stage_flags_t {
+		none = 0,
+
 		vertex            = VK_SHADER_STAGE_VERTEX_BIT,
 		tessellation_ctrl = VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT,
 		tessellation_eval = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT,

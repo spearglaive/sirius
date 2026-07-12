@@ -6,18 +6,18 @@
 
 #include "sirius/vulkan/core/vulkan.hpp"
 
-#include "sirius/core/asset_heap_config.hpp"
+#include "sirius/core/descriptor_array_config.hpp"
 #include "sirius/graphics/core/texture_view.hpp"
 #include "sirius/vulkan/core/command_buffer.fwd.hpp"
 #include "sirius/core/buffer_config_table.hpp"
 #include "sirius/vulkan/device/logical_device.hpp"
 #include "sirius/core/buffer_config.hpp"
 #include "sirius/core/memory_management.fwd.hpp"
+#include "sirius/vulkan/memory/resizable_gpu_image_array.fwd.hpp"
 #include "sirius/vulkan/memory/buffer_allocation.hpp"
 #include "sirius/vulkan/memory/allocation_counts.hpp"
 #include "sirius/vulkan/memory/texture_data_info.hpp"
 #include "sirius/core/memory_management.fwd.hpp"
-#include "sirius/vulkan/memory/asset_heap.fwd.hpp"
 #include "sirius/vulkan/memory/clear_frame.hpp"
 #include "sirius/core/render_process.fwd.hpp"
 #include "sirius/core/render_process_core.fwd.hpp"
@@ -139,10 +139,7 @@ namespace acma::vk::generic {
 	//Directly modifyable
 	//Assumes that reads/writes are done safely
 	template<buffer_config BufferConfig, sl::size_t CommandGroupCount>
-	requires(
-		!(BufferConfig.usage & (buffer_usage_policy::texture_data)) &&
-		BufferConfig.memory != memory_policy::gpu_local
-	)
+	requires(BufferConfig.memory != memory_policy::gpu_local)
     class resizable_gpu_buffer<sl::constant_type<buffer_config, BufferConfig>, sl::size_constant_type<CommandGroupCount>> :
 		public impl::resizable_gpu_buffer_base<BufferConfig, CommandGroupCount>
 	{
@@ -203,46 +200,6 @@ namespace acma::vk::generic {
     };
 }
 
-namespace acma::vk::generic {
-	//Directly modifiable (specifically for textures)
-	template<buffer_config BufferConfig, sl::size_t CommandGroupCount>
-	requires (
-		static_cast<bool>(BufferConfig.usage & (buffer_usage_policy::texture_data))
-	)
-	class resizable_gpu_buffer<sl::constant_type<buffer_config, BufferConfig>, sl::size_constant_type<CommandGroupCount>> :
-		public impl::resizable_gpu_buffer_base<BufferConfig, CommandGroupCount>
-	{
-	protected:
-		using base_type = impl::resizable_gpu_buffer_base<BufferConfig, CommandGroupCount>;
-	public:
-		using base_type::allocation_count;
-		using base_type::base_type;
-	public:
-        result<void> initialize() noexcept;
-
-	public:
-		constexpr void clear() noexcept;
-	public:
-		constexpr result<void> push_back(texture_view t) noexcept;
-
-		constexpr result<void> try_push_back(texture_view t) noexcept;
-
-	private:
-		template<asset_heap_key_t K, auto AssetHeapConfigs, typename RenderProcessT>
-		friend class acma::vk::asset_heap;
-
-		template<sl::size_t _CommandGroupCount, sl::traits::specialization_of<vk::generic::resizable_gpu_buffer> SrcBufferT>
-		friend constexpr result<void> acma::gpu_copy(
-			render_process_core<_CommandGroupCount> const& process_core,
-			std::span<vk::image> dst,
-			SrcBufferT const& src,
-			sl::uint64_t timeout
-		) noexcept;
-
-	private:
-		std::vector<texture_data_info> texture_data_infos;
-	};
-}
 
 
 namespace acma::vk::generic {

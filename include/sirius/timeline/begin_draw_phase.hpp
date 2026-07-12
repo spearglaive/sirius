@@ -7,7 +7,7 @@
 #include "sirius/timeline/state.hpp"
 #include "sirius/vulkan/core/command_buffer.hpp"
 #include "sirius/core/buffer_config_table.hpp"
-#include "sirius/core/asset_heap_config_table.hpp"
+#include "sirius/core/descriptor_array_config_table.hpp"
 #include "sirius/timeline/event.hpp"
 
 
@@ -49,10 +49,12 @@ namespace acma::timeline {
 				}
 			}};
 			graphics_buffer.pipeline_barrier({}, {}, pre_render_transitions);
+			win.swap_chain_ptr()->image_layouts()[timeline_state.image_index] = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
+			*win.depth_image_ptr()->layout_ptr() = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
 
 			VkRenderingAttachmentInfo color_attachment{
 			    .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-			    .imageView = win.swap_chain_ptr()->image_views()[timeline_state.image_index],
+			    .imageView = win.swap_chain_ptr()->image_view_handles()[timeline_state.image_index],
 			    .imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
 			    .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
 			    .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
@@ -60,7 +62,7 @@ namespace acma::timeline {
 			};
 			VkRenderingAttachmentInfo depth_attachment {
 			    .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-			    .imageView = *win.depth_image_ptr()->view_ref(),
+			    .imageView = *win.depth_image_ptr()->view_handle_ref(),
 			    .imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
 			    .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
 			    .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,

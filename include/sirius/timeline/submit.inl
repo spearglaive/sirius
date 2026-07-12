@@ -132,6 +132,7 @@ namespace acma::timeline {
 			};
 
 			cmd_buff.pipeline_barrier({}, {}, {&pre_present_barrier, 1});
+			win.swap_chain_ptr()->image_layouts()[timeline_state.image_index] = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
 
 			//Call base submit function

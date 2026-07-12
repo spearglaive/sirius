@@ -14,7 +14,7 @@ namespace acma {
 	//In practice, the maximum dimension for a 2d image that any device supports is 65536 (16-bit unsigned max)
 	//Since each mip level has half the size of the previous level (i.e. a bit shift right)...
 	//...the absolute most amount of mip levels we can have is the number of digits in a 16-bit unsigned
-	constexpr static sl::size_t max_mip_levels = sl::numeric_traits<sl::uint16_t>::digits;
+	constexpr sl::size_t max_mip_levels = sl::numeric_traits<sl::uint16_t>::digits;
 }
 
 namespace acma {

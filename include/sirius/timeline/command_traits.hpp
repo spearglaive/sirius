@@ -6,7 +6,7 @@
 #include "sirius/core/command_family.hpp"
 #include "sirius/core/render_process.fwd.hpp"
 #include "sirius/core/buffer_config_table.hpp"
-#include "sirius/core/asset_heap_config_table.hpp"
+#include "sirius/core/descriptor_array_config_table.hpp"
 #include "sirius/timeline/setup.hpp"
 
 
@@ -15,13 +15,13 @@ namespace acma::timeline::impl {
 	struct command_traits;
 
 	template<typename Head, typename... Ts, sl::index_t I, sl::index_t... Is, command_family_t... CFs>
-	struct command_traits<sl::tuple<Head, Ts...>, I, sl::index_sequence_type<Is...>, sl::integer_sequence_type<command_family_t, CFs...>> : 
+	struct command_traits<sl::tuple<Head, Ts...>, I, sl::index_sequence_type<Is...>, sl::integer_sequence_type<command_family_t, CFs...>> :
 		command_traits<
-			sl::tuple<Ts...>, 
+			sl::tuple<Ts...>,
 			I + static_cast<sl::index_t>(Head::ends_command_group),
 			sl::index_sequence_type<Is..., I>,
 			sl::conditional_t<
-				Head::ends_command_group, 
+				Head::ends_command_group,
 				sl::integer_sequence_type<command_family_t, CFs..., Head::family>,
 				sl::integer_sequence_type<command_family_t, CFs...>
 			>
@@ -34,7 +34,7 @@ namespace acma::timeline::impl {
 			//	sl::tuple<AuxTs...>
 			//>
 		> {};
-	
+
 	template<sl::index_t I, sl::index_t... Is, command_family_t... CFs>
 	struct command_traits<sl::tuple<>, I, sl::index_sequence_type<Is...>, sl::integer_sequence_type<command_family_t, CFs...>> {
 		constexpr static sl::array<sizeof...(Is), sl::index_t> group_indices{{Is...}};
@@ -46,9 +46,9 @@ namespace acma::timeline::impl {
 namespace acma::timeline {
 	template<typename... Ts>
 	using command_traits = impl::command_traits<
-		sl::tuple<Ts...>, 
-		0, 
-		sl::index_sequence_type<>, 
+		sl::tuple<Ts...>,
+		0,
+		sl::index_sequence_type<>,
 		sl::integer_sequence_type<command_family_t>
 	>;
 }

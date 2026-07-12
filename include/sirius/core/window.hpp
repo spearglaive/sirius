@@ -48,8 +48,11 @@ namespace acma {
 
 	public:
 		constexpr sl::reference_ptr<const vk::surface    > surface_ptr    () const& noexcept { return {std::addressof(_surface    )}; }
+    	constexpr sl::reference_ptr<      vk::surface    > surface_ptr    ()      & noexcept { return {std::addressof(_surface    )}; }
 		constexpr sl::reference_ptr<const vk::swap_chain > swap_chain_ptr () const& noexcept { return {std::addressof(_swap_chain )}; }
+		constexpr sl::reference_ptr<      vk::swap_chain > swap_chain_ptr ()      & noexcept { return {std::addressof(_swap_chain )}; }
 		constexpr sl::reference_ptr<const vk::depth_image> depth_image_ptr() const& noexcept { return {std::addressof(_depth_image)}; }
+		constexpr sl::reference_ptr<      vk::depth_image> depth_image_ptr()      & noexcept { return {std::addressof(_depth_image)}; }
 
 		constexpr extent2 screen_size() const noexcept { return _size; }
 

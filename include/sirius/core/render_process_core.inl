@@ -1,6 +1,8 @@
 #pragma once
 #include "sirius/core/render_process_core.hpp"
 
+#include "sirius/timeline/dedicated_command_group.hpp"
+
 
 namespace acma {
 	template<sl::size_t CommandGroupCount>

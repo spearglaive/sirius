@@ -7,7 +7,7 @@
 #include "sirius/shaders/rect.hpp"
 
 #include "./buffer_config_table.hpp"
-#include "./asset_heap_config_table.hpp"
+#include "./descriptor_array_config_table.hpp"
 
 namespace acma::test {
 	struct styled_rect : public acma::drawable {

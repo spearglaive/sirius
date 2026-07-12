@@ -8,22 +8,22 @@
 
 
 namespace acma::impl {
-	template<typename T, auto BufferConfigs, auto AssetHeapConfigs>
+	template<typename T, auto BufferConfigs, auto DescriptorArrayConfigs>
 	template<typename RenderProcessT>
-	result<vk::pipeline<vk::bind_point::graphics, T, BufferConfigs, AssetHeapConfigs>>
-		make<vk::pipeline<vk::bind_point::graphics, T, BufferConfigs, AssetHeapConfigs>>::
+	result<vk::pipeline<vk::bind_point::graphics, T, BufferConfigs, DescriptorArrayConfigs>>
+		make<vk::pipeline<vk::bind_point::graphics, T, BufferConfigs, DescriptorArrayConfigs>>::
 	operator()(
 		sl::reference_ptr<const vk::function_table> vulkan_fns_ptr,
 		sl::reference_ptr<const vk::logical_device> logi_device_ptr,
 		RenderProcessT&& proc,
 		std::span<const VkFormat> color_attachment_formats,
 		VkFormat depth_attachment_format,
-		sl::in_place_adl_tag_type<vk::pipeline<vk::bind_point::graphics, T, BufferConfigs, AssetHeapConfigs>>
+		sl::in_place_adl_tag_type<vk::pipeline<vk::bind_point::graphics, T, BufferConfigs, DescriptorArrayConfigs>>
 	) const noexcept {
-		vk::pipeline<vk::bind_point::graphics, T, BufferConfigs, AssetHeapConfigs> ret{};
+		vk::pipeline<vk::bind_point::graphics, T, BufferConfigs, DescriptorArrayConfigs> ret{};
 		ret.smart_handle = {vulkan_fns_ptr->vkDestroyPipeline, logi_device_ptr};
 
-		RESULT_TRY_MOVE(ret._layout, (acma::make<vk::pipeline_layout<vk::bind_point::graphics, T, BufferConfigs, AssetHeapConfigs>>(
+		RESULT_TRY_MOVE(ret._layout, (acma::make<vk::pipeline_layout<vk::bind_point::graphics, T, BufferConfigs, DescriptorArrayConfigs>>(
 			vulkan_fns_ptr,
 			logi_device_ptr,
 			sl::forward<RenderProcessT>(proc)
@@ -166,20 +166,20 @@ namespace acma::impl {
 
 
 namespace acma::impl {
-	template<typename T, auto BufferConfigs, auto AssetHeapConfigs>
+	template<typename T, auto BufferConfigs, auto DescriptorArrayConfigs>
 	template<typename RenderProcessT>
-	result<vk::pipeline<vk::bind_point::compute, T, BufferConfigs, AssetHeapConfigs>>
-		make<vk::pipeline<vk::bind_point::compute, T, BufferConfigs, AssetHeapConfigs>>::
+	result<vk::pipeline<vk::bind_point::compute, T, BufferConfigs, DescriptorArrayConfigs>>
+		make<vk::pipeline<vk::bind_point::compute, T, BufferConfigs, DescriptorArrayConfigs>>::
 	operator()(
 		sl::reference_ptr<const vk::function_table> vulkan_fns_ptr,
 		sl::reference_ptr<const vk::logical_device> logi_device_ptr,
 		RenderProcessT&& proc,
-		sl::in_place_adl_tag_type<vk::pipeline<vk::bind_point::compute, T, BufferConfigs, AssetHeapConfigs>>
+		sl::in_place_adl_tag_type<vk::pipeline<vk::bind_point::compute, T, BufferConfigs, DescriptorArrayConfigs>>
 	) const noexcept {
-		vk::pipeline<vk::bind_point::compute, T, BufferConfigs, AssetHeapConfigs> ret{};
+		vk::pipeline<vk::bind_point::compute, T, BufferConfigs, DescriptorArrayConfigs> ret{};
 		ret.smart_handle = {vulkan_fns_ptr->vkDestroyPipeline, logi_device_ptr};
 
-		RESULT_TRY_MOVE(ret._layout, (acma::make<vk::pipeline_layout<vk::bind_point::compute, T, BufferConfigs, AssetHeapConfigs>>(
+		RESULT_TRY_MOVE(ret._layout, (acma::make<vk::pipeline_layout<vk::bind_point::compute, T, BufferConfigs, DescriptorArrayConfigs>>(
 			vulkan_fns_ptr,
 			logi_device_ptr,
 			sl::forward<RenderProcessT>(proc)

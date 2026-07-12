@@ -4,7 +4,7 @@
 #include <streamline/metaprogramming/integer_sequence.hpp>
 #include <streamline/numeric/int.hpp>
 
-#include "sirius/core/asset_heap_key_t.hpp"
+#include "sirius/core/descriptor_key_t.hpp"
 #include "sirius/core/buffer_info.hpp"
 #include "sirius/core/buffer_key_t.hpp"
 #include "sirius/vulkan/memory/bind_point.hpp"
@@ -22,7 +22,7 @@ namespace acma {
 	public:
 		constexpr static sl::array<0, buffer_info> push_constant_infos{};
 	public:
-		constexpr static sl::array<0, asset_heap_key_t> asset_heaps{};
+		constexpr static sl::array<0, descriptor_key_t> descriptor_arrays{};
 		constexpr static sl::array<0, buffer_info> uniform_buffer_infos{};
 	public:
 		constexpr static sl::array<0, dispatch_info> dispatch_infos{};

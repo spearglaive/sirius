@@ -8,7 +8,7 @@
 #include "sirius/shaders/generate_rects.hpp"
 
 #include "./buffer_config_table.hpp"
-#include "./asset_heap_config_table.hpp"
+#include "./descriptor_array_config_table.hpp"
 
 namespace acma::test {
 	struct generate_rects : public acma::dispatchable {

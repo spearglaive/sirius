@@ -10,7 +10,7 @@
 #include "sirius/core/api.def.h"
 #include "sirius/core/command_family.hpp"
 #include "sirius/core/error.hpp"
-#include "sirius/core/asset_heap_config.hpp"
+#include "sirius/core/descriptor_array_config.hpp"
 #include "sirius/vulkan/device/device_query.hpp"
 #include "sirius/vulkan/device/device_query_traits.hpp"
 #include "sirius/vulkan/device/queue_family_info.hpp"

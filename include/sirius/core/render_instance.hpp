@@ -28,10 +28,10 @@
 
 
 namespace acma {
-    template<typename... TimelineEventTs, auto BufferConfigs, auto AssetHeapConfigs, sl::size_t UserByteCount> requires impl::is_buffer_config_table_v<decltype(BufferConfigs)>
-	class render_instance<sl::tuple<TimelineEventTs...>, BufferConfigs, AssetHeapConfigs, UserByteCount> :
+    template<typename... TimelineEventTs, auto BufferConfigs, auto DescriptorArrayConfigs, sl::size_t UserByteCount> requires impl::is_buffer_config_table_v<decltype(BufferConfigs)>
+	class render_instance<sl::tuple<TimelineEventTs...>, BufferConfigs, DescriptorArrayConfigs, UserByteCount> :
 		public render_process<
-			BufferConfigs, AssetHeapConfigs,
+			BufferConfigs, DescriptorArrayConfigs,
 			timeline::command_traits<TimelineEventTs...>::group_count + timeline::impl::dedicated_command_group::num_dedicated_command_groups
 		>,
 		public window
@@ -48,10 +48,10 @@ namespace acma {
 		constexpr static sl::size_t command_group_count = command_traits_type::group_count + timeline::impl::dedicated_command_group::num_dedicated_command_groups;
 		constexpr static sl::size_t frames_in_flight = D2D_FRAMES_IN_FLIGHT;
 		constexpr static sl::size_t N = BufferConfigs.size();
-		constexpr static sl::size_t M = AssetHeapConfigs.size();
+		constexpr static sl::size_t M = DescriptorArrayConfigs.size();
 
 	public:
-		using render_process_type = render_process<BufferConfigs, AssetHeapConfigs, command_group_count, UserByteCount>;
+		using render_process_type = render_process<BufferConfigs, DescriptorArrayConfigs, command_group_count, UserByteCount>;
 		using render_process_core_type = render_process_core<command_group_count>;
 		using window_type = window;
 
@@ -101,10 +101,10 @@ namespace acma {
 
 
 namespace acma::impl {
-    template<typename... TimelineEventTs, auto BufferConfigs, auto AssetHeapConfigs, sl::size_t UserByteCount> requires impl::is_buffer_config_table_v<decltype(BufferConfigs)>
-    struct make<sl::unique_ptr<render_instance<sl::tuple<TimelineEventTs...>, BufferConfigs, AssetHeapConfigs, UserByteCount>>> {
+    template<typename... TimelineEventTs, auto BufferConfigs, auto DescriptorArrayConfigs, sl::size_t UserByteCount> requires impl::is_buffer_config_table_v<decltype(BufferConfigs)>
+    struct make<sl::unique_ptr<render_instance<sl::tuple<TimelineEventTs...>, BufferConfigs, DescriptorArrayConfigs, UserByteCount>>> {
     private:
-    	using value_type = render_instance<sl::tuple<TimelineEventTs...>, BufferConfigs, AssetHeapConfigs, UserByteCount>;
+    	using value_type = render_instance<sl::tuple<TimelineEventTs...>, BufferConfigs, DescriptorArrayConfigs, UserByteCount>;
     public:
 		SIRIUS_API result<sl::unique_ptr<value_type>> operator()(
 			vk::physical_device& device,

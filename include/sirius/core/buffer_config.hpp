@@ -43,14 +43,13 @@ namespace acma {
 		num_indirect_usage_policies = impl::bit_pos(draw_count) + 1 - num_direct_usage_polcies,
 		num_real_usage_policies = num_direct_usage_polcies + num_indirect_usage_policies,
 
-		asset_heap_table = 0b1 << (num_real_usage_policies + 0),
-		texture_data     = 0b1 << (num_real_usage_policies + 1),
-		push_constant    = 0b1 << (num_real_usage_policies + 2),
+		//texture_data         = 0b1 << (num_real_usage_policies + 0),
+		push_constant          = 0b1 << (num_real_usage_policies + 0),
 
 		num_pseudo_usage_policies = impl::bit_pos(push_constant) + 1 - num_real_usage_policies,
 		num_usage_policies = num_pseudo_usage_policies + num_real_usage_policies,
 
-		max_value = ~static_cast<buffer_usage_policy_flags_t>(0) >> (std::numeric_limits<buffer_usage_policy_flags_t>::digits - (num_usage_policies)),
+		all = ~static_cast<buffer_usage_policy_flags_t>(0) >> (std::numeric_limits<buffer_usage_policy_flags_t>::digits - (num_usage_policies)),
 	};
 	}
 }
@@ -64,5 +63,12 @@ namespace acma {
 		shader_stage_flags_t stages;
 		std::size_t initial_capacity_bytes = 0;
 		bool dedicated_allocation = false;
+	};
+}
+
+
+namespace acma {
+	constexpr buffer_config texture_staging_buffer_config{
+		memory_policy::cpu_local_cpu_writable, access_policy::gpu_only, buffer_usage_policy::none, 0, shader_stage::none, true
 	};
 }

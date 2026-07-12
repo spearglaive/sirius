@@ -4,15 +4,21 @@
 #include "sirius/core/api.def.h"
 #include "sirius/core/make.hpp"
 #include "sirius/vulkan/device/logical_device.hpp"
+#include "sirius/vulkan/display/image_view_handle.hpp"
 #include "sirius/vulkan/memory/image.hpp"
 #include "sirius/arith/size.hpp"
 
 
 namespace acma::vk {
     class SIRIUS_API depth_image : public image {
+    public:
+    	constexpr sl::reference_ptr<const image_view_handle> view_handle_ref() const noexcept { return {std::addressof(associated_view_handle)}; }
 	public:
 		template<typename T>
 		friend struct ::acma::impl::make;
+
+	private:
+		image_view_handle associated_view_handle;
     };
 }
 

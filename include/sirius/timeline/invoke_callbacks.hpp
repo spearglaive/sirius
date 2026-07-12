@@ -9,7 +9,7 @@
 #include "sirius/timeline/state.hpp"
 #include "sirius/vulkan/core/command_buffer.hpp"
 #include "sirius/core/buffer_config_table.hpp"
-#include "sirius/core/asset_heap_config_table.hpp"
+#include "sirius/core/descriptor_array_config_table.hpp"
 #include "sirius/timeline/event.hpp"
 
 

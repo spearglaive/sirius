@@ -7,7 +7,7 @@
 #include "sirius/shaders/texture_rect.hpp"
 
 #include "./buffer_config_table.hpp"
-#include "./asset_heap_config_table.hpp"
+#include "./descriptor_array_config_table.hpp"
 
 namespace acma::test {
 	struct texture_rect : public acma::drawable {
@@ -21,9 +21,9 @@ namespace acma::test {
 		}};
 	public:
 
-		constexpr static sl::array<2, asset_heap_key_t> asset_heaps{{
-			::asset_heap_id::samplers,
-			::asset_heap_id::textures
+		constexpr static sl::array<2, descriptor_key_t> descriptor_arrays{{
+			::descriptor_array_id::samplers,
+			::descriptor_array_id::textures
 		}};
 		constexpr static sl::array<0, buffer_info> uniform_infos{{}};
 	public:

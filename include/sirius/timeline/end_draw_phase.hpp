@@ -6,7 +6,7 @@
 #include "sirius/timeline/state.hpp"
 #include "sirius/vulkan/core/command_buffer.hpp"
 #include "sirius/core/buffer_config_table.hpp"
-#include "sirius/core/asset_heap_config_table.hpp"
+#include "sirius/core/descriptor_array_config_table.hpp"
 #include "sirius/timeline/event.hpp"
 
 
@@ -46,6 +46,8 @@ namespace acma::timeline {
 			};
 
 			graphics_buffer.pipeline_barrier({}, {}, {&post_render_transition, 1});
+			win.swap_chain_ptr()->image_layouts()[timeline_state.image_index] = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
 			return {};
 		};
 	};

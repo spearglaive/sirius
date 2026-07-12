@@ -7,8 +7,8 @@
 #include "sirius/core/buffer_key_t.hpp"
 #include "sirius/core/error.hpp"
 #include "sirius/core/render_process_core.fwd.hpp"
+#include "sirius/graphics/core/texture_info.hpp"
 #include "sirius/vulkan/memory/buffer_allocation.hpp"
-#include "sirius/vulkan/memory/asset_heap.fwd.hpp"
 #include "sirius/vulkan/memory/image_allocation.hpp"
 #include "sirius/vulkan/memory/resizable_gpu_buffer.fwd.hpp"
 
@@ -49,8 +49,9 @@ namespace acma {
 	template<sl::size_t CommandGroupCount>
 	constexpr result<void> gpu_copy(
 		render_process_core<CommandGroupCount> const& process_core,
-		vk::image& dst,
-		vk::image const& src,
+		sl::reference_ptr<vk::image> dst,
+		sl::reference_ptr<const vk::image> src,
+		sl::size_t count,
 		extent3 size,
 		offset3 dst_offset = {},
 		offset3 src_offset = {},
@@ -61,8 +62,10 @@ namespace acma {
 	template<sl::size_t CommandGroupCount, sl::traits::specialization_of<vk::generic::resizable_gpu_buffer> SrcBufferT>
 	constexpr result<void> gpu_copy(
 		render_process_core<CommandGroupCount> const& process_core,
-		std::span<vk::image> dst,
-		SrcBufferT const& src,
+		sl::reference_ptr<vk::image> dst,
+		sl::reference_ptr<const SrcBufferT> src,
+		sl::reference_ptr<const texture_info> src_info,
+		sl::size_t count,
 		sl::uint64_t timeout = std::numeric_limits<sl::uint64_t>::max()
 	) noexcept;
 }

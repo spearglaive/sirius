@@ -16,7 +16,7 @@
 #include "sirius/vulkan/display/pixel_format.hpp"
 #include "sirius/vulkan/display/present_mode.hpp"
 #include "sirius/vulkan/display/surface.hpp"
-#include "sirius/vulkan/display/image_view.hpp"
+#include "sirius/vulkan/display/image_view_handle.hpp"
 #include "sirius/arith/size.hpp"
 
 
@@ -25,8 +25,8 @@ namespace acma::vk {
 	public:
 		constexpr static std::array<vk::pixel_format_info, 2> default_pixel_format_priority = {vk::pixel_formats.find(VK_FORMAT_B8G8R8A8_SRGB)->second, vk::pixel_formats.find(VK_FORMAT_B8G8R8A8_UNORM)->second};
 		constexpr static vk::color_space_info default_color_space = vk::color_spaces.find(VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)->second;
-		constexpr static std::array<vk::present_mode, static_cast<std::size_t>(vk::present_mode::num_present_modes)> default_present_mode_priority{vk::present_mode::mailbox, vk::present_mode::fifo, vk::present_mode::fifo_relaxed, vk::present_mode::immediate}; 
-	
+		constexpr static std::array<vk::present_mode, static_cast<std::size_t>(vk::present_mode::num_present_modes)> default_present_mode_priority{vk::present_mode::mailbox, vk::present_mode::fifo, vk::present_mode::fifo_relaxed, vk::present_mode::immediate};
+
 
 	public:
 		template<typename T>
@@ -43,14 +43,15 @@ namespace acma::vk {
 			std::span<const present_mode> present_mode_priority = default_present_mode_priority
 		) noexcept;
 
-    
+
 	public:
-        constexpr auto&& extent     (this auto&& self) noexcept { return sl::forward_like<decltype(self)>(self._extent); }
-        constexpr auto&& image_count(this auto&& self) noexcept { return sl::forward_like<decltype(self)>(self._image_count); }
-        constexpr auto&& format     (this auto&& self) noexcept { return sl::forward_like<decltype(self)>(self._display_format); }
-        constexpr auto&& mode       (this auto&& self) noexcept { return sl::forward_like<decltype(self)>(self._present_mode); }
-        constexpr auto&& image_views(this auto&& self) noexcept { return sl::forward_like<decltype(self)>(self._image_views); }
-        constexpr auto&& images     (this auto&& self) noexcept { return sl::forward_like<decltype(self)>(self._images); }
+        constexpr auto&& extent            (this auto&& self) noexcept { return sl::forward_like<decltype(self)>(self._extent); }
+        constexpr auto&& image_count       (this auto&& self) noexcept { return sl::forward_like<decltype(self)>(self._image_count); }
+        constexpr auto&& format            (this auto&& self) noexcept { return sl::forward_like<decltype(self)>(self._display_format); }
+        constexpr auto&& mode              (this auto&& self) noexcept { return sl::forward_like<decltype(self)>(self._present_mode); }
+        constexpr auto&& image_view_handles(this auto&& self) noexcept { return sl::forward_like<decltype(self)>(self._image_view_handles); }
+        constexpr auto&& images            (this auto&& self) noexcept { return sl::forward_like<decltype(self)>(self._images); }
+        constexpr auto&& image_layouts     (this auto&& self) noexcept { return sl::forward_like<decltype(self)>(self._image_layouts); }
 
 
     public:
@@ -58,8 +59,9 @@ namespace acma::vk {
         std::uint32_t _image_count;
         vk::display_format _display_format;
         vk::present_mode _present_mode;
-        std::unique_ptr<image_view[]> _image_views;
+        std::unique_ptr<image_view_handle[]> _image_view_handles;
         std::unique_ptr<VkImage[]> _images;
+        std::unique_ptr<VkImageLayout[]> _image_layouts;
     };
 }
 

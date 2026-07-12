@@ -8,17 +8,17 @@
 
 
 namespace acma::impl {
-    template<vk::bind_point_t BindPoint, typename T, auto BufferConfigs, auto AssetHeapConfigs>
+    template<vk::bind_point_t BindPoint, typename T, auto BufferConfigs, auto DescriptorArrayConfigs>
 	template<typename RenderProcessT>
-	result<vk::pipeline_layout<BindPoint, T, BufferConfigs, AssetHeapConfigs>>
-		make<vk::pipeline_layout<BindPoint, T, BufferConfigs, AssetHeapConfigs>>::
+	result<vk::pipeline_layout<BindPoint, T, BufferConfigs, DescriptorArrayConfigs>>
+		make<vk::pipeline_layout<BindPoint, T, BufferConfigs, DescriptorArrayConfigs>>::
 	operator()(
 		sl::reference_ptr<const vk::function_table> vulkan_fns_ptr,
 		sl::reference_ptr<const vk::logical_device> logi_device_ptr,
 		RenderProcessT const& proc,
-		sl::in_place_adl_tag_type<vk::pipeline_layout<BindPoint, T, BufferConfigs, AssetHeapConfigs>>
+		sl::in_place_adl_tag_type<vk::pipeline_layout<BindPoint, T, BufferConfigs, DescriptorArrayConfigs>>
 	) const noexcept {
-		using pipeline_layout = vk::pipeline_layout<BindPoint, T, BufferConfigs, AssetHeapConfigs>;
+		using pipeline_layout = vk::pipeline_layout<BindPoint, T, BufferConfigs, DescriptorArrayConfigs>;
 
 		pipeline_layout ret{};
 		ret.smart_handle = {vulkan_fns_ptr->vkDestroyPipelineLayout, logi_device_ptr};
@@ -60,7 +60,7 @@ namespace acma::impl {
 		));
 
 
-		constexpr sl::size_t descriptor_set_count = T::asset_heaps.size();
+		constexpr sl::size_t descriptor_set_count = T::descriptor_arrays.size();
 		sl::array<1 + descriptor_set_count, VkDescriptorSetLayout> set_layout_handles{};
 		set_layout_handles[0] = ret.uniform_set_layout;
 
@@ -69,7 +69,7 @@ namespace acma::impl {
 			decltype(set_layout_handles)& out,
 			sl::index_constant_type<I>
 		) noexcept {
-			out[I + 1] = sl::universal::get<T::asset_heaps[I]>(render_proc).set_layout();
+			out[I + 1] = sl::universal::get<T::descriptor_arrays[I]>(render_proc).set_layout();
 		};
 
 		sl::invoke(

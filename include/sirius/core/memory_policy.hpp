@@ -10,11 +10,11 @@ namespace acma {
 
 	namespace memory_policy {
     enum : memory_policy_t {
-        gpu_local, 
-        cpu_local_cpu_writable, 
+        gpu_local,
+        cpu_local_cpu_writable,
 		cpu_local_gpu_writable,
         shared,
-        push_constant,
+        push_constant, //TODO: remove (cpu_local_cpu_writable is good enough)
 
         num_memory_policies,
 		num_allocation_backed_memory_policies = num_memory_policies - 1,

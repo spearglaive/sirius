@@ -12,6 +12,11 @@ namespace acma::vk {
     struct SIRIUS_API image_sampler : public mixin<VkSampler, PFN_vkDestroySampler, logical_device> {
     public:
         pt3<VkSamplerAddressMode> address_modes;
+
+    public:
+		constexpr operator VkDescriptorImageInfo() const noexcept {
+			return {.sampler = *this};
+		}
     };
 }
 

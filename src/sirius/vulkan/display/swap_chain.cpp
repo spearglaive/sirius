@@ -4,7 +4,7 @@
 #include "sirius/vulkan/device/device_query.hpp"
 #include "sirius/vulkan/display/color_space.hpp"
 #include "sirius/vulkan/display/display_format.hpp"
-#include "sirius/vulkan/display/image_view.hpp"
+#include "sirius/vulkan/display/image_view_handle.hpp"
 #include "sirius/core/make.hpp"
 #include "sirius/vulkan/device/physical_device.hpp"
 #include "sirius/vulkan/device/logical_device.hpp"
@@ -103,26 +103,25 @@ namespace acma::vk {
         }
 
         //Create swap chain image views
-        _image_views = std::make_unique_for_overwrite<image_view[]>(_image_count);
+        _image_view_handles = std::make_unique_for_overwrite<image_view_handle[]>(_image_count);
+        _image_layouts = std::make_unique<VkImageLayout[]>(_image_count);
         for (size_t i = 0; i < _image_count; i++) {
-        	const VkImageViewCreateInfo image_view_create_info{
-        	    .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-        	    .image = _images[i],
-        	    .viewType = VK_IMAGE_VIEW_TYPE_2D,
-        	    .format = _display_format.pixel_format.id,
-        	    .components{},
-        	    .subresourceRange{
-        	        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-        	        .baseMipLevel = 0,
-        	        .levelCount = 1,
-        	        .baseArrayLayer = 0,
-        	        .layerCount = 1,
-        	    },
-        	};
-            RESULT_TRY_MOVE(_image_views[i], make<image_view>(
+       		const image_view view{
+        		{&_display_format.pixel_format.id},
+      			{&_image_layouts[i]},
+        		{&_images[i]},
+        		{
+    	        	.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+    	        	.baseMipLevel = 0,
+    	        	.levelCount = 1,
+    	        	.baseArrayLayer = 0,
+    	        	.layerCount = 1,
+     	    	}
+         	};
+            RESULT_TRY_MOVE(_image_view_handles[i], make<image_view_handle>(
 				vulkan_fns_ptr,
 				logi_device_ptr,
-				image_view_create_info
+				view
 			));
         }
 

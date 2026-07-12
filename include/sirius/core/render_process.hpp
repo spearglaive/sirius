@@ -14,23 +14,21 @@
 #include "sirius/core/frames_in_flight.def.hpp"
 #include "sirius/timeline/callback_event.hpp"
 #include "sirius/timeline/state.hpp"
+#include "sirius/core/buffer_config_table.hpp"
+#include "sirius/core/descriptor_array_config_table.hpp"
 #include "sirius/vulkan/memory/buffer_tuple.hpp"
-#include "sirius/vulkan/memory/asset_heap_group.hpp"
+#include "sirius/vulkan/memory/descriptor_array_tuple.hpp"
 #include "sirius/core/buffer_config_table.hpp"
 #include "sirius/vulkan/sync/semaphore.hpp"
-#include "sirius/core/asset_heap_key_t.hpp"
+#include "sirius/core/descriptor_key_t.hpp"
 
 
 
 namespace acma {
-	template<auto BufferConfigs, auto AssetHeapConfigs, sl::size_t CommandGroupCount, sl::size_t UserByteCount = 0>
+	//TODO: remove and merge members into render_instance
+	template<auto BufferConfigs, auto DescriptorArrayConfigs, sl::size_t CommandGroupCount, sl::size_t UserByteCount = 0>
 	class render_process :
-		public render_process_core<CommandGroupCount>,
-		public vk::impl::asset_heap_group<
-			sl::index_sequence_of_length_type<AssetHeapConfigs.size()>,
-			AssetHeapConfigs,
-			render_process<BufferConfigs, AssetHeapConfigs, CommandGroupCount, UserByteCount>
-		>
+		public render_process_core<CommandGroupCount>
 	{
 
 	public:
@@ -38,26 +36,27 @@ namespace acma {
 		constexpr static sl::size_t command_buffer_count = CommandGroupCount;
 	public:
 		constexpr static buffer_config_table<BufferConfigs.size()> buffer_configs = BufferConfigs;
-		constexpr static asset_heap_config_table<AssetHeapConfigs.size()> asset_heap_configs = AssetHeapConfigs;
+		constexpr static descriptor_array_config_table<DescriptorArrayConfigs.size()> descriptor_array_configs = DescriptorArrayConfigs;
 
 	private:
 		constexpr static sl::size_t N = BufferConfigs.size();
-		constexpr static sl::size_t M = AssetHeapConfigs.size();
+		constexpr static sl::size_t M = DescriptorArrayConfigs.size();
 
 		constexpr static sl::lookup_table<N, buffer_key_t, sl::index_t> buffer_key_indices = sl::universal::make_deduced<sl::generic::lookup_table>(
 			BufferConfigs, sl::functor::subscript<0>{}, sl::functor::identity_index{}
 		);
-		constexpr static sl::lookup_table<M, asset_heap_key_t, sl::index_t> asset_heap_key_indices = sl::universal::make_deduced<sl::generic::lookup_table>(
-			AssetHeapConfigs, sl::functor::subscript<0>{}, sl::functor::identity_index{}
+		constexpr static sl::lookup_table<M, descriptor_key_t, sl::index_t> descriptor_array_key_indices = sl::universal::make_deduced<sl::generic::lookup_table>(
+			DescriptorArrayConfigs, sl::functor::subscript<0>{}, sl::functor::identity_index{}
 		);
 
 		template<buffer_key_t K>
 		using buffer_type = vk::resizable_gpu_buffer<buffer_configs[K], render_process>;
-		template<asset_heap_key_t K>
-		using asset_heap_type = vk::asset_heap<K, asset_heap_configs, render_process>;
+		template<descriptor_key_t K>
+		using descriptor_array_type = vk::resizable_asset_descriptor_array<descriptor_array_configs[K], render_process>;
 	public:
 		using callback_function_type = result<void>(render_process&, window&, timeline::state<UserByteCount>&) noexcept;
 		using buffer_tuple_type = vk::impl::buffer_tuple_t<sl::index_sequence_of_length_type<N>, BufferConfigs, render_process>;
+		using descriptor_array_tuple_type = vk::impl::descriptor_array_tuple_t<sl::index_sequence_of_length_type<M>, DescriptorArrayConfigs, render_process>;
 
 
 	public:
@@ -75,16 +74,16 @@ namespace acma {
 		}
 
 	public:
-		template<asset_heap_key_t Key>
-		constexpr auto&& operator[](this auto&& self, sl::constant_type<asset_heap_key_t, Key>) noexcept
-		requires (AssetHeapConfigs.contains(Key)) {
-			return static_cast<sl::copy_cvref_t<decltype(self), asset_heap_type<Key>>>(self);
+		template<descriptor_key_t Key>
+		constexpr auto&& operator[](this auto&& self, sl::constant_type<descriptor_key_t, Key>) noexcept
+		requires (DescriptorArrayConfigs.contains(Key)) {
+			return sl::forward_like<decltype(self)>(self._asset_descriptor_arrays[sl::index_constant<descriptor_array_key_indices[Key]>]);
 		}
 
-		template<asset_heap_key_t Key>
-		constexpr auto&& get(this auto&& self, sl::constant_type<asset_heap_key_t, Key> = {}) noexcept
-		requires (AssetHeapConfigs.contains(Key)) {
-			return sl::forward_like<decltype(self)>(self[sl::constant<asset_heap_key_t, Key>]);
+		template<descriptor_key_t Key>
+		constexpr auto&& get(this auto&& self, sl::constant_type<descriptor_key_t, Key> = {}) noexcept
+		requires (DescriptorArrayConfigs.contains(Key)) {
+			return sl::forward_like<decltype(self)>(self[sl::constant<descriptor_key_t, Key>]);
 		}
 
 	public:
@@ -109,5 +108,6 @@ namespace acma {
 
 	protected:
 		buffer_tuple_type _gpu_buffers;
+		descriptor_array_tuple_type _asset_descriptor_arrays;
 	};
 }

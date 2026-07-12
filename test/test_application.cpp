@@ -18,6 +18,7 @@
 #include <sirius/core/window.hpp>
 #include <sirius/arith/matrix.hpp>
 #include <sirius/arith/point.hpp>
+#include <sirius/vulkan/memory/resizable_gpu_image_array.hpp>
 #include "sirius/core/render_instance.hpp"
 #include "sirius/core/decoder.hpp"
 #include "sirius/input/category.hpp"
@@ -27,7 +28,7 @@
 
 #include "./timeline.hpp"
 #include "./buffer_config_table.hpp"
-#include "./asset_heap_config_table.hpp"
+#include "./descriptor_array_config_table.hpp"
 
 
 
@@ -48,9 +49,24 @@ if(auto r = fn; !r.has_value()) { \
 	return r.error(); \
 }
 
+#define RESULT_MOVE_OUTPUT(var, fn, r) { \
+  auto r = fn; \
+  if (!r.has_value()) { \
+	std::cout << "[Line " << __LINE__ << "] Error code " << r.error() << ": "; \
+	auto desc_it = acma::error::code_descs.find(r.error()); \
+	if(desc_it == acma::error::code_descs.end()) \
+		std::cout << "Unknown error occurred" << std::endl; \
+	else \
+		std::cout << desc_it->second << std::endl; \
+	return r.error(); \
+  } \
+  var = *std::move(r); \
+}
 
 
-using render_instance = acma::render_instance<acma::test::intermediate_timeline, buffer_configs, asset_heap_configs>;
+
+using render_instance = acma::render_instance<acma::test::intermediate_timeline, buffer_configs, descriptor_array_configs>;
+using render_process_core = typename render_instance::render_process_core_type;
 
 using command_traits_type = acma::timeline::impl::command_traits<
 	acma::test::basic_timeline,
@@ -85,7 +101,7 @@ int main(){
 
 
     std::cout << std::filesystem::current_path() << std::endl;
-    const std::filesystem::path assets_path = std::filesystem::canonical(std::filesystem::path("../../test/assets"));
+    const std::filesystem::path assets_path("test/assets");
 
 	acma::vk::physical_device& selected_device = *acma::devices().begin();
     acma::result<sl::unique_ptr<render_instance>> inst_result = acma::make<sl::unique_ptr<render_instance>>(selected_device, true, acma::sz2u32{1600, 900});
@@ -271,10 +287,10 @@ int main(){
 
 	//Textures
 	llfio::mapped_file_handle texture_mh;
-	RESULT_TRY_MOVE(texture_mh, acma::decoder::open_file(assets_path / "test_img_alpha_2.ktx2"));
+	RESULT_MOVE_OUTPUT(texture_mh, acma::decoder::open_file(assets_path / "test_img_alpha_2.ktx2"), texture_mh_result);
 	RESULT_TRY_MOVE_UNSCOPED(const acma::texture sampled_tex, acma::decoder::decode_texture(texture_mh, acma::texture_usage::sampled), sampled_tex_result);
 	llfio::mapped_file_handle font_mh;
-	RESULT_TRY_MOVE(font_mh, acma::decoder::open_file(assets_path / "test_font.ktx2"));
+	RESULT_MOVE_OUTPUT(font_mh, acma::decoder::open_file(assets_path / "test_font.ktx2"), font_mh_result);
 	RESULT_TRY_MOVE_UNSCOPED(const acma::texture font_tex, acma::decoder::decode_texture(font_mh, acma::texture_usage::sampled), font_text_result);
 	//RESULT_TRY_MOVE_UNSCOPED(const acma::texture storage_t, acma::decoder::decode_texture(texture_mh, acma::texture_usage::storage), storage_tex_result);
 
@@ -300,17 +316,29 @@ int main(){
         .borderColor             = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK,
         .unnormalizedCoordinates = VK_FALSE,
 	};
-	RESULT_OUTPUT(sl::universal::get<asset_heap_id::samplers>(*inst).push_back(sl::move(sampler_info)));
+	RESULT_OUTPUT(sl::universal::get<descriptor_array_id::samplers>(*inst).emplace_back(sampler_info));
 
+	//Images
+	acma::vk::resizable_gpu_image_array<render_process_core> images{*inst};
+	acma::vk::resizable_gpu_buffer<acma::texture_staging_buffer_config, render_process_core> texture_staging_buffer{*inst};
+	RESULT_OUTPUT(texture_staging_buffer.initialize());
 
-	RESULT_OUTPUT(sl::universal::get<buffer_id::texture_staging>(*inst).push_back(sampled_tex));
+	RESULT_OUTPUT(texture_staging_buffer.resize(sampled_tex.bytes_count));
+	std::memcpy(texture_staging_buffer.data(), sampled_tex.bytes.get(), sampled_tex.bytes_count);
 	//RESULT_OUTPUT(sl::universal::get<buffer_id::texture_staging>(*inst).push_back(storage_t));
-	RESULT_OUTPUT(sl::universal::get<asset_heap_id::textures>(*inst).emplace_back(sl::universal::get<buffer_id::texture_staging>(*inst)));
+	RESULT_OUTPUT(images.emplace_back(texture_staging_buffer, sampled_tex));
+	RESULT_OUTPUT(sl::universal::get<descriptor_array_id::textures>(*inst).emplace_back(images.back()));
+	texture_staging_buffer.clear();
 
-	sl::universal::get<buffer_id::texture_staging>(*inst).clear();
+	RESULT_OUTPUT(texture_staging_buffer.resize(font_tex.bytes_count));
+	std::memcpy(texture_staging_buffer.data(), font_tex.bytes.get(), font_tex.bytes_count);
+	RESULT_OUTPUT(images.emplace_back(texture_staging_buffer, font_tex));
 
-	RESULT_OUTPUT(sl::universal::get<buffer_id::texture_staging>(*inst).push_back(font_tex));
-	RESULT_OUTPUT(sl::universal::get<asset_heap_id::textures>(*inst).emplace_back(sl::universal::get<buffer_id::texture_staging>(*inst)));
+	const acma::vk::image_view font_view = images.back();
+	constexpr static sl::size_t slice_count = 2;
+	const sl::size_t view_length = font_view.layer_count() / slice_count;
+	for(sl::size_t i = 0; i < slice_count; ++i)
+		RESULT_OUTPUT(sl::universal::get<descriptor_array_id::textures>(*inst).emplace_back(font_view.sublayers(font_view.first_layer() + (view_length * i), view_length)));
 
 
 

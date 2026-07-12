@@ -25,7 +25,7 @@ set(CPP_FILES
 
 	vulkan/display/depth_image.cpp
 	vulkan/display/image_sampler.cpp
-	vulkan/display/image_view.cpp
+	vulkan/display/image_view_handle.cpp
 	vulkan/display/surface.cpp
 	vulkan/display/swap_chain.cpp
 
@@ -74,7 +74,23 @@ string(REPLACE glfw glfw3 PUBLIC_DEPENDENCIES_LIST ${PUBLIC_DEPENDENCIES_LIST})
 
 add_library(${PROJECT_NAME} ${CPP_FILES})
 add_custom_target(${PROJECT_NAME}_shaders ALL DEPENDS ${SHADER_OUTPUT_FILES} SOURCES ${SHADER_INPUT_FILES})
-add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_shaders)
+add_custom_target(${PROJECT_NAME}_assets_link ALL DEPENDS ${PROJECT_BINARY_DIR}/test/assets)
+add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_shaders ${PROJECT_NAME}_assets_link)
+
+add_custom_command(
+	TARGET ${PROJECT_NAME} POST_BUILD
+	BYPRODUCTS ${PROJECT_BINARY_DIR}/debug_target
+	COMMENT "Creating symlink for debug target"
+	COMMAND ${CMAKE_COMMAND} -E create_symlink ${PROJECT_BINARY_DIR}/test/test_application ${PROJECT_BINARY_DIR}/debug_target
+)
+
+add_custom_command(
+	OUTPUT ${PROJECT_BINARY_DIR}/test/assets
+	DEPENDS ${PROJECT_SOURCE_DIR}/test/assets
+	COMMENT "Creating symlink for assets folder"
+	COMMAND ${CMAKE_COMMAND} -E create_symlink ${PROJECT_SOURCE_DIR}/test/assets ${PROJECT_BINARY_DIR}/test/assets
+)
+
 
 ## pkgconfig
 configure_file(

@@ -28,19 +28,6 @@ namespace acma::vk::impl {
     }
 }
 
-namespace acma::vk::generic {
-    template<buffer_config BufferConfig, sl::size_t CommandGroupCount>
-	requires (
-		static_cast<bool>(BufferConfig.usage & (buffer_usage_policy::texture_data))
-	)
-	result<void>    resizable_gpu_buffer<sl::constant_type<buffer_config, BufferConfig>, sl::size_constant_type<CommandGroupCount>>::
-	initialize() noexcept {
-    	RESULT_VERIFY(base_type::initialize());
-    	texture_data_infos = {};
-     	return {};
-	}
-}
-
 
 namespace acma::vk::impl {
 	template<buffer_config BufferConfig, sl::size_t CommandGroupCount>
@@ -130,10 +117,7 @@ namespace acma::vk::impl {
 
 namespace acma::vk::generic {
 	template<buffer_config BufferConfig, sl::size_t CommandGroupCount>
-	requires(
-		!(BufferConfig.usage & (buffer_usage_policy::texture_data)) &&
-		BufferConfig.memory != memory_policy::gpu_local
-	)
+	requires(BufferConfig.memory != memory_policy::gpu_local)
 	template<sl::traits::specialization_of<generic::resizable_gpu_buffer> DstBufferT>
 	constexpr result<void>    resizable_gpu_buffer<sl::constant_type<buffer_config, BufferConfig>, sl::size_constant_type<CommandGroupCount>>::
 	upload_to(DstBufferT& dst, sl::uoffset_t dst_offset) noexcept {
@@ -145,10 +129,7 @@ namespace acma::vk::generic {
 	}
 
 	template<buffer_config BufferConfig, sl::size_t CommandGroupCount>
-	requires(
-		!(BufferConfig.usage & (buffer_usage_policy::texture_data)) &&
-		BufferConfig.memory != memory_policy::gpu_local
-	)
+	requires(BufferConfig.memory != memory_policy::gpu_local)
 	template<sl::traits::specialization_of<generic::resizable_gpu_buffer> DstBufferT>
 	constexpr result<void>    resizable_gpu_buffer<sl::constant_type<buffer_config, BufferConfig>, sl::size_constant_type<CommandGroupCount>>::
 	try_upload_to(DstBufferT& dst, sl::uoffset_t dst_offset) noexcept {
@@ -162,10 +143,7 @@ namespace acma::vk::generic {
 
 namespace acma::vk::generic {
 	template<buffer_config BufferConfig, sl::size_t CommandGroupCount>
-	requires(
-		!(BufferConfig.usage & (buffer_usage_policy::texture_data)) &&
-		BufferConfig.memory != memory_policy::gpu_local
-	)
+	requires(BufferConfig.memory != memory_policy::gpu_local)
 	template<typename T, typename U>
 	constexpr result<T*>    resizable_gpu_buffer<sl::constant_type<buffer_config, BufferConfig>, sl::size_constant_type<CommandGroupCount>>::
 	push_back(U&& u)
@@ -178,10 +156,7 @@ namespace acma::vk::generic {
 	}
 
 	template<buffer_config BufferConfig, sl::size_t CommandGroupCount>
-	requires(
-		!(BufferConfig.usage & (buffer_usage_policy::texture_data)) &&
-		BufferConfig.memory != memory_policy::gpu_local
-	)
+	requires(BufferConfig.memory != memory_policy::gpu_local)
 	template<typename T, typename U>
 	constexpr result<T*>    resizable_gpu_buffer<sl::constant_type<buffer_config, BufferConfig>, sl::size_constant_type<CommandGroupCount>>::
 	try_push_back(U&& u)
@@ -196,10 +171,7 @@ namespace acma::vk::generic {
 
 namespace acma::vk::generic {
 	template<buffer_config BufferConfig, sl::size_t CommandGroupCount>
-	requires(
-		!(BufferConfig.usage & (buffer_usage_policy::texture_data)) &&
-		BufferConfig.memory != memory_policy::gpu_local
-	)
+	requires(BufferConfig.memory != memory_policy::gpu_local)
 	template<typename T, typename... Args>
 	constexpr result<T*>    resizable_gpu_buffer<sl::constant_type<buffer_config, BufferConfig>, sl::size_constant_type<CommandGroupCount>>::
 	emplace_back(Args&&... args)
@@ -212,10 +184,7 @@ namespace acma::vk::generic {
 	}
 
 	template<buffer_config BufferConfig, sl::size_t CommandGroupCount>
-	requires(
-		!(BufferConfig.usage & (buffer_usage_policy::texture_data)) &&
-		BufferConfig.memory != memory_policy::gpu_local
-	)
+	requires(BufferConfig.memory != memory_policy::gpu_local)
 	template<typename T, typename... Args>
 	constexpr result<T*>    resizable_gpu_buffer<sl::constant_type<buffer_config, BufferConfig>, sl::size_constant_type<CommandGroupCount>>::
 	try_emplace_back(Args&&... args)
@@ -230,10 +199,7 @@ namespace acma::vk::generic {
 
 namespace acma::vk::generic {
     template<buffer_config BufferConfig, sl::size_t CommandGroupCount>
-	requires(
-		!(BufferConfig.usage & (buffer_usage_policy::texture_data)) &&
-		BufferConfig.memory != memory_policy::gpu_local
-	)
+	requires(BufferConfig.memory != memory_policy::gpu_local)
 	template<typename T, typename U>
     constexpr result<T*>
 		resizable_gpu_buffer<sl::constant_type<buffer_config, BufferConfig>, sl::size_constant_type<CommandGroupCount>>::
@@ -249,10 +215,7 @@ namespace acma::vk::generic {
 	}
 
     template<buffer_config BufferConfig, sl::size_t CommandGroupCount>
-	requires(
-		!(BufferConfig.usage & (buffer_usage_policy::texture_data)) &&
-		BufferConfig.memory != memory_policy::gpu_local
-	)
+	requires(BufferConfig.memory != memory_policy::gpu_local)
 	template<typename T, typename... Args>
     constexpr result<T*>
 		resizable_gpu_buffer<sl::constant_type<buffer_config, BufferConfig>, sl::size_constant_type<CommandGroupCount>>::
@@ -265,51 +228,5 @@ namespace acma::vk::generic {
 		//TODO: wrap under unique_placement_ptr/unique_placement_ref so that non-trivial types are properly destructed
 		T* ptr = new (dst + dst_offset) T(sl::forward<Args>(args)...);
 		return ptr;
-	}
-}
-
-
-
-namespace acma::vk::generic {
-	template<buffer_config BufferConfig, sl::size_t CommandGroupCount>
-	requires (
-		static_cast<bool>(BufferConfig.usage & (buffer_usage_policy::texture_data))
-	)
-	constexpr void    resizable_gpu_buffer<sl::constant_type<buffer_config, BufferConfig>, sl::size_constant_type<CommandGroupCount>>::
-	clear() noexcept {
-		base_type::clear();
-		texture_data_infos.clear();
-	}
-}
-
-namespace acma::vk::generic {
-	template<buffer_config BufferConfig, sl::size_t CommandGroupCount>
-	requires (
-		static_cast<bool>(BufferConfig.usage & (buffer_usage_policy::texture_data))
-	)
-	constexpr result<void>    resizable_gpu_buffer<sl::constant_type<buffer_config, BufferConfig>, sl::size_constant_type<CommandGroupCount>>::
-	push_back(texture_view t) noexcept {
-		const sl::size_t old_size = this->size_bytes();
-		RESULT_VERIFY(this->resize(old_size + t.bytes.size_bytes()));
-		const sl::uoffset_t offset = this->texture_data_infos.empty() ? 0 : (this->texture_data_infos.back().offset + this->texture_data_infos.back().size);
-		this->texture_data_infos.push_back(texture_data_info{t, offset, t.bytes.size_bytes()});
-
-		std::memcpy(this->data() + offset, t.bytes.data(), t.bytes.size_bytes());
-		return {};
-	}
-
-	template<buffer_config BufferConfig, sl::size_t CommandGroupCount>
-	requires (
-		static_cast<bool>(BufferConfig.usage & (buffer_usage_policy::texture_data))
-	)
-	constexpr result<void>    resizable_gpu_buffer<sl::constant_type<buffer_config, BufferConfig>, sl::size_constant_type<CommandGroupCount>>::
-	try_push_back(texture_view t) noexcept {
-		const sl::size_t old_size = this->size_bytes();
-		RESULT_VERIFY(this->try_resize(old_size + t.bytes.size_bytes()));
-		const sl::uoffset_t offset = this->texture_data_infos.empty() ? 0 : (this->texture_data_infos.back().offset + this->texture_data_infos.back().size);
-		this->texture_data_infos.push_back(texture_data_info{t, offset, t.bytes.size_bytes()});
-
-		std::memcpy(this->data() + offset, t.bytes.data(), t.bytes.size_bytes());
-		return {};
 	}
 }
