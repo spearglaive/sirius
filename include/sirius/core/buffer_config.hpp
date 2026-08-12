@@ -69,6 +69,6 @@ namespace acma {
 
 namespace acma {
 	constexpr buffer_config texture_staging_buffer_config{
-		memory_policy::cpu_local_cpu_writable, access_policy::gpu_only, buffer_usage_policy::none, 0, shader_stage::none, true
+		memory_policy::cpu_local_cpu_writable, access_policy::exclusive, buffer_usage_policy::none, 0, shader_stage::none, true
 	};
 }

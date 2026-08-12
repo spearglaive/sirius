@@ -8,7 +8,7 @@
 namespace acma::vk::impl {
 	template<access_policy_t Access, memory_policy_t Memory>
 	constexpr bool requires_clear = (
-		Access == access_policy::gpu_and_cpu &&
+		Access == access_policy::concurrent &&
 		memory_policy::is_cpu_writable(Memory)
 	);
 }
